@@ -1,0 +1,57 @@
+name: add analytics link once
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/add-analytics-link-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add analytics link
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('admin.html')
+          s=p.read_text()
+          old='''<a href="./customers.html">\n<button class="secondary" type="button">\n顧客・カルテ\n</button>\n</a>\n\n</div>'''
+          new='''<a href="./customers.html">\n<button class="secondary" type="button">\n顧客・カルテ\n</button>\n</a>\n\n<a class="wide" href="./analytics.html">\n<button class="secondary" type="button">\n月間売上・予約集計\n</button>\n</a>\n\n</div>'''
+          if s.count(old)!=1:
+              raise SystemExit(f'admin menu matcher count={s.count(old)}')
+          s=s.replace(old,new,1)
+          css='''.adminLinks button{\n  margin:0\n}\n'''
+          css_new='''.adminLinks button{\n  margin:0\n}\n\n.adminLinks a.wide{\n  grid-column:1/-1\n}\n'''
+          if s.count(css)!=1:
+              raise SystemExit(f'admin css matcher count={s.count(css)}')
+          s=s.replace(css,css_new,1)
+          p.write_text(s)
+          PY
+      - name: Verify analytics page
+        shell: bash
+        run: |
+          grep -q 'href="./analytics.html"' admin.html
+          grep -q '月間売上・予約集計' admin.html
+          grep -q '確定予約ベースの予約売上' analytics.html
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('analytics.html').read_text()
+          m=re.findall(r'<script type="module">(.*?)</script>',s,re.S)
+          if len(m)!=1:
+              raise SystemExit('analytics module script not found exactly once')
+          Path('/tmp/analytics.mjs').write_text(m[0])
+          PY
+          node --check /tmp/analytics.mjs
+      - name: Commit and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add admin.html
+          git rm .github/workflows/add-analytics-link-once.yml
+          git commit -m 'Link monthly sales analytics from admin' || exit 0
+          git push

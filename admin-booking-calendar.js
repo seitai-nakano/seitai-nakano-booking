@@ -184,4 +184,9 @@ supabase.auth.onAuthStateChange((_event,session)=>{
   if(session&&!ready)setTimeout(start,120);
 });
 
+window.refreshAdminBookingCalendar=async(date)=>{
+  const month=monthFromDate(date)||viewMonth||currentJapanMonth();
+  await loadMonth(month);
+};
+
 setTimeout(start,650);

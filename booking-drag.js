@@ -187,6 +187,7 @@ function enhance(){clearTimeout(enhanceTimer);enhanceTimer=setTimeout(()=>{renam
 
 addStyles();createEdges();renamePages();ensureDestinationSlot();createGuide();ensureBlockedEditor();scanBlocks();setupDateWatch();setupRealtime();
 setTimeout(()=>{scrollToCurrentTime(true);improveAdminLayout();enhanceQuarterTimes();addQuarterGuides();installQuarterBulkControls();refreshQuarterUI();loadMonthlyBookings();hydrateBlockedBlocks(true)},520);
+window.refreshMonthlyBookings=loadMonthlyBookings;
 new MutationObserver(enhance).observe(document.body,{childList:true,subtree:true});
 window.addEventListener('pointermove',pointerMove,{passive:false});window.addEventListener('pointerup',pointerUp);window.addEventListener('pointercancel',pointerCancel);
 

@@ -475,6 +475,15 @@ button:disabled{
   background:#faf8f5
 }
 
+.adminTimeSelect{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;margin:0!important;padding:0!important}
+.adminTimeButtons{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;max-height:280px;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:7px 0 5px;padding:2px}
+.adminTimeButton{min-width:0;min-height:46px;padding:9px 3px;border:1px solid #ddd5cc;border-radius:11px;background:#fff;color:#49443f;font-size:14px;font-weight:800}
+.adminTimeButton.selected{border-color:#61574d;background:#61574d;color:#fff}
+.adminTimeButton:active{transform:scale(.98)}
+.adminTimeEmpty{grid-column:1/-1;padding:12px;border-radius:11px;background:#faf8f5;color:#817a73;font-size:12px;text-align:center}
+.adminTimeHelp{margin:0 0 10px!important;font-size:11px!important}
+@media(max-width:420px){.adminTimeButtons{grid-template-columns:repeat(3,minmax(0,1fr));max-height:300px}.adminTimeButton{min-height:48px;font-size:15px}}
+
 
 /* 通知折りたたみ */
 
@@ -841,19 +850,22 @@ CLOSE
 
 <label>予約時間</label>
 
-<select id="adminTime">
+<select id="adminTime" class="adminTimeSelect" aria-label="予約時間">
 <option value="">
 空き時間を選択
 </option>
 </select>
+<div id="adminTimeButtons" class="adminTimeButtons" aria-label="空き時間一覧"></div>
+<div class="muted adminTimeHelp">空いている時間をタップしてください。</div>
 
 <label>お客様名</label>
 <input id="customerName">
 
-<label>電話番号</label>
+<label>電話番号 <span class="muted" style="font-weight:400">（任意）</span></label>
 <input
   id="phone"
   inputmode="tel"
+  placeholder="不明なら空欄でOK"
 >
 
 <label>症状・メモ</label>
@@ -2971,49 +2983,46 @@ async function getAvailableTimes(
 
 async function loadAdminTimes(){
 
-  const box=
-    $('adminTime');
+  const box=$('adminTime');
+  const buttonBox=$('adminTimeButtons');
+  const previous=box.value;
 
+  box.innerHTML='<option value="">空き時間を選択</option>';
+  if(buttonBox)buttonBox.innerHTML='<div class="adminTimeEmpty">空き時間を読み込んでいます…</div>';
 
-  box.innerHTML=
-    '<option value="">空き時間を選択</option>';
-
-
-  const data=
-    await getAvailableTimes(
-      $('menu').value,
-      $('adminBookingDate').value
-    );
-
-
-  data.forEach(
-    slot=>{
-
-      const option=
-        document.createElement(
-          'option'
-        );
-
-
-      option.value=
-        slot.start_time;
-
-
-      option.textContent=
-        String(
-          slot.start_time
-        )
-        .slice(
-          0,
-          5
-        );
-
-
-      box.appendChild(
-        option
-      );
-    }
+  const data=await getAvailableTimes(
+    $('menu').value,
+    $('adminBookingDate').value
   );
+
+  data.forEach(slot=>{
+    const option=document.createElement('option');
+    option.value=slot.start_time;
+    option.textContent=String(slot.start_time).slice(0,5);
+    box.appendChild(option);
+  });
+
+  if(previous&&data.some(slot=>String(slot.start_time)===String(previous)))box.value=previous;
+
+  if(!buttonBox)return;
+  buttonBox.innerHTML='';
+  if(!data.length){
+    buttonBox.innerHTML='<div class="adminTimeEmpty">選択できる空き時間がありません。</div>';
+    return;
+  }
+
+  data.forEach(slot=>{
+    const value=String(slot.start_time);
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='adminTimeButton'+(box.value===value?' selected':'');
+    button.textContent=value.slice(0,5);
+    button.onclick=()=>{
+      box.value=value;
+      buttonBox.querySelectorAll('.adminTimeButton').forEach(x=>x.classList.toggle('selected',x===button));
+    };
+    buttonBox.appendChild(button);
+  });
 }
 
 
@@ -3071,20 +3080,18 @@ async()=>{
     !payload.p_menu_id
     ||
     !payload.p_customer_name
-    ||
-    !payload.p_phone
   ){
 
     $('addMsg').textContent=
-      '日付・時間・メニュー・お名前・電話番号を入力してください。';
+      '日付・時間・メニュー・お名前を入力してください。';
 
     return;
   }
 
 
-  const {error}=
+  const {data:bookingId,error}=
     await supabase.rpc(
-      'nakano_create_booking',
+      'nakano_admin_create_booking',
       payload
     );
 
@@ -3109,17 +3116,25 @@ async()=>{
     '予約を追加しました。';
 
 
+  const bookedDate=payload.p_date;
+  $('date').value=bookedDate;
+  $('month').value=monthFromDate(bookedDate);
+  $('blockedMonth').value=monthFromDate(bookedDate);
+  $('adminBookingDate').value=bookedDate;
+
   $('customerSelect').value='';
   $('customerName').value='';
   $('phone').value='';
   $('memo').value='';
-
+  $('adminTime').value='';
 
   await loadCustomers();
-
   await loadDay();
-
   await loadAdminTimes();
+  if(typeof window.refreshMonthlyBookings==='function')await window.refreshMonthlyBookings();
+  if(typeof window.refreshAdminBookingCalendar==='function')await window.refreshAdminBookingCalendar(bookedDate);
+  $('scheduleMsg').textContent=bookingId?'予約を反映しました。':'';
+  setTimeout(()=>{if($('scheduleMsg').textContent==='予約を反映しました。')$('scheduleMsg').textContent=''},1800);
 };
 
 
@@ -3359,8 +3374,6 @@ async()=>{
     !payload.p_menu_id
     ||
     !payload.p_customer_name
-    ||
-    !payload.p_phone
   ){
 
     $('editMsg').textContent=

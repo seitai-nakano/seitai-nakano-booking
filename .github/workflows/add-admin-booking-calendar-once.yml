@@ -1,0 +1,41 @@
+name: add admin booking calendar once
+on:
+  push:
+    paths:
+      - '.github/workflows/add-admin-booking-calendar-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add calendar loader
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('admin.html')
+          s=p.read_text()
+          old='<script type="module">import(`./booking-drag.js?_v=${Date.now()}`);</script>'
+          new=old+'\n<script type="module" src="./admin-booking-calendar.js?v=20260904-1"></script>'
+          if 'admin-booking-calendar.js' not in s:
+              if old not in s:
+                  raise SystemExit('booking-drag loader not found')
+              s=s.replace(old,new,1)
+              p.write_text(s)
+          PY
+      - name: Verify
+        run: |
+          node --check admin-booking-calendar.js
+          grep -q 'admin-booking-calendar.js?v=20260904-1' admin.html
+      - name: Commit and cleanup
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add admin.html admin-booking-calendar.js
+          git commit -m 'Show booking counts on admin calendar' || true
+          git rm .github/workflows/add-admin-booking-calendar-once.yml
+          git commit -m 'Remove temporary admin calendar workflow [skip ci]'
+          git push

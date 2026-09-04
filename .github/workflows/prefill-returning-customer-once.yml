@@ -1,0 +1,35 @@
+name: prefill returning customer once
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/prefill-returning-customer-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch returning customer prefill
+        run: python3 .github/patch-returning-customer-prefill.py
+      - name: Verify
+        run: |
+          grep -q "nakano_customer_prefill_by_line" index.html
+          grep -q "CUSTOMER_PROFILE_KEY" index.html
+          grep -q "2回目以降は、前回のお名前・電話番号を自動で表示します。" index.html
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('index.html').read_text()
+          assert s.count("$('name').value='';") == 0
+          assert s.count("$('tel').value='';") == 0
+          PY
+      - name: Commit and cleanup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Prefill returning customer booking details"
+          git rm .github/patch-returning-customer-prefill.py .github/workflows/prefill-returning-customer-once.yml
+          git commit -m "Remove temporary returning customer prefill files [skip ci]"
+          git push

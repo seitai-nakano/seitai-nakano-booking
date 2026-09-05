@@ -90,13 +90,11 @@ function ensureBlockedEditor(){
   const scroll=getScheduleScroll();if(!scroll)return null;
   let editor=$('blockedInlineEditor');if(editor)return editor;
   editor=document.createElement('div');editor.id='blockedInlineEditor';editor.className='blockedInlineEditor';
-  // 予定編集はOPEN/CLOSEの営業時間とは別に、23時まで15分刻みで選べるようにする。
-  // これにより22:00〜22:45が抜けて現在値だけ末尾に追加されるiPhone表示崩れを防ぐ。
+  // 営業時間は22:00まで。予定編集も通常候補は22:00で打ち止めにする。
   const blockedStarts=[];
-  for(let n=DAY_START;n<=22*60+45;n+=15)blockedStarts.push(minutesToTime(n).slice(0,5));
+  for(let n=DAY_START;n<=21*60+45;n+=15)blockedStarts.push(minutesToTime(n).slice(0,5));
   const blockedEnds=[];
-  for(let n=DAY_START+15;n<=23*60;n+=15)blockedEnds.push(minutesToTime(n).slice(0,5));
-  blockedEnds.push('23:59');
+  for(let n=DAY_START+15;n<=22*60;n+=15)blockedEnds.push(minutesToTime(n).slice(0,5));
   const startOpts=blockedStarts.map(t=>`<option value="${t}">${t}</option>`).join('');
   const endOpts=blockedEnds.map(t=>`<option value="${t}">${t}</option>`).join('');
   editor.innerHTML=`<div class="blockedEditorTitle">予約不可／予定の時間を変更</div><div class="blockedEditorRow"><label>開始<select id="blockedInlineStart">${startOpts}</select></label><label>終了<select id="blockedInlineEnd">${endOpts}</select></label></div><label style="margin-top:8px">予定名・メモ<input id="blockedInlineMemo" placeholder="例：外出・休憩・予約不可"></label><div class="blockedEditorActions"><button type="button" class="blockedSave" id="blockedInlineSave">変更を保存</button><button type="button" class="blockedBook" id="blockedInlineBook">この時間から新規予約</button><button type="button" class="blockedDelete" id="blockedInlineDelete">予定を削除</button><button type="button" class="blockedClose" id="blockedInlineClose">閉じる</button></div><div id="blockedInlineMsg" class="blockedEditorMsg"></div>`;
@@ -113,7 +111,11 @@ function openBlockedEditor(item,sourceEl=null){
   if(!item?.id)return;const editor=ensureBlockedEditor();if(!editor)return;
   editor.dataset.blockedId=item.id;editor.dataset.blockedDate=item.blocked_date||selectedDate();
   $('blockedInlineStart').value=String(item.start_time).slice(0,5);
-  const end=displayEndTime(item.end_time);if(![...$('blockedInlineEnd').options].some(o=>o.value===end)){const o=document.createElement('option');o.value=end;o.textContent=end;$('blockedInlineEnd').appendChild(o)}$('blockedInlineEnd').value=end;
+  const rawEnd=displayEndTime(item.end_time);
+  const wholeDay=String(item.start_time).startsWith('00:00')&&String(item.end_time).startsWith('23:59');
+  const end=wholeDay?'23:59':(timeToMinutes(rawEnd)>DAY_END?'22:00':rawEnd);
+  if(![...$('blockedInlineEnd').options].some(o=>o.value===end)){const o=document.createElement('option');o.value=end;o.textContent=end;$('blockedInlineEnd').appendChild(o)}
+  $('blockedInlineEnd').value=end;
   $('blockedInlineMemo').value=item.memo||'';$('blockedInlineMsg').textContent='';
   clearBlockedSelection();if(sourceEl)sourceEl.classList.add('blockedSelected');
   editor.classList.add('open');editor.scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -121,6 +123,8 @@ function openBlockedEditor(item,sourceEl=null){
 async function validateBlockedRange(item,start,end){
   const date=item.blocked_date||selectedDate(),s=timeToMinutes(start),e=end==='23:59'?24*60:timeToMinutes(end);
   if(!Number.isFinite(s)||!Number.isFinite(e)||e<=s)return'終了時間は開始時間より後にしてください。';
+  const wholeDay=String(item.start_time).startsWith('00:00')&&String(item.end_time).startsWith('23:59');
+  if(!wholeDay&&e>DAY_END)return'終了時間は22:00までにしてください。';
 
   const bookingResult=await supabase.from('nakano_bookings').select('id,start_time,minutes,customer_name').eq('booking_date',date).eq('status','confirmed');
   if(bookingResult.error)return'予約状況を確認できませんでした。';

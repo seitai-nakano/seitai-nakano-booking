@@ -12,8 +12,8 @@ const SNAP_MINUTES=15;
 const DRAG_START_DISTANCE=5;
 const TOUCH_HOLD_TO_DRAG_MS=240;
 const SCROLL_INTENT_DISTANCE=8;
-const EDGE_ZONE=96;
-const MAX_AUTO_SPEED=18;
+const EDGE_ZONE=120;
+const MAX_AUTO_SPEED=24;
 
 let rows=[];
 let rowsDate='';
@@ -22,6 +22,7 @@ let pressTimer=null;
 let autoFrame=null;
 let suppressClickUntil=0;
 let hydrateTimer=null;
+let dragShield=null;
 
 const $=id=>document.getElementById(id);
 const selectedDate=()=>$('date')?.value||'';
@@ -48,6 +49,7 @@ function addStyles(){
 .blockedDragGhost{pointer-events:none!important;z-index:4!important;opacity:.45!important;border:2px dashed rgba(138,74,66,.62)!important;background:rgba(244,223,220,.40)!important;box-shadow:none!important}
 .blockedMoveHandle{position:absolute;right:2px;top:50%;transform:translateY(-50%);z-index:30;width:28px;height:34px;border:1px solid rgba(120,70,64,.30);border-radius:9px;background:rgba(255,255,255,.88);display:flex;align-items:center;justify-content:center;color:#8a4a42;font-size:15px;font-weight:900;line-height:1;touch-action:none!important;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:ew-resize;box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .blockedMoveHandle:active{background:#fff1ef;transform:translateY(-50%) scale(.96)}
+.blockedDragShield{position:fixed;inset:0;z-index:2147483646;background:transparent;touch-action:none!important;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none;cursor:grabbing}
 `;
   document.head.appendChild(s);
 }
@@ -101,6 +103,25 @@ async function fetchRows(force=false){
   return rows;
 }
 
+function installDragShield(s){
+  removeDragShield();
+  const shield=document.createElement('div');
+  shield.id='blockedDragShield';
+  shield.className='blockedDragShield';
+  shield.setAttribute('aria-hidden','true');
+  shield.addEventListener('pointerdown',e=>e.preventDefault(),{passive:false});
+  document.body.appendChild(shield);
+  dragShield=shield;
+  try{shield.setPointerCapture(s.pointerId)}catch{}
+}
+
+function removeDragShield(s){
+  if(!dragShield)return;
+  try{dragShield.releasePointerCapture(s?.pointerId)}catch{}
+  dragShield.remove();
+  dragShield=null;
+}
+
 function createGhost(s){
   const g=s.el.cloneNode(true);
   g.classList.remove('blockedSelected','blockedDragging');
@@ -117,7 +138,7 @@ function cleanup(s){
   clearTimeout(pressTimer);pressTimer=null;
   s?.el?.classList.remove('blockedDragging');
   document.body.classList.remove('bookingDragging');
-  removeGhost(s);hideDestination();stopAuto();
+  removeGhost(s);hideDestination();stopAuto();removeDragShield(s);
 }
 function restore(s){if(!s)return;s.el.style.left=`${s.originalLeft}px`;s.el.style.width=`${s.originalWidth}px`}
 
@@ -145,7 +166,13 @@ function autoLoop(){
     const p=Math.max(0,Math.min(1,(EDGE_ZONE-rd)/EDGE_ZONE));
     speed=4+p*MAX_AUTO_SPEED;$('dragEdgeRight')?.classList.add('show');
   }
-  if(speed){const before=s.scroll.scrollLeft;s.scroll.scrollLeft+=speed;if(before!==s.scroll.scrollLeft)updateVisual()}
+  if(speed){
+    const before=s.scroll.scrollLeft;
+    const maxScroll=Math.max(0,s.scroll.scrollWidth-s.scroll.clientWidth);
+    const nextScroll=Math.max(0,Math.min(maxScroll,before+speed));
+    s.scroll.scrollLeft=nextScroll;
+    if(before!==nextScroll)updateVisual();
+  }
   autoFrame=requestAnimationFrame(autoLoop);
 }
 
@@ -156,6 +183,7 @@ function startDrag(){
   createGhost(s);
   s.el.classList.add('blockedDragging');
   document.body.classList.add('bookingDragging');
+  installDragShield(s);
   try{navigator.vibrate?.(18)}catch{}
   const st=minutesToTime(s.originalStart).slice(0,5),en=minutesToTime(s.originalStart+s.duration).slice(0,5);
   destination(`${st}–${en}`);
@@ -257,7 +285,8 @@ function onMove(e){
     immediate=6+p*16;
   }
   if(immediate){
-    s.scroll.scrollLeft+=immediate;
+    const maxScroll=Math.max(0,s.scroll.scrollWidth-s.scroll.clientWidth);
+    s.scroll.scrollLeft=Math.max(0,Math.min(maxScroll,s.scroll.scrollLeft+immediate));
   }
   updateVisual();
 }

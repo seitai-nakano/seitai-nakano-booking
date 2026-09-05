@@ -1,0 +1,29 @@
+name: fix drag auto scroll once
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-drag-autoscroll-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply drag auto scroll fix
+        run: python3 .github/scripts/fix_drag_autoscroll.py
+      - name: Verify drag auto scroll
+        run: |
+          grep -q 'const EDGE_ZONE=96' blocked-drag.js
+          grep -q 'const MAX_AUTO_SPEED=18' blocked-drag.js
+          grep -q 'const autoScroll=()=>' admin.html
+          grep -q '画面端で自動スクロール' admin.html
+      - name: Commit repair and cleanup
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/fix-drag-autoscroll-once.yml
+          git rm .github/scripts/fix_drag_autoscroll.py
+          git add admin.html blocked-drag.js
+          git commit -m 'Enable auto horizontal scroll while moving blocked times [skip ci]'
+          git push

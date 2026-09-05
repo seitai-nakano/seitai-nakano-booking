@@ -1,4 +1,5 @@
 name: fix blocked drag handle once
+# retry after patch-anchor correction
 on:
   push:
     paths:

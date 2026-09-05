@@ -258,11 +258,37 @@ button:disabled{
   border-radius:10px;
   background:#f3deda;
   border:1px solid #dca9a2;
-  padding:8px;
+  padding:8px 42px 8px 8px;
   overflow:hidden;
   font-size:11px;
   color:#884e47;
-  z-index:3
+  z-index:3;
+  touch-action:pan-x
+}
+
+.blockedMoveHandle{
+  position:absolute;
+  right:4px;
+  top:50%;
+  transform:translateY(-50%);
+  z-index:40;
+  width:34px;
+  height:44px;
+  border:1px solid rgba(120,70,64,.38);
+  border-radius:10px;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#884e47;
+  font-size:18px;
+  font-weight:900;
+  line-height:1;
+  touch-action:none!important;
+  -webkit-user-select:none;
+  user-select:none;
+  -webkit-touch-callout:none;
+  box-shadow:0 1px 5px rgba(0,0,0,.12)
 }
 
 .bookingBlock{
@@ -1323,7 +1349,7 @@ function renderTimeline(){
   for(
     let minute=DAY_START;
     minute<=DAY_END;
-    minute+=30
+    minute+=15
   ){
 
     const time=
@@ -1382,7 +1408,7 @@ function renderTimeline(){
 
     cell.style.width=
       `${
-        30
+        15
         *
         PX_PER_MINUTE
       }px`;
@@ -1454,6 +1480,9 @@ function renderTimeline(){
       block.className=
         'blockedBlock';
 
+      block.dataset.blockedId=
+        String(item.id);
+
 
       block.style.left=
         `${
@@ -1491,6 +1520,12 @@ function renderTimeline(){
           ||
           ''
         )}
+
+        <span
+          class="blockedMoveHandle"
+          role="button"
+          aria-label="予定時間を左右に移動"
+        >↔</span>
 
       `;
 
@@ -2340,6 +2375,7 @@ syncAuth();
 </script>
 
 <script type="module">import(`./booking-drag.js?_v=${Date.now()}`);</script>
+<script type="module">import(`./blocked-drag.js?_v=${Date.now()}`);</script>
 
 </main>
 

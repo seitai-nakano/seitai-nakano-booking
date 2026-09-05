@@ -17,7 +17,7 @@ jobs:
           grep -q 'directBlockedTime' admin.html
           grep -q 'bindDirectBlockedMove' admin.html
           grep -q 'data-bound-move="1"' admin.html
-          grep -q 'direct-blocked-handle-v3' admin.html
+          grep -q 'right:3px' admin.html
       - name: Commit repair and cleanup
         run: |
           git config user.name 'github-actions[bot]'

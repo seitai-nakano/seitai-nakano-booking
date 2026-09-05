@@ -9,8 +9,7 @@ const DAY_START=8*60;
 const DAY_END=23*60;
 const PX_PER_MINUTE=2;
 const SNAP_MINUTES=15;
-const LONG_PRESS_MS=430;
-const CANCEL_DISTANCE=10;
+const DRAG_START_DISTANCE=5;
 const EDGE_ZONE=72;
 const MAX_AUTO_SPEED=13;
 
@@ -42,7 +41,7 @@ function addStyles(){
   const s=document.createElement('style');
   s.id='nakanoBlockedDragStyle';
   s.textContent=`
-.blockedSchedule,.blockedBlock{-webkit-touch-callout:none;touch-action:pan-x}
+.blockedSchedule,.blockedBlock{-webkit-touch-callout:none;touch-action:pan-y;cursor:grab}
 .blockedSchedule.blockedDragging,.blockedBlock.blockedDragging{z-index:110!important;opacity:.96;box-shadow:0 0 0 3px rgba(138,74,66,.24),0 9px 26px rgba(0,0,0,.22)!important;transform:translateY(8px) scale(1.02);touch-action:none!important}
 .blockedDragGhost{pointer-events:none!important;z-index:4!important;opacity:.45!important;border:2px dashed rgba(138,74,66,.62)!important;background:rgba(244,223,220,.40)!important;box-shadow:none!important}
 `;
@@ -174,18 +173,17 @@ function onDown(e,el,item){
     originalWidth:parseFloat(el.style.width)||Math.max(36,r.duration*PX_PER_MINUTE),
     interacting:false,ghost:null
   };
-  clearTimeout(pressTimer);
-  pressTimer=setTimeout(startDrag,LONG_PRESS_MS);
 }
 
 function onMove(e){
   const s=drag;if(!s||s.pointerId!==e.pointerId)return;
   s.currentX=e.clientX;s.currentY=e.clientY;
   if(!s.interacting){
-    if(Math.hypot(s.currentX-s.startX,s.currentY-s.startY)>CANCEL_DISTANCE){
-      clearTimeout(pressTimer);pressTimer=null;drag=null;
-    }
-    return;
+    const dx=s.currentX-s.startX,dy=s.currentY-s.startY;
+    if(Math.hypot(dx,dy)<DRAG_START_DISTANCE)return;
+    if(Math.abs(dy)>Math.abs(dx)*1.25){drag=null;return}
+    startDrag();
+    if(!drag?.interacting)return;
   }
   e.preventDefault();updateVisual();
 }
@@ -227,8 +225,8 @@ function attach(el,item){
     if(hint)hint.textContent='タップで時間変更';
     return;
   }
-  if(hint)hint.textContent='タップで編集・長押しで移動';
-  el.title=`${String(item.start_time).slice(0,5)}〜${String(item.end_time).slice(0,5)} タップで編集／長押しで移動`;
+  if(hint)hint.textContent='タップで編集・左右ドラッグで移動';
+  el.title=`${String(item.start_time).slice(0,5)}〜${String(item.end_time).slice(0,5)} タップで編集／左右ドラッグで移動`;
   el.addEventListener('pointerdown',e=>onDown(e,el,item));
   el.addEventListener('contextmenu',e=>e.preventDefault());
 }

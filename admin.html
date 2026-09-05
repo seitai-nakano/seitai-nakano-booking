@@ -1703,6 +1703,21 @@ function openTimelineQuickAdd(minutes){
   overlay.classList.remove('hidden');
 }
 
+window.addEventListener('nakano-admin-prefill-booking',async event=>{
+  const detail=event.detail||{};
+  const date=String(detail.date||$('date').value||'');
+  const hhmm=String(detail.start_time||detail.startTime||'').slice(0,5);
+  if(!date||!/^\d{2}:\d{2}$/.test(hhmm))return;
+
+  timelinePreferredTime=`${hhmm}:00`;
+  $('adminBookingDate').value=date;
+  $('addMsg').textContent=`${hhmm} を選択しました。メニューとお客様を入力してください。`;
+  closeTimelineQuickAdd();
+  await loadAdminTimes();
+  $('adminBookingDate').closest('.card')?.scrollIntoView({behavior:'smooth',block:'start'});
+});
+
+
 /* ==========================
    タイムライン
 ========================== */
@@ -1889,6 +1904,9 @@ function renderTimeline(){
       block.className=
         'blockedSchedule';
 
+      block.dataset.blockedId=
+        String(item.id);
+
 
       block.style.left=
         `${(start-DAY_START)*PX_PER_MINUTE}px`;
@@ -1910,11 +1928,8 @@ function renderTimeline(){
 
       `;
 
-      block.style.cursor='pointer';
-      block.onclick=event=>{
-        event.stopPropagation();
-        openTimelineQuickAdd(start);
-      };
+      block.style.cursor='grab';
+      block.title='タップで予定を変更・削除／左右ドラッグで時間変更';
 
 
       lane.appendChild(

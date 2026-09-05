@@ -12,37 +12,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Replace mascot drag with touch-first implementation
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('index.html')
-          s=p.read_text()
-          start=s.index('function bookingGuideDrag(g,b){')
-          end=s.index('bookingGuideInit();', start)+len('bookingGuideInit();')
-          new=r'''function bookingGuideInstallDrag(){
- const g=$('bookingGuide'),old=$('bookingGuideMascotBtn'),sh=$('bookingGuideShare');
- if(!g||!old||manageToken)return;
- const b=old.cloneNode(true);old.replaceWith(b);
- if(sh)sh.onclick=shareSeitaiNakano;
- bookingGuideRestore();bookingGuideHint();
- let active=false,drag=false,sx=0,sy=0,ox=0,oy=0,x0=0,x1=0,y0=0,y1=0,last=0,n=0;
- const words=['よいしょ、よいしょ','ついていくよ','ここかな？','どこにする？','いっしょに行くね'];
- const begin=(x,y)=>{active=true;drag=false;sx=x;sy=y;const p=bookingGuidePos();ox=p.x;oy=p.y;const r=b.getBoundingClientRect(),m=8;x0=ox+m-r.left;x1=ox+(innerWidth-m-r.right);y0=oy+m-r.top;y1=oy+(innerHeight-m-r.bottom);last=0;n=0;clearTimeout(bookingGuideTimer)};
- const move=(x,y,e)=>{if(!active)return;const dx=x-sx,dy=y-sy;if(!drag&&Math.hypot(dx,dy)<6)return;drag=true;if(e?.cancelable)e.preventDefault();g.classList.add('dragging');g.classList.remove('open','thinking','done');bookingGuideSetPos(Math.min(x1,Math.max(x0,ox+dx)),Math.min(y1,Math.max(y0,oy+dy)));bookingGuideSides();const now=performance.now();if(now-last>520){bookingGuideHint(words[n++%words.length]);last=now}};
- const finish=()=>{if(!active)return;active=false;if(drag){drag=false;g.classList.remove('dragging');try{localStorage.setItem('nakano_booking_guide_pos_v1',JSON.stringify(bookingGuidePos()))}catch(_){}bookingGuideSides();bookingGuideHint('ここで待ってるね',1800);return}bookingGuideSides();const o=!g.classList.contains('open');g.classList.toggle('open',o);g.classList.remove('thinking','done')};
- b.addEventListener('touchstart',e=>{if(e.touches.length!==1)return;const t=e.touches[0];begin(t.clientX,t.clientY)},{passive:true});
- window.addEventListener('touchmove',e=>{if(!active||e.touches.length!==1)return;const t=e.touches[0];move(t.clientX,t.clientY,e)},{passive:false});
- window.addEventListener('touchend',finish,{passive:true});
- window.addEventListener('touchcancel',()=>{active=false;drag=false;g.classList.remove('dragging');bookingGuideHint()},{passive:true});
- b.addEventListener('mousedown',e=>{if(e.button!==0)return;begin(e.clientX,e.clientY);e.preventDefault()});
- window.addEventListener('mousemove',e=>move(e.clientX,e.clientY,e));
- window.addEventListener('mouseup',finish);
- b.addEventListener('click',e=>e.preventDefault());
- addEventListener('resize',bookingGuideRestore,{passive:true});
-}
-bookingGuideInstallDrag();'''
-          s=s[:start]+new+s[end:]
-          p.write_text(s)
-          PY
+          echo 'ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCnA9UGF0aCgiaW5kZXguaHRtbCIpCnM9cC5yZWFkX3RleHQoKQpzdGFydD1zLmluZGV4KCJmdW5jdGlvbiBib29raW5nR3VpZGVEcmFnKGcsYil7IikKZW5kPXMuaW5kZXgoImJvb2tpbmdHdWlkZUluaXQoKTsiLCBzdGFydCkrbGVuKCJib29raW5nR3VpZGVJbml0KCk7IikKbmV3PXIjIiJmdW5jdGlvbiBib29raW5nR3VpZGVJbnN0YWxsRHJhZygpewogY29uc3QgZz0kKCdib29raW5nR3VpZGUnKSxvbGQ9JCgnYm9va2luZ0d1aWRlTWFzY290QnRuJyksc2g9JCgnYm9va2luZ0d1aWRlU2hhcmUnKTsKIGlmKCFnfHwhb2xkfHxtYW5hZ2VUb2tlbil yZXR1cm47CiBjb25zdCBiPW9sZC5jbG9uZU5vZGUodHJ1ZSk7b2xkLnJlcGxhY2VXaXRoKGIpOwogaWYoc2gpc2gub25jbGljaz1zaGFyZVNlaXRhaU5ha2FubzsKIGJvb2tpbmdHdWlkZVJlc3RvcmUoKTtib29raW5nR3VpZGVIaW50KCk7CiBsZXQgYWN0aXZlPWZhbHNlLGRyYWc9ZmFsc2Usc3g9MCxzeT0wLG94PTAsb3k9MCx4MD0wLHgxPTAseTA9MCx5MT0wLGxhc3Q9MCxuPTA7CiBjb25zdCB3b3Jkcz1bJ+OCiOOBhOOBl+OCh+OAgeOCiOOBhOOBl+OChycsJ+OBpOOBhOOBpuOBhOOBj+OCiicsJ+OBk+OBk+OBi+OBqu+8nycsJ+OBqeOBk+OBq+OBmeOCi++8nycsJ+OBhOOBo+OBl+OCh+OBq+ihjOOBj+OBre+8nSddOwogY29uc3QgYmVnaW49KHgseSk9PnthY3RpdmU9dHJ1ZTtkcmFnPWZhbHNlO3N4PXg7c3k9eTtjb25zdCBwPWJvb2tpbmdHdWlkZVBvcygpO294PXAueDtveT1wLnk7Y29uc3Qgcj1iLmdldEJvdW5kaW5nQ2xpZW50UmVjdCgpLG09ODt4MD1veCttLXIubGVmdDt4MT1veCs oaW5uZXJXaWR0aC1tLXIucmlnaHQpO3kwPW95K20tci50b3A7eTE9b3krKGlubmVySGVpZ2h0LW0tci5ib3R0b20pO2xhc3Q9MDtuPTA7Y2xlYXJUaW1lb3V0KGJvb2tpbmdHdWlkZVRpbWVyKX07CiBjb25zdCBtb3ZlPSh4LHksZSk9PntpZighYWN0aXZlKXJldHVybjtjb25zdCBkeD14LXN4LGR5PXktc3k7aWYoIWRyYWcmJk1hdGguaHlwb3QoZHgsZHkpPDYpcmV0dXJuO2RyYWc9dHJ1ZTtpZihlJiZlLmNhbmNlbGFibGUpZS5wcmV2ZW50RGVmYXVsdCgpO2cuY2xhc3NMaXN0LmFkZCgnZHJhZ2dpbmcnKTtnLmNsYXNzTGlzdC5yZW1vdmUoJ29wZW4nLCd0aGlua2luZycsJ2RvbmUnKTtib29raW5nR3VpZGVTZXRQb3MoTWF0aC5taW4oeDEsTWF0aC5tYXgoeDAsb3grZHgpKSxNYXRoLm1pbih5MSxNYXRoLm1heCh5MCxveStkeSkpKTtib29raW5nR3VpZGVTaWRlcygpO2NvbnN0IG5vdz1wZXJmb3JtYW5jZS5ub3coKTtpZihub3ctbGFzdD41MjApe2Jvb2tpbmdHdWlkZUhpbnQod29yZHNbbisrJXdvcmRzLmxlbmd0aF0pO2xhc3Q9bm93fX07CiBjb25zdCBmaW5pc2g9KCk9PntpZighYWN0aXZlKXJldHVybjthY3RpdmU9ZmFsc2U7aWYoZHJhZyl7ZHJhZz1mYWxzZTtnLmNsYXNzTGlzdC5yZW1vdmUoJ2RyYWdnaW5nJyk7dHJ5e2xvY2FsU3RvcmFnZS5zZXRJdGVtKCduYWthbm9fYm9va2luZ19ndWlkZV9wb3NfdjEnLEpTT04uc3RyaW5naWZ5KGJvb2tpbmdHdWlkZVBvcygpKSl9Y2F0Y2goXyl7fWJvb2tpbmdHdWlkZVNpZGVzKCk7Ym9va2luZ0d1aWRlSGludCgn44GT44GT44Gn5b6F44Gj44Gm44KL44GtJyw xODAwKTtyZXR1cm59Ym9va2luZ0d1aWRlU2lkZXMoKTtjb25zdCBvPSFnLmNsYXNzTGlzdC5jb250YWlucygnebBlbicpO2cuY2xhc3NMaXN0LnRvZ2dsZSgnebBlbicpO2cuY2xhc3NMaXN0LnJlbW92ZSgndGhpbmtpbmcnLCdkb25lJyl9OwogYi5hZGRFdmVudExpc3RlbmVyKCd0b3VjaHN0YXJ0JyxlPT57aWYoZS50b3VjaGVzLmxlbmd0aCE9PTEpcmV0dXJuO2NvbnN0IHQ9ZS50b3VjaGVzWzBdO2JlZ2luKHQuY2xpZW50WCx0LmNsaWVudFkpfSx7cGFzc2l2ZTp0cnVlfSk7CiB3aW5kb3cuYWRkRXZlbnRMaXN0ZW5lcigndG91Y2htb3ZlJyxlPT57aWYoIWFjdGl2ZXx8ZS50b3VjaGVzLmxlbmd0aCE9PTEpcmV0dXJuO2NvbnN0IHQ9ZS50b3VjaGVzWzBdO21vdmUodC5jbGllbnRYLHQuY2xpZW50WSxlKX0se3Bhc3NpdmU6ZmFsc2V9KTsKIHdpbmRvdy5hZGRFdmVudExpc3RlbmVyKCd0b3VjaGVuZCcsZmluaXNoLHtwYXNzaXZlOnRydWV9KTsKIHdpbmRvdy5hZGRFdmVudExpc3RlbmVyKCd0b3VjaGNhbmNlbCcsKCk9PnthY3RpdmU9ZmFsc2U7ZHJhZz1mYWxzZTtnLmNsYXNzTGlzdC5yZW1vdmUoJ2RyYWdnaW5nJyk7Ym9va2luZ0d1aWRlSGludCgpfSx7cGFzc2l2ZTp0cnVlfSk7CiBiLmFkZEV2ZW50TGlzdGVuZXIoJ21vdXNlZG93bicsZT0+e2lmKGUuYnV0dG9uIT09MClyZXR1cm47YmVnaW4oZS5jbGllbnRYLGUuY2xpZW50WSk7ZS5wcmV2ZW50RGVmYXVsdCgpfSk7CiB3aW5kb3cuYWRkRXZlbnRMaXN0ZW5lcignbW91c2Vtb3ZlJyxlPT5tb3ZlKGUuY2xpZW50WCxlLmNsaWVudFksZSkpOwogd2luZG93LmFkZEV2ZW50TGlzdGVuZXIoJ21vdXNldXAnLGZpbmlzaCk7CiBiLmFkZEV2ZW50TGlzdGVuZXIoJ2NsaWNrJyxlPT5lLnByZXZlbnREZWZhdWx0KCkpOwogYWRkRXZlbnRMaXN0ZW5lcigncmVzaXplJyxib29raW5nR3VpZGVSZXN0b3JlLHtwYXNzaXZlOnRydWV9KTsKfQpib29raW5nR3VpZGVJbnN0YWxsRHJhZygpOyIiIgpzPXNbOnN0YXJ0XStuZXc7c1tlbmQ6XQpwLndyaXRlX3RleHQocykK' | base64 -d > /tmp/patch.py
+          python3 /tmp/patch.py
       - name: Verify
         run: |
           grep -q "function bookingGuideInstallDrag" index.html

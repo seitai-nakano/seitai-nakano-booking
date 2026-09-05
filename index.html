@@ -62,6 +62,10 @@
 .bookingGuideShare{font-weight:900!important}
 @keyframes bookingMascotCarry{from{transform:translate3d(-3px,-4px,0) rotate(-7deg) scale(1.04)}to{transform:translate3d(3px,-10px,0) rotate(7deg) scale(1.08)}}
 @media(max-width:420px){.bookingGuideAlways{max-width:205px;font-size:10px}}
+
+/* single-source mascot drag */
+.bookingGuideMascotBtn{touch-action:none!important;-webkit-touch-callout:none!important;-webkit-user-select:none!important;user-select:none!important}
+.bookingGuide.dragging .bookingGuideMascotBtn{animation:none!important;cursor:grabbing}
 </style>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <link rel="stylesheet" href="./customer-brand.css?v=20260815-3">
@@ -620,104 +624,135 @@ document.addEventListener('click',function(e){
 <script>
 const BOOKING_GUIDE_DEFAULT_HINT='紹介してくれるなら、ぼくをタップしてね';
 let bookingGuideHintTimer=null;
-function bookingGuideHint(t=BOOKING_GUIDE_DEFAULT_HINT,ms=0){const e=$('bookingGuideAlways');if(!e)return;clearTimeout(bookingGuideHintTimer);e.textContent=t;if(ms)bookingGuideHintTimer=setTimeout(()=>e.textContent=BOOKING_GUIDE_DEFAULT_HINT,ms)}
-function bookingGuidePos(){const g=$('bookingGuide');return{x:parseFloat(g?.style.getPropertyValue('--guide-dx'))||0,y:parseFloat(g?.style.getPropertyValue('--guide-dy'))||0}}
-function bookingGuideSetPos(x,y){const g=$('bookingGuide');if(!g)return;g.style.setProperty('--guide-dx',`${Math.round(x)}px`);g.style.setProperty('--guide-dy',`${Math.round(y)}px`)}
-function bookingGuideSides(){const g=$('bookingGuide'),b=$('bookingGuideMascotBtn');if(!g||!b)return;const r=b.getBoundingClientRect();g.classList.toggle('guideLeft',r.left+r.width/2<innerWidth/2);g.classList.toggle('guideTop',r.top<145)}
-function bookingGuideRestore(){try{const v=JSON.parse(localStorage.getItem('nakano_booking_guide_pos_v1')||'null');if(v&&Number.isFinite(v.x)&&Number.isFinite(v.y))bookingGuideSetPos(v.x,v.y)}catch(_){}requestAnimationFrame(()=>{const b=$('bookingGuideMascotBtn');if(!b)return;const p=bookingGuidePos(),r=b.getBoundingClientRect(),m=8;let x=p.x,y=p.y;if(r.left<m)x+=m-r.left;if(r.right>innerWidth-m)x-=r.right-(innerWidth-m);if(r.top<m)y+=m-r.top;if(r.bottom>innerHeight-m)y-=r.bottom-(innerHeight-m);bookingGuideSetPos(x,y);bookingGuideSides()})}
-function bookingGuideInstallDrag(){
- const g=$('bookingGuide'),old=$('bookingGuideMascotBtn'),sh=$('bookingGuideShare');
- if(!g||!old||manageToken)return;
- const b=old.cloneNode(true);old.replaceWith(b);
- if(sh)sh.onclick=shareSeitaiNakano;
- bookingGuideRestore();bookingGuideHint();
- let active=false,drag=false,sx=0,sy=0,ox=0,oy=0,x0=0,x1=0,y0=0,y1=0,last=0,n=0;
- const words=['よいしょ、よいしょ','ついていくよ','ここかな？','どこにする？','いっしょに行くね'];
- const begin=(x,y)=>{active=true;drag=false;sx=x;sy=y;const p=bookingGuidePos();ox=p.x;oy=p.y;const r=b.getBoundingClientRect(),m=8;x0=ox+m-r.left;x1=ox+(innerWidth-m-r.right);y0=oy+m-r.top;y1=oy+(innerHeight-m-r.bottom);last=0;n=0;clearTimeout(bookingGuideTimer)};
- const move=(x,y,e)=>{if(!active)return;const dx=x-sx,dy=y-sy;if(!drag&&Math.hypot(dx,dy)<6)return;drag=true;if(e&&e.cancelable)e.preventDefault();g.classList.add('dragging');g.classList.remove('open','thinking','done');bookingGuideSetPos(Math.min(x1,Math.max(x0,ox+dx)),Math.min(y1,Math.max(y0,oy+dy)));bookingGuideSides();const now=performance.now();if(now-last>520){bookingGuideHint(words[n++%words.length]);last=now}};
- const finish=()=>{if(!active)return;active=false;if(drag){drag=false;g.classList.remove('dragging');try{localStorage.setItem('nakano_booking_guide_pos_v1',JSON.stringify(bookingGuidePos()))}catch(_){}bookingGuideSides();bookingGuideHint('ここで待ってるね',1800);return}bookingGuideSides();const o=!g.classList.contains('open');g.classList.toggle('open',o);g.classList.remove('thinking','done')};
- b.addEventListener('touchstart',e=>{if(e.touches.length!==1)return;if(e.cancelable)e.preventDefault();const t=e.touches[0];begin(t.clientX,t.clientY)},{passive:false});
- window.addEventListener('touchmove',e=>{if(!active||e.touches.length!==1)return;if(e.cancelable)e.preventDefault();const t=e.touches[0];move(t.clientX,t.clientY,e)},{passive:false});
- window.addEventListener('touchend',finish,{passive:true});
- window.addEventListener('touchcancel',()=>{active=false;drag=false;g.classList.remove('dragging');bookingGuideHint()},{passive:true});
- b.addEventListener('mousedown',e=>{if(e.button!==0)return;begin(e.clientX,e.clientY);e.preventDefault()});
- window.addEventListener('mousemove',e=>move(e.clientX,e.clientY,e));
- window.addEventListener('mouseup',finish);
- b.addEventListener('click',e=>e.preventDefault());
- addEventListener('resize',bookingGuideRestore,{passive:true});
+
+function bookingGuideHint(text=BOOKING_GUIDE_DEFAULT_HINT,ms=0){
+  const el=$('bookingGuideAlways');
+  if(!el)return;
+  clearTimeout(bookingGuideHintTimer);
+  el.textContent=text;
+  if(ms>0)bookingGuideHintTimer=setTimeout(()=>{el.textContent=BOOKING_GUIDE_DEFAULT_HINT},ms);
 }
-bookingGuideInstallDrag();
 
-function bookingGuideInstallDirectDrag(){
-  const g=$('bookingGuide'), old=$('bookingGuideMascotBtn');
-  if(!g||!old||manageToken)return;
+function bookingGuideSides(){
+  const g=$('bookingGuide'),b=$('bookingGuideMascotBtn');
+  if(!g||!b)return;
+  const r=b.getBoundingClientRect();
+  g.classList.toggle('guideLeft',r.left+r.width/2<innerWidth/2);
+  g.classList.toggle('guideTop',r.top<145);
+}
 
-  const b=old.cloneNode(true);
-  old.replaceWith(b);
+function bookingGuideInstallDrag(){
+  const g=$('bookingGuide');
+  const b=$('bookingGuideMascotBtn');
+  const share=$('bookingGuideShare');
+  if(!g||!b||manageToken)return;
 
-  const margin=8;
+  // bookingGuideInit() が付けた通常クリックだけ解除し、操作処理はここ一本にする。
+  b.onclick=null;
+  if(share)share.onclick=shareSeitaiNakano;
+
+  const MARGIN=8;
+  const THRESHOLD=5;
   const words=['よいしょ、よいしょ','ついていくよ','ここかな？','どこにする？','いっしょに行くね'];
-  let active=false,dragged=false,startX=0,startY=0,startLeft=0,startTop=0,lastWord=0,wordIndex=0;
 
-  const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
-  const place=(left,top)=>{
-    const w=g.offsetWidth||82,h=g.offsetHeight||82;
-    const x=clamp(left,margin,Math.max(margin,innerWidth-w-margin));
-    const y=clamp(top,margin,Math.max(margin,innerHeight-h-margin));
+  let active=false;
+  let dragging=false;
+  let touchId=null;
+  let startX=0,startY=0;
+  let startGuideLeft=0,startGuideTop=0;
+  let buttonOffsetX=0,buttonOffsetY=0;
+  let buttonW=0,buttonH=0;
+  let lastWordAt=0,wordIndex=0;
+
+  const setGuidePosition=(left,top)=>{
+    const minLeft=MARGIN-buttonOffsetX;
+    const maxLeft=innerWidth-MARGIN-buttonW-buttonOffsetX;
+    const minTop=MARGIN-buttonOffsetY;
+    const maxTop=innerHeight-MARGIN-buttonH-buttonOffsetY;
+    const x=Math.max(minLeft,Math.min(maxLeft,left));
+    const y=Math.max(minTop,Math.min(maxTop,top));
     g.style.transform='none';
-    g.style.left=`${Math.round(x)}px`;
-    g.style.top=`${Math.round(y)}px`;
     g.style.right='auto';
     g.style.bottom='auto';
+    g.style.left=`${Math.round(x)}px`;
+    g.style.top=`${Math.round(y)}px`;
+  };
+
+  const savePosition=()=>{
+    const r=g.getBoundingClientRect();
+    try{localStorage.setItem('nakano_booking_guide_drag_pos_v2',JSON.stringify({left:r.left,top:r.top}))}catch(_){}
+  };
+
+  const restorePosition=()=>{
+    let saved=null;
+    try{saved=JSON.parse(localStorage.getItem('nakano_booking_guide_drag_pos_v2')||'null')}catch(_){}
+    if(!saved||!Number.isFinite(saved.left)||!Number.isFinite(saved.top)){
+      bookingGuideSides();
+      return;
+    }
+    const gr=g.getBoundingClientRect(),br=b.getBoundingClientRect();
+    buttonOffsetX=br.left-gr.left;
+    buttonOffsetY=br.top-gr.top;
+    buttonW=br.width;
+    buttonH=br.height;
+    setGuidePosition(saved.left,saved.top);
     bookingGuideSides();
   };
 
-  const restore=()=>{
-    let saved=null;
-    try{saved=JSON.parse(localStorage.getItem('nakano_booking_guide_direct_pos_v1')||'null')}catch(_){}
-    if(saved&&Number.isFinite(saved.left)&&Number.isFinite(saved.top)){
-      place(saved.left,saved.top);
-      return;
-    }
-    const r=g.getBoundingClientRect();
-    place(r.left,r.top);
-  };
-
-  const begin=(x,y,e)=>{
+  const begin=(x,y,id,e)=>{
+    if(active)return;
     if(e?.cancelable)e.preventDefault();
-    const r=g.getBoundingClientRect();
-    active=true;dragged=false;
-    startX=x;startY=y;startLeft=r.left;startTop=r.top;
-    lastWord=0;wordIndex=0;
+    const gr=g.getBoundingClientRect();
+    const br=b.getBoundingClientRect();
+    active=true;
+    dragging=false;
+    touchId=id;
+    startX=x;
+    startY=y;
+    startGuideLeft=gr.left;
+    startGuideTop=gr.top;
+    buttonOffsetX=br.left-gr.left;
+    buttonOffsetY=br.top-gr.top;
+    buttonW=br.width;
+    buttonH=br.height;
+    lastWordAt=0;
+    wordIndex=0;
     clearTimeout(bookingGuideTimer);
-    g.classList.remove('open','thinking','done');
-    bookingGuideHint('つかまえたよ');
   };
 
   const move=(x,y,e)=>{
     if(!active)return;
     if(e?.cancelable)e.preventDefault();
     const dx=x-startX,dy=y-startY;
-    if(!dragged&&Math.hypot(dx,dy)<3)return;
-    dragged=true;
-    g.classList.add('dragging');
-    place(startLeft+dx,startTop+dy);
+    if(!dragging&&Math.hypot(dx,dy)<THRESHOLD)return;
+    if(!dragging){
+      dragging=true;
+      g.classList.add('dragging');
+      g.classList.remove('open','thinking','done');
+      bookingGuideHint('よいしょ、よいしょ');
+    }
+    setGuidePosition(startGuideLeft+dx,startGuideTop+dy);
+    bookingGuideSides();
     const now=performance.now();
-    if(now-lastWord>500){bookingGuideHint(words[wordIndex++%words.length]);lastWord=now}
+    if(now-lastWordAt>650){
+      bookingGuideHint(words[wordIndex++%words.length]);
+      lastWordAt=now;
+    }
   };
 
   const finish=(e)=>{
     if(!active)return;
     if(e?.cancelable)e.preventDefault();
     active=false;
+    touchId=null;
     g.classList.remove('dragging');
-    if(dragged){
-      const r=g.getBoundingClientRect();
-      try{localStorage.setItem('nakano_booking_guide_direct_pos_v1',JSON.stringify({left:r.left,top:r.top}))}catch(_){}
+    if(dragging){
+      dragging=false;
+      savePosition();
+      bookingGuideSides();
       bookingGuideHint('ここで待ってるね',1800);
       return;
     }
-    bookingGuideSides();
     const open=!g.classList.contains('open');
     g.classList.toggle('open',open);
     g.classList.remove('thinking','done');
@@ -727,28 +762,48 @@ function bookingGuideInstallDirectDrag(){
   b.addEventListener('touchstart',e=>{
     if(e.touches.length!==1)return;
     const t=e.touches[0];
-    begin(t.clientX,t.clientY,e);
+    begin(t.clientX,t.clientY,t.identifier,e);
   },{passive:false});
-  b.addEventListener('touchmove',e=>{
-    if(e.touches.length!==1)return;
-    const t=e.touches[0];
+
+  document.addEventListener('touchmove',e=>{
+    if(!active||touchId===null)return;
+    const t=Array.from(e.touches).find(x=>x.identifier===touchId);
+    if(!t)return;
     move(t.clientX,t.clientY,e);
-  },{passive:false});
-  b.addEventListener('touchend',finish,{passive:false});
-  b.addEventListener('touchcancel',()=>{active=false;dragged=false;g.classList.remove('dragging');bookingGuideHint()},{passive:true});
+  },{passive:false,capture:true});
 
-  b.addEventListener('pointerdown',e=>{
-    if(e.pointerType==='touch'||e.button!==0)return;
-    begin(e.clientX,e.clientY,e);
+  document.addEventListener('touchend',e=>{
+    if(!active||touchId===null)return;
+    const ended=Array.from(e.changedTouches).some(x=>x.identifier===touchId);
+    if(ended)finish(e);
+  },{passive:false,capture:true});
+
+  document.addEventListener('touchcancel',e=>{
+    if(!active)return;
+    active=false;
+    dragging=false;
+    touchId=null;
+    g.classList.remove('dragging');
+    bookingGuideHint();
+  },{passive:true,capture:true});
+
+  // PC確認用。モバイルのタッチ処理とは独立。
+  b.addEventListener('mousedown',e=>{
+    if(e.button!==0)return;
+    begin(e.clientX,e.clientY,'mouse',e);
   });
-  window.addEventListener('pointermove',e=>{if(e.pointerType!=='touch')move(e.clientX,e.clientY,e)});
-  window.addEventListener('pointerup',e=>{if(e.pointerType!=='touch')finish(e)});
+  document.addEventListener('mousemove',e=>{if(active&&touchId==='mouse')move(e.clientX,e.clientY,e)});
+  document.addEventListener('mouseup',e=>{if(active&&touchId==='mouse')finish(e)});
 
-  b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation()});
-  restore();
-  addEventListener('resize',restore,{passive:true});
+  b.addEventListener('click',e=>{
+    e.preventDefault();
+    e.stopPropagation();
+  });
+
+  requestAnimationFrame(restorePosition);
+  addEventListener('resize',restorePosition,{passive:true});
 }
-bookingGuideInstallDirectDrag();
 
+bookingGuideInstallDrag();
 </script>
 </body></html>

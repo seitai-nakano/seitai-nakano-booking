@@ -1,0 +1,27 @@
+name: fix blocked editor time order once
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-blocked-editor-time-order-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply patch
+        run: python .github/scripts/fix_blocked_editor_time_order.py
+      - name: Verify
+        run: |
+          grep -q "22\*60+45" booking-drag.js
+          grep -q "blockedEnds.push('23:59')" booking-drag.js
+      - name: Commit patch and cleanup
+        run: |
+          rm .github/scripts/fix_blocked_editor_time_order.py
+          rm .github/workflows/fix-blocked-editor-time-order-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add booking-drag.js .github/scripts/fix_blocked_editor_time_order.py .github/workflows/fix-blocked-editor-time-order-once.yml
+          git commit -m "Fix blocked editor time ordering [skip ci]"
+          git push

@@ -22,6 +22,26 @@
 .bodyCheckResultPrice{font-size:14px;font-weight:800;color:#4c584c;white-space:nowrap;padding-top:14px}
 .bodyCheckResultItem .bodyCheckReserve{margin-top:9px}
 
+
+/* conversational body check */
+.bodyCheckChat{display:grid;gap:10px;margin-bottom:12px}
+.bodyCheckBubble{max-width:88%;padding:10px 12px;border-radius:14px;font-size:13px;line-height:1.65}
+.bodyCheckBubble.guide{justify-self:start;background:#f2eee9;color:#49443f;border:1px solid #e3dbd2;border-bottom-left-radius:5px}
+.bodyCheckBubble.user{justify-self:end;background:#61574d;color:#fff;border-bottom-right-radius:5px}
+.bodyCheckSpeaker{font-size:10px;font-weight:800;color:#827a72;margin:0 0 4px 2px}
+.bodyCheckProgress{font-size:11px;color:#8b837b;margin-bottom:8px}
+.bodyCheckQuestionNow{font-size:15px;font-weight:800;line-height:1.55;color:#3f3a35;margin-bottom:10px}
+.bodyCheckAnswerList{display:grid;gap:7px}
+.bodyCheckAnswer{width:100%;border:1px solid #d8d0c7;border-radius:11px;background:#fff;color:#49443f;padding:11px 12px;font-weight:700;text-align:left}
+.bodyCheckAnswer:active{background:#f3eee8}
+.bodyCheckAnalyzing{padding:16px 12px;text-align:center;border-radius:12px;background:#faf8f5;color:#625c56;font-size:13px;line-height:1.7}
+.bodyCheckDots{display:inline-flex;gap:4px;margin-right:7px;vertical-align:middle}
+.bodyCheckDots i{display:block;width:5px;height:5px;border-radius:50%;background:#776e66;animation:bodyCheckDot 1s infinite ease-in-out}
+.bodyCheckDots i:nth-child(2){animation-delay:.15s}.bodyCheckDots i:nth-child(3){animation-delay:.3s}
+@keyframes bodyCheckDot{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-2px)}}
+.bodyCheckResultSummary{margin:8px 0 12px;padding:11px 12px;border-radius:11px;background:#fff;border:1px solid #d8e2d8;font-size:12px;line-height:1.7;color:#536053}
+.bodyCheckRestart{width:100%;margin-top:10px;border:0;background:transparent;color:#77716a;text-decoration:underline;font-size:12px;padding:7px}
+
 </style>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <link rel="stylesheet" href="./customer-brand.css?v=20260815-3">
@@ -102,48 +122,112 @@ async function loadMenus(){const{data,error}=await supabase.from('nakano_menus')
 function expandQuarterSlots(base,date){const sorted=(base||[]).filter(s=>!isPastSlot(date,s.start_time)).sort((a,b)=>String(a.start_time).localeCompare(String(b.start_time))),mins=new Set(sorted.map(s=>timeToMinutes(s.start_time))),all=new Map(sorted.map(s=>[timeToMinutes(s.start_time),{...s,isQuarter:false}]));for(const m of [...mins])if(mins.has(m+30)){const q=m+15;if(!isPastSlot(date,minutesToTime(q)))all.set(q,{start_time:minutesToTime(q),isQuarter:true})}return [...all.entries()].sort((a,b)=>a[0]-b[0]).map(x=>x[1])}
 async function getAvailableSlots(menuId,date){if(!menuId||!date)return[];const{data,error}=await supabase.rpc('nakano_available_slots',{p_date:date,p_menu_id:menuId});if(error){console.error(error);return[]}return expandQuarterSlots(data||[],date)}
 async function loadSlots(){const box=$('slots');box.innerHTML='';selectedTime=null;$('confirmCard').classList.add('hidden');if(!selectedMenu||!$('date').value){box.innerHTML='<span class="muted">メニューと日付を選択してください。</span>';return}box.innerHTML='<span class="muted">空き時間を確認しています…</span>';const slots=await getAvailableSlots(selectedMenu.id,$('date').value);box.innerHTML='';if(!slots.length){box.innerHTML='<span class="muted">この日は現在ご予約いただける時間がありません。</span>';return}const groups=new Map();slots.forEach(s=>{const hour=String(s.start_time).slice(0,2);if(!groups.has(hour))groups.set(hour,[]);groups.get(hour).push(s)});let first=true;for(const[hour,list]of groups){const group=document.createElement('div');group.className='hourGroup'+(first?' open':'');first=false;const summary=document.createElement('button');summary.type='button';summary.className='hourSummary';summary.innerHTML=`<span>${Number(hour)}時</span><span>${list.length}枠 空き</span>`;const choices=document.createElement('div');choices.className='hourChoices';list.forEach(s=>{const b=document.createElement('button');b.type='button';b.className='slot';const minute=String(s.start_time).slice(3,5);b.innerHTML=`<span class="slotMinute">${minute}</span><span class="slotFullTime">${String(s.start_time).slice(0,5)}</span>`;b.onclick=()=>{document.querySelectorAll('.slot').forEach(x=>x.classList.remove('active'));b.classList.add('active');selectedTime=s.start_time;$('confirmCard').classList.add('hidden')};choices.appendChild(b)});summary.onclick=()=>group.classList.toggle('open');group.append(summary,choices);box.appendChild(group)}}
-let bodyCheckConcern='',bodyCheckDepth='';
+let bodyCheckConcern='',bodyCheckSeverity='',bodyCheckDepth='',bodyCheckStepIndex=0;
+const bodyCheckAnswers=[];
+const bodyCheckQuestions=[
+  {
+    key:'concern',
+    text:'今、いちばん気になっているのはどれですか？',
+    options:[
+      ['part','首・肩・腰など一部がつらい'],
+      ['whole','全身の疲れ・だるさ'],
+      ['head','頭・目・首肩がつらい'],
+      ['unsure','いくつか気になる・決めにくい']
+    ]
+  },
+  {
+    key:'severity',
+    text:'つらさは今、どのくらいですか？',
+    options:[
+      ['mild','少し気になる程度'],
+      ['ongoing','ずっと続いている・繰り返す'],
+      ['strong','かなりつらい・しっかりケアしたい']
+    ]
+  },
+  {
+    key:'depth',
+    text:'今日はどれくらいしっかり受けたいですか？',
+    options:[
+      ['short','短めに整えたい'],
+      ['standard','全身を一通りみてほしい'],
+      ['deep','時間をかけてじっくり受けたい']
+    ]
+  }
+];
+
 function bodyCheckRecommendations(){
-  if(!bodyCheckConcern||!bodyCheckDepth)return [];
-  const table={
-    head:{
-      short:['head','m60h','m90h'],
-      standard:['m60h','m90h','m120h'],
-      deep:['m120h','m90h','m60h']
-    },
-    part:{
-      short:['m30','m60','m90'],
-      standard:['m60h','m90h','m120h'],
-      deep:['m120h','m90h','m60h']
-    },
-    whole:{
-      short:['m60','m90','m120'],
-      standard:['m90h','m120h','m60h'],
-      deep:['m120h','m90h','m60h']
-    },
-    unsure:{
-      short:['m60','m90','m30'],
-      standard:['m90h','m60h','m120h'],
-      deep:['m120h','m90h','m60h']
+  if(!bodyCheckConcern||!bodyCheckSeverity||!bodyCheckDepth)return [];
+
+  // 「じっくり」は全ケースでヘッド付き、120分＋ヘッドを最優先。
+  if(bodyCheckDepth==='deep')return ['m120h','m90h','m60h'];
+
+  // 「全身を一通り」は全ケースでヘッド付き。
+  if(bodyCheckDepth==='standard'){
+    if(bodyCheckConcern==='head'){
+      return bodyCheckSeverity==='strong'
+        ? ['m90h','m120h','m60h']
+        : ['m60h','m90h','m120h'];
     }
-  };
-  return table[bodyCheckConcern]?.[bodyCheckDepth]||[];
+    if(bodyCheckConcern==='whole'||bodyCheckConcern==='unsure'||bodyCheckSeverity==='strong'){
+      return ['m90h','m120h','m60h'];
+    }
+    return ['m60h','m90h','m120h'];
+  }
+
+  // 短め希望は症状とつらさで順番を調整。
+  if(bodyCheckConcern==='head'){
+    return bodyCheckSeverity==='strong'
+      ? ['m60h','m90h','head']
+      : ['head','m60h','m90h'];
+  }
+  if(bodyCheckConcern==='part'){
+    return bodyCheckSeverity==='strong'
+      ? ['m60','m90','m30']
+      : ['m30','m60','m90'];
+  }
+  if(bodyCheckConcern==='whole'||bodyCheckConcern==='unsure'){
+    return bodyCheckSeverity==='strong'
+      ? ['m90','m60','m120']
+      : ['m60','m90','m30'];
+  }
+  return ['m60','m90','m30'];
 }
+
+function bodyCheckSummaryText(){
+  const c={part:'部分的なつらさ',whole:'全身の疲れ・だるさ',head:'頭・目・首肩のつらさ',unsure:'複数のお悩み'}[bodyCheckConcern]||'今のお悩み';
+  const s={mild:'軽めのつらさ',ongoing:'続いているつらさ',strong:'強めのつらさ'}[bodyCheckSeverity]||'';
+  const d={short:'短めのケア',standard:'全身を一通り',deep:'じっくりしたケア'}[bodyCheckDepth]||'';
+  return `${c}・${s}・${d}という回答から、受けやすさと施術範囲のバランスで候補を選びました。`;
+}
+
 function chooseBodyCheckMenu(menuId){
   const button=document.querySelector(`.menu[data-menu-id="${CSS.escape(String(menuId))}"]`);
   if(button)button.click();
   $('date').scrollIntoView({behavior:'smooth',block:'center'});
   setTimeout(()=>$('date').focus({preventScroll:true}),350);
 }
+
+function bodyCheckMenuNameFromId(id){
+  return menus.find(m=>String(m.id)===String(id));
+}
+
 function renderBodyCheckResult(){
   const ids=bodyCheckRecommendations();
-  if(!ids.length){$('bodyCheckResult').classList.add('hidden');return}
   const seen=new Set(),recommended=[];
   for(const id of ids){
-    const menu=menus.find(m=>String(m.id)===String(id));
-    if(menu&&!seen.has(String(menu.id))){seen.add(String(menu.id));recommended.push(menu)}
+    const menu=bodyCheckMenuNameFromId(id);
+    if(menu&&!seen.has(String(menu.id))){
+      seen.add(String(menu.id));
+      recommended.push(menu);
+    }
   }
-  if(!recommended.length){$('bodyCheckResult').classList.add('hidden');return}
+  if(!recommended.length){
+    setTimeout(renderBodyCheckResult,120);
+    return;
+  }
+  $('bodyCheckAnalyzing').classList.add('hidden');
+  const result=$('bodyCheckResult');
+  $('bodyCheckResultSummary').textContent=bodyCheckSummaryText();
   const list=$('bodyCheckResultList');
   list.innerHTML='';
   recommended.slice(0,3).forEach((menu,index)=>{
@@ -153,17 +237,96 @@ function renderBodyCheckResult(){
     item.querySelector('.bodyCheckReserve').onclick=()=>chooseBodyCheckMenu(menu.id);
     list.appendChild(item);
   });
-  $('bodyCheckResult').classList.remove('hidden');
+  result.classList.remove('hidden');
 }
-$('bodyCheckStart').onclick=()=>{$('bodyCheckPanel').classList.toggle('hidden')};
-function bindBodyCheck(groupId,key){
-  $(groupId).querySelectorAll('.bodyCheckChoice').forEach(b=>b.onclick=()=>{
-    $(groupId).querySelectorAll('.bodyCheckChoice').forEach(x=>x.classList.toggle('active',x===b));
-    if(key==='concern')bodyCheckConcern=b.dataset.value;else bodyCheckDepth=b.dataset.value;
-    renderBodyCheckResult();
+
+function bodyCheckAddBubble(kind,text,speaker=''){
+  const chat=$('bodyCheckChat');
+  const wrap=document.createElement('div');
+  if(speaker){
+    const sp=document.createElement('div');
+    sp.className='bodyCheckSpeaker';
+    sp.textContent=speaker;
+    chat.appendChild(sp);
+  }
+  wrap.className=`bodyCheckBubble ${kind}`;
+  wrap.textContent=text;
+  chat.appendChild(wrap);
+  wrap.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function showBodyCheckQuestion(index){
+  bodyCheckStepIndex=index;
+  const q=bodyCheckQuestions[index];
+  if(!q){
+    $('bodyCheckQuestionArea').classList.add('hidden');
+    $('bodyCheckAnalyzing').classList.remove('hidden');
+    setTimeout(renderBodyCheckResult,650);
+    return;
+  }
+  const area=$('bodyCheckQuestionArea');
+  area.classList.remove('hidden');
+  area.innerHTML=`<div class="bodyCheckProgress">${index+1} / ${bodyCheckQuestions.length}</div><div class="bodyCheckQuestionNow">${esc(q.text)}</div><div class="bodyCheckAnswerList"></div>`;
+  const list=area.querySelector('.bodyCheckAnswerList');
+  q.options.forEach(([value,label])=>{
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='bodyCheckAnswer';
+    b.textContent=label;
+    b.onclick=()=>{
+      if(q.key==='concern')bodyCheckConcern=value;
+      if(q.key==='severity')bodyCheckSeverity=value;
+      if(q.key==='depth')bodyCheckDepth=value;
+      bodyCheckAnswers[index]=label;
+      bodyCheckAddBubble('user',label);
+      area.classList.add('hidden');
+      setTimeout(()=>{
+        if(index+1<bodyCheckQuestions.length){
+          bodyCheckAddBubble('guide',bodyCheckQuestions[index+1].text,'お体チェック');
+        }
+        showBodyCheckQuestion(index+1);
+      },220);
+    };
+    list.appendChild(b);
   });
 }
-bindBodyCheck('bodyCheckConcern','concern');bindBodyCheck('bodyCheckDepth','depth');
+
+function startBodyCheck(){
+  bodyCheckConcern='';bodyCheckSeverity='';bodyCheckDepth='';bodyCheckStepIndex=0;
+  bodyCheckAnswers.length=0;
+  $('bodyCheckResult').classList.add('hidden');
+  $('bodyCheckAnalyzing').classList.add('hidden');
+  $('bodyCheckChat').innerHTML='';
+  $('bodyCheckPanel').classList.remove('hidden');
+  $('bodyCheckStart').textContent='最初からやり直す';
+  bodyCheckAddBubble('guide','いくつか質問します。今のお体に近いものを選んでください。','お体チェック');
+  setTimeout(()=>{
+    bodyCheckAddBubble('guide',bodyCheckQuestions[0].text,'お体チェック');
+    showBodyCheckQuestion(0);
+  },180);
+}
+
+// 既存の一括表示型チェックを、1問ずつ進む会話形式に置き換える。
+$('bodyCheck').innerHTML=`
+  <div class="bodyCheckIntro">
+    <div class="bodyCheckTitle">メニューに迷ったら お体チェック</div>
+    <div class="bodyCheckSub">質問に答えると、今のお悩みに合いそうなメニューをおすすめ順にご案内します。</div>
+    <button class="bodyCheckStart" id="bodyCheckStart" type="button">お体チェックを始める</button>
+  </div>
+  <div class="bodyCheckPanel hidden" id="bodyCheckPanel">
+    <div class="bodyCheckChat" id="bodyCheckChat"></div>
+    <div id="bodyCheckQuestionArea"></div>
+    <div class="bodyCheckAnalyzing hidden" id="bodyCheckAnalyzing"><span class="bodyCheckDots"><i></i><i></i><i></i></span>回答内容からおすすめを選んでいます…</div>
+    <div class="bodyCheckResult hidden" id="bodyCheckResult">
+      <div class="bodyCheckResultLabel">あなたへのおすすめ候補</div>
+      <div class="bodyCheckResultSummary" id="bodyCheckResultSummary"></div>
+      <div class="bodyCheckResultList" id="bodyCheckResultList"></div>
+      <div class="bodyCheckNote">メニュー選びのための自動チェックです。医療上の診断ではありません。</div>
+      <button class="bodyCheckRestart" id="bodyCheckRestart" type="button">もう一度チェックする</button>
+    </div>
+  </div>`;
+$('bodyCheckStart').onclick=startBodyCheck;
+$('bodyCheckRestart').onclick=startBodyCheck;
 
 $('date').min=todayJapan();$('manageDate').min=todayJapan();$('date').onchange=()=>{selectedTime=null;loadSlots()};
 $('confirmBooking').onclick=()=>{const name=$('name').value.trim(),tel=$('tel').value.trim(),memo=$('memo').value.trim();$('msg').textContent='';if(!selectedMenu)return $('msg').textContent='メニューを選択してください。';if(!$('date').value)return $('msg').textContent='日付を選択してください。';if(!selectedTime)return $('msg').textContent='時間を選択してください。';if(!name)return $('msg').textContent='お名前を入力してください。';if(!phoneIsValid(tel))return $('msg').textContent='電話番号を確認してください。';$('confirmSummary').innerHTML=summaryHtml([['メニュー',selectedMenu.name],['日時',`${formatDate($('date').value)} ${String(selectedTime).slice(0,5)}`],['料金',yen(selectedMenu.price)],['お名前',name],['電話番号',tel],['症状・部位',memo||'未入力']]);$('confirmCard').classList.remove('hidden');$('confirmCard').scrollIntoView({behavior:'smooth',block:'start'})};

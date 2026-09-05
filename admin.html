@@ -252,12 +252,44 @@ button:disabled{
   height:82px;
   z-index:3;
   overflow:hidden;
-  padding:8px;
+  padding:8px 38px 8px 8px;
   border:1px solid #dda8a1;
   border-radius:10px;
   background:#f4dfdc;
   color:#8a4a42;
-  font-size:11px
+  font-size:11px;
+  touch-action:pan-x
+}
+
+.blockedMoveHandle{
+  position:absolute;
+  right:3px;
+  top:50%;
+  transform:translateY(-50%);
+  z-index:40;
+  width:32px;
+  height:42px;
+  border:1px solid rgba(120,70,64,.35);
+  border-radius:9px;
+  background:rgba(255,255,255,.96);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#8a4a42;
+  font-size:17px;
+  font-weight:900;
+  line-height:1;
+  touch-action:none!important;
+  -webkit-user-select:none;
+  user-select:none;
+  -webkit-touch-callout:none;
+  box-shadow:0 1px 4px rgba(0,0,0,.10)
+}
+
+.blockedSchedule.directDragging{
+  z-index:120!important;
+  opacity:.96;
+  box-shadow:0 0 0 3px rgba(138,74,66,.22),0 8px 24px rgba(0,0,0,.20)
 }
 
 .bookingBlock{
@@ -1773,6 +1805,113 @@ function renderTimeHeader(){
 }
 
 
+function directBlockedTime(minutes){
+  const n=Math.max(DAY_START,Math.min(DAY_END,Number(minutes)||DAY_START));
+  return `${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}:00`;
+}
+
+function bindDirectBlockedMove(block,item,start,end){
+  const handle=block.querySelector('.blockedMoveHandle');
+  if(!handle||!item?.id)return;
+
+  handle.dataset.boundMove='1';
+  handle.addEventListener('click',event=>{
+    event.preventDefault();
+    event.stopPropagation();
+  });
+
+  handle.addEventListener('pointerdown',event=>{
+    if(event.pointerType==='mouse'&&event.button!==0)return;
+    const scroll=block.closest('.scheduleScroll,.timelineScroll');
+    if(!scroll)return;
+
+    const duration=end-start;
+    if(duration<=0)return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const pointerId=event.pointerId;
+    const startX=event.clientX;
+    const startScrollLeft=scroll.scrollLeft;
+    const originalLeft=parseFloat(block.style.left)||((start-DAY_START)*PX_PER_MINUTE);
+    let nextStart=start;
+    let finished=false;
+
+    block.classList.add('directDragging');
+    try{handle.setPointerCapture(pointerId)}catch{}
+
+    const move=ev=>{
+      if(ev.pointerId!==pointerId||finished)return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      const moved=(ev.clientX-startX+scroll.scrollLeft-startScrollLeft)/PX_PER_MINUTE;
+      let candidate=Math.round((start+moved)/15)*15;
+      candidate=Math.max(DAY_START,Math.min(DAY_END-duration,candidate));
+      nextStart=candidate;
+      block.style.left=`${(candidate-DAY_START)*PX_PER_MINUTE}px`;
+      handle.textContent=directBlockedTime(candidate).slice(0,5);
+      handle.style.fontSize='10px';
+    };
+
+    const cleanup=()=>{
+      block.classList.remove('directDragging');
+      handle.textContent='↔';
+      handle.style.fontSize='17px';
+      handle.removeEventListener('pointermove',move);
+      handle.removeEventListener('pointerup',up);
+      handle.removeEventListener('pointercancel',cancel);
+      try{handle.releasePointerCapture(pointerId)}catch{}
+    };
+
+    const cancel=ev=>{
+      if(ev.pointerId!==pointerId||finished)return;
+      finished=true;
+      block.style.left=`${originalLeft}px`;
+      cleanup();
+    };
+
+    const up=async ev=>{
+      if(ev.pointerId!==pointerId||finished)return;
+      finished=true;
+      ev.preventDefault();
+      ev.stopPropagation();
+      cleanup();
+
+      if(nextStart===start){
+        block.style.left=`${originalLeft}px`;
+        return;
+      }
+
+      const oldLabel=directBlockedTime(start).slice(0,5);
+      const newLabel=directBlockedTime(nextStart).slice(0,5);
+      const newEnd=directBlockedTime(nextStart+duration).slice(0,5);
+      if(!confirm(`${oldLabel} → ${newLabel}（〜${newEnd}）に予定を移動しますか？`)){
+        block.style.left=`${originalLeft}px`;
+        return;
+      }
+
+      const {error}=await supabase.rpc('nakano_admin_move_blocked_time',{
+        p_blocked_id:String(item.id),
+        p_start_time:directBlockedTime(nextStart)
+      });
+
+      if(error){
+        console.error(error);
+        alert('その時間には移動できません。予約・別の予定を確認してください。');
+        block.style.left=`${originalLeft}px`;
+        return;
+      }
+
+      await loadDay();
+    };
+
+    handle.addEventListener('pointermove',move,{passive:false});
+    handle.addEventListener('pointerup',up,{passive:false});
+    handle.addEventListener('pointercancel',cancel,{passive:false});
+  },{passive:false});
+}
+
 function renderTimeline(){
 
   renderTimeHeader();
@@ -1932,11 +2071,24 @@ function renderTimeline(){
 
         ${esc(item.memo||'')}
 
+        <span
+          class="blockedMoveHandle"
+          data-bound-move="1"
+          role="button"
+          aria-label="予定時間を左右に移動"
+        >↔</span>
+
       `;
 
-      block.style.cursor='grab';
-      block.title='タップで予定を変更・削除／左右ドラッグで時間変更';
+      block.style.cursor='pointer';
+      block.title='タップで予定を変更・削除／右端の↔で時間移動';
 
+      bindDirectBlockedMove(
+        block,
+        item,
+        start,
+        end
+      );
 
       lane.appendChild(
         block

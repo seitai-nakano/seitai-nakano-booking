@@ -43,7 +43,7 @@ function addStyles(){
   const s=document.createElement('style');
   s.id='nakanoBlockedDragStyle';
   s.textContent=`
-.blockedSchedule,.blockedBlock{-webkit-touch-callout:none;touch-action:pan-y;cursor:grab;-webkit-user-select:none;user-select:none}
+.blockedSchedule,.blockedBlock{-webkit-touch-callout:none;touch-action:pan-x;cursor:grab;-webkit-user-select:none;user-select:none}
 .blockedSchedule.blockedDragging,.blockedBlock.blockedDragging{z-index:110!important;opacity:.98;box-shadow:0 0 0 3px rgba(138,74,66,.24),0 9px 26px rgba(0,0,0,.22)!important;transform:translateY(8px) scale(1.02);touch-action:none!important;transition:none!important;will-change:left;cursor:grabbing}
 `;
   document.head.appendChild(s);
@@ -248,21 +248,13 @@ function onTouchMove(e){
   const dx=s.currentX-s.startX,dy=s.currentY-s.startY;
 
   if(!s.interacting){
-    // Before long press activates, a real horizontal swipe means schedule scrolling.
-    // Keep the same touch alive instead of dropping it, so the red block itself
-    // can be used as a reliable horizontal-scroll surface on iPhone.
+    // Before long press activates, let Safari handle horizontal scrolling natively.
+    // We only cancel the pending long press; we do not preventDefault here.
     if(!s.scrolling && Math.abs(dx)>=LONG_PRESS_CANCEL_DISTANCE && Math.abs(dx)>=Math.abs(dy)){
       clearTimeout(pressTimer);pressTimer=null;
       s.scrolling=true;
     }
-    if(s.scrolling){
-      e.preventDefault();
-      e.stopPropagation();
-      const maxScroll=Math.max(0,s.scroll.scrollWidth-s.scroll.clientWidth);
-      s.scroll.scrollLeft=Math.max(0,Math.min(maxScroll,s.startScrollLeft-dx));
-      return;
-    }
-    // Vertical motion belongs to the page; cancel only the pending long press.
+    if(s.scrolling)return;
     if(Math.abs(dy)>=LONG_PRESS_CANCEL_DISTANCE && Math.abs(dy)>Math.abs(dx)){
       clearTimeout(pressTimer);pressTimer=null;
     }
@@ -283,9 +275,8 @@ async function onTouchEnd(e){
   drag=null;
 
   if(s.scrolling){
-    // Prevent the post-swipe synthetic click from opening the editor.
+    // Native Safari scroll already happened; only suppress the synthetic click.
     suppressClickUntil=Date.now()+450;
-    e.preventDefault();
     return;
   }
   if(!s.interacting)return;
@@ -345,14 +336,14 @@ function onPointerCancel(e){
 }
 
 function attach(el,item){
-  el.style.touchAction='none';
+  el.style.touchAction='pan-x';
   el.querySelector('.blockedMoveHandle')?.remove();
   const hint=el.querySelector('.blockedTapHint');
   if(!movable(item)){
     if(hint)hint.textContent='タップで時間変更';
     return;
   }
-  if(hint)hint.textContent='横スワイプでスクロール・長押ししてから左右に動かして移動';
+  if(hint)hint.textContent='横スワイプでスクロール・0.5秒長押し後に左右へ移動';
   el.title=`${String(item.start_time).slice(0,5)}〜${String(item.end_time).slice(0,5)} 長押ししてから左右に動かして時間移動`;
   if(el.dataset.boundBlockMove!=='1'){
     el.dataset.boundBlockMove='1';

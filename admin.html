@@ -1837,15 +1837,11 @@ function bindDirectBlockedMove(block,item,start,end){
     const originalLeft=parseFloat(block.style.left)||((start-DAY_START)*PX_PER_MINUTE);
     let nextStart=start;
     let finished=false;
+    let currentX=event.clientX;
+    let autoFrame=null;
 
-    block.classList.add('directDragging');
-    try{handle.setPointerCapture(pointerId)}catch{}
-
-    const move=ev=>{
-      if(ev.pointerId!==pointerId||finished)return;
-      ev.preventDefault();
-      ev.stopPropagation();
-      const moved=(ev.clientX-startX+scroll.scrollLeft-startScrollLeft)/PX_PER_MINUTE;
+    const updatePosition=()=>{
+      const moved=(currentX-startX+scroll.scrollLeft-startScrollLeft)/PX_PER_MINUTE;
       let candidate=Math.round((start+moved)/15)*15;
       candidate=Math.max(DAY_START,Math.min(DAY_END-duration,candidate));
       nextStart=candidate;
@@ -1854,7 +1850,41 @@ function bindDirectBlockedMove(block,item,start,end){
       handle.style.fontSize='10px';
     };
 
+    const autoScroll=()=>{
+      if(finished)return;
+      const rect=scroll.getBoundingClientRect();
+      const edge=96;
+      let speed=0;
+      if(currentX<rect.left+edge){
+        const p=Math.max(0,Math.min(1,(rect.left+edge-currentX)/edge));
+        speed=-(4+p*18);
+      }
+      else if(currentX>rect.right-edge){
+        const p=Math.max(0,Math.min(1,(currentX-(rect.right-edge))/edge));
+        speed=4+p*18;
+      }
+      if(speed){
+        const before=scroll.scrollLeft;
+        scroll.scrollLeft+=speed;
+        if(before!==scroll.scrollLeft)updatePosition();
+      }
+      autoFrame=requestAnimationFrame(autoScroll);
+    };
+
+    block.classList.add('directDragging');
+    try{handle.setPointerCapture(pointerId)}catch{}
+    autoFrame=requestAnimationFrame(autoScroll);
+
+    const move=ev=>{
+      if(ev.pointerId!==pointerId||finished)return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      currentX=ev.clientX;
+      updatePosition();
+    };
+
     const cleanup=()=>{
+      if(autoFrame){cancelAnimationFrame(autoFrame);autoFrame=null;}
       block.classList.remove('directDragging');
       handle.textContent='↔';
       handle.style.fontSize='17px';
@@ -2081,7 +2111,7 @@ function renderTimeline(){
       `;
 
       block.style.cursor='pointer';
-      block.title='タップで予定を変更・削除／右端の↔で時間移動';
+      block.title='タップで予定を変更・削除／↔で移動（画面端で自動スクロール）';
 
       bindDirectBlockedMove(
         block,

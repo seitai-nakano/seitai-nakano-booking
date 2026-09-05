@@ -12,8 +12,8 @@ const SNAP_MINUTES=15;
 const DRAG_START_DISTANCE=5;
 const TOUCH_HOLD_TO_DRAG_MS=240;
 const SCROLL_INTENT_DISTANCE=8;
-const EDGE_ZONE=72;
-const MAX_AUTO_SPEED=13;
+const EDGE_ZONE=96;
+const MAX_AUTO_SPEED=18;
 
 let rows=[];
 let rowsDate='';
@@ -140,10 +140,10 @@ function autoLoop(){
   let speed=0;hideEdges();
   if(ld<EDGE_ZONE){
     const p=Math.max(0,Math.min(1,(EDGE_ZONE-ld)/EDGE_ZONE));
-    speed=-(3+p*MAX_AUTO_SPEED);$('dragEdgeLeft')?.classList.add('show');
+    speed=-(4+p*MAX_AUTO_SPEED);$('dragEdgeLeft')?.classList.add('show');
   }else if(rd<EDGE_ZONE){
     const p=Math.max(0,Math.min(1,(EDGE_ZONE-rd)/EDGE_ZONE));
-    speed=3+p*MAX_AUTO_SPEED;$('dragEdgeRight')?.classList.add('show');
+    speed=4+p*MAX_AUTO_SPEED;$('dragEdgeRight')?.classList.add('show');
   }
   if(speed){const before=s.scroll.scrollLeft;s.scroll.scrollLeft+=speed;if(before!==s.scroll.scrollLeft)updateVisual()}
   autoFrame=requestAnimationFrame(autoLoop);

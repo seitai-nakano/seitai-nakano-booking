@@ -625,15 +625,27 @@ function bookingGuidePos(){const g=$('bookingGuide');return{x:parseFloat(g?.styl
 function bookingGuideSetPos(x,y){const g=$('bookingGuide');if(!g)return;g.style.setProperty('--guide-dx',`${Math.round(x)}px`);g.style.setProperty('--guide-dy',`${Math.round(y)}px`)}
 function bookingGuideSides(){const g=$('bookingGuide'),b=$('bookingGuideMascotBtn');if(!g||!b)return;const r=b.getBoundingClientRect();g.classList.toggle('guideLeft',r.left+r.width/2<innerWidth/2);g.classList.toggle('guideTop',r.top<145)}
 function bookingGuideRestore(){try{const v=JSON.parse(localStorage.getItem('nakano_booking_guide_pos_v1')||'null');if(v&&Number.isFinite(v.x)&&Number.isFinite(v.y))bookingGuideSetPos(v.x,v.y)}catch(_){}requestAnimationFrame(()=>{const b=$('bookingGuideMascotBtn');if(!b)return;const p=bookingGuidePos(),r=b.getBoundingClientRect(),m=8;let x=p.x,y=p.y;if(r.left<m)x+=m-r.left;if(r.right>innerWidth-m)x-=r.right-(innerWidth-m);if(r.top<m)y+=m-r.top;if(r.bottom>innerHeight-m)y-=r.bottom-(innerHeight-m);bookingGuideSetPos(x,y);bookingGuideSides()})}
-function bookingGuideDrag(g,b){
- let id=null,sx=0,sy=0,ox=0,oy=0,x0=0,x1=0,y0=0,y1=0,drag=false,last=0,n=0;
+function bookingGuideInstallDrag(){
+ const g=$('bookingGuide'),old=$('bookingGuideMascotBtn'),sh=$('bookingGuideShare');
+ if(!g||!old||manageToken)return;
+ const b=old.cloneNode(true);old.replaceWith(b);
+ if(sh)sh.onclick=shareSeitaiNakano;
+ bookingGuideRestore();bookingGuideHint();
+ let active=false,drag=false,sx=0,sy=0,ox=0,oy=0,x0=0,x1=0,y0=0,y1=0,last=0,n=0;
  const words=['よいしょ、よいしょ','ついていくよ','ここかな？','どこにする？','いっしょに行くね'];
- b.addEventListener('pointerdown',e=>{if(e.button!=null&&e.button!==0)return;id=e.pointerId;sx=e.clientX;sy=e.clientY;const p=bookingGuidePos();ox=p.x;oy=p.y;const r=b.getBoundingClientRect(),m=8;x0=ox+m-r.left;x1=ox+(innerWidth-m-r.right);y0=oy+m-r.top;y1=oy+(innerHeight-m-r.bottom);drag=false;last=0;n=0;clearTimeout(bookingGuideTimer);try{b.setPointerCapture(id)}catch(_){}});
- b.addEventListener('pointermove',e=>{if(id!==e.pointerId)return;const dx=e.clientX-sx,dy=e.clientY-sy;if(!drag&&Math.hypot(dx,dy)<7)return;drag=true;e.preventDefault();g.classList.add('dragging');g.classList.remove('open','thinking','done');bookingGuideSetPos(Math.min(x1,Math.max(x0,ox+dx)),Math.min(y1,Math.max(y0,oy+dy)));bookingGuideSides();const now=performance.now();if(now-last>520){bookingGuideHint(words[n++%words.length]);last=now}});
- const up=e=>{if(id!==e.pointerId)return;try{b.releasePointerCapture(id)}catch(_){}id=null;if(drag){drag=false;g.classList.remove('dragging');try{localStorage.setItem('nakano_booking_guide_pos_v1',JSON.stringify(bookingGuidePos()))}catch(_){}bookingGuideSides();bookingGuideHint('ここで待ってるね',1800);return}bookingGuideSides();const o=!g.classList.contains('open');g.classList.toggle('open',o);g.classList.remove('thinking','done')};
- b.addEventListener('pointerup',up);b.addEventListener('pointercancel',e=>{if(id!==e.pointerId)return;id=null;g.classList.remove('dragging');bookingGuideHint()});
+ const begin=(x,y)=>{active=true;drag=false;sx=x;sy=y;const p=bookingGuidePos();ox=p.x;oy=p.y;const r=b.getBoundingClientRect(),m=8;x0=ox+m-r.left;x1=ox+(innerWidth-m-r.right);y0=oy+m-r.top;y1=oy+(innerHeight-m-r.bottom);last=0;n=0;clearTimeout(bookingGuideTimer)};
+ const move=(x,y,e)=>{if(!active)return;const dx=x-sx,dy=y-sy;if(!drag&&Math.hypot(dx,dy)<6)return;drag=true;if(e&&e.cancelable)e.preventDefault();g.classList.add('dragging');g.classList.remove('open','thinking','done');bookingGuideSetPos(Math.min(x1,Math.max(x0,ox+dx)),Math.min(y1,Math.max(y0,oy+dy)));bookingGuideSides();const now=performance.now();if(now-last>520){bookingGuideHint(words[n++%words.length]);last=now}};
+ const finish=()=>{if(!active)return;active=false;if(drag){drag=false;g.classList.remove('dragging');try{localStorage.setItem('nakano_booking_guide_pos_v1',JSON.stringify(bookingGuidePos()))}catch(_){}bookingGuideSides();bookingGuideHint('ここで待ってるね',1800);return}bookingGuideSides();const o=!g.classList.contains('open');g.classList.toggle('open',o);g.classList.remove('thinking','done')};
+ b.addEventListener('touchstart',e=>{if(e.touches.length!==1)return;const t=e.touches[0];begin(t.clientX,t.clientY)},{passive:true});
+ window.addEventListener('touchmove',e=>{if(!active||e.touches.length!==1)return;const t=e.touches[0];move(t.clientX,t.clientY,e)},{passive:false});
+ window.addEventListener('touchend',finish,{passive:true});
+ window.addEventListener('touchcancel',()=>{active=false;drag=false;g.classList.remove('dragging');bookingGuideHint()},{passive:true});
+ b.addEventListener('mousedown',e=>{if(e.button!==0)return;begin(e.clientX,e.clientY);e.preventDefault()});
+ window.addEventListener('mousemove',e=>move(e.clientX,e.clientY,e));
+ window.addEventListener('mouseup',finish);
+ b.addEventListener('click',e=>e.preventDefault());
+ addEventListener('resize',bookingGuideRestore,{passive:true});
 }
-function bookingGuideInit(){const g=$('bookingGuide'),b=$('bookingGuideMascotBtn'),sh=$('bookingGuideShare');if(!g||!b)return;if(manageToken){g.classList.add('hidden');return}if(b.dataset.dragReady==='1')return;b.dataset.dragReady='1';b.onclick=null;if(sh)sh.onclick=shareSeitaiNakano;bookingGuideRestore();bookingGuideDrag(g,b);bookingGuideHint();addEventListener('resize',bookingGuideRestore,{passive:true})}
-bookingGuideInit();
+bookingGuideInstallDrag();
 </script>
 </body></html>

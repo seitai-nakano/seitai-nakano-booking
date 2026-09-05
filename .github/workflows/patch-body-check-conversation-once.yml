@@ -1,0 +1,40 @@
+name: patch body check conversation once
+on:
+  push:
+    paths:
+      - '.github/patch-body-check-conversation.py'
+      - '.github/workflows/patch-body-check-conversation-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch conversational body check
+        run: python .github/patch-body-check-conversation.py
+      - name: Verify
+        run: |
+          grep -q "おすすめを選んでいます" index.html
+          grep -q "つらさは今、どのくらいですか" index.html
+          grep -q "bodyCheckDepth==='deep'" index.html
+          grep -q "m120h','m90h','m60h" index.html
+      - name: Check module syntax
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('index.html').read_text()
+          m=re.search(r'<script type="module">(.*?)</script>',s,re.S)
+          if not m: raise SystemExit('module script not found')
+          Path('/tmp/index-module.js').write_text(m.group(1))
+          PY
+          node --check /tmp/index-module.js
+      - name: Commit and cleanup
+        run: |
+          rm -f .github/patch-body-check-conversation.py .github/workflows/patch-body-check-conversation-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html .github
+          git commit -m "Make body check conversational [skip ci]"
+          git push

@@ -1,0 +1,50 @@
+name: move mascot drag into module once
+on:
+  push:
+    paths:
+      - '.github/workflows/move-mascot-drag-into-module-once.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Move drag logic into booking module
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          marker_start="<script>\nconst BOOKING_GUIDE_DEFAULT_HINT='紹介してくれるなら、ぼくをタップしてね';"
+          start=s.index(marker_start)
+          end=s.index('</script>', start)+len('</script>')
+          block=s[start+len('<script>\n'):s.index('</script>', start)]
+          # remove immediate installer call; start() will call it after bookingGuideInit()
+          block=block.replace('\nbookingGuideInstallDrag();\n','\n')
+          s=s[:start]+s[end:]
+          old="async function start(){bookingGuideInit();loadLatestManage();await loadMenus();if(manageToken)await loadManageBooking()}start();"
+          assert old in s
+          new=block+"\nasync function start(){bookingGuideInit();bookingGuideInstallDrag();loadLatestManage();await loadMenus();if(manageToken)await loadManageBooking()}start();"
+          s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+      - name: Verify module integration
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('index.html').read_text()
+          assert s.count('function bookingGuideInstallDrag(){') == 1
+          assert 'bookingGuideInit();bookingGuideInstallDrag();loadLatestManage()' in s
+          tail=s[s.index('<!-- local navigation cache refresh -->'):]
+          assert 'function bookingGuideInstallDrag(){' not in tail
+          print('drag module integration verified')
+          PY
+      - name: Commit and cleanup
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/move-mascot-drag-into-module-once.yml
+          git add index.html
+          git commit -m 'Run mascot drag inside booking module [skip ci]'
+          git push

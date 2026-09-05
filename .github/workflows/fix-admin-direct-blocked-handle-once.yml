@@ -1,0 +1,29 @@
+name: fix admin direct blocked handle once
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-admin-direct-blocked-handle-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply direct blocked handle fix
+        run: python3 .github/scripts/fix_admin_direct_blocked_handle.py
+      - name: Verify direct handle
+        run: |
+          grep -q 'directBlockedTime' admin.html
+          grep -q 'bindDirectBlockedMove' admin.html
+          grep -q 'data-bound-move="1"' admin.html
+          grep -q 'direct-blocked-handle-v3' admin.html
+      - name: Commit repair and cleanup
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/fix-admin-direct-blocked-handle-once.yml
+          git rm .github/scripts/fix_admin_direct_blocked_handle.py
+          git add admin.html
+          git commit -m 'Render and bind blocked move handle directly [skip ci]'
+          git push

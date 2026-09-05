@@ -45,6 +45,23 @@
 /* booking guide mascot */
 .bookingGuide{position:fixed;right:max(12px,env(safe-area-inset-right));bottom:max(14px,calc(env(safe-area-inset-bottom) + 12px));z-index:90;display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none}.bookingGuideBubble{width:min(300px,calc(100vw - 106px));padding:11px 12px;border:1px solid #dccfc2;border-radius:14px;background:rgba(248,241,234,.98);box-shadow:0 8px 28px rgba(83,53,38,.15);color:#514a44;font-size:12px;line-height:1.6;opacity:0;transform:translateY(7px) scale(.98);transition:opacity .16s ease,transform .16s ease;pointer-events:none}.bookingGuide.open .bookingGuideBubble{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}.bookingGuideText{font-weight:700}.bookingGuideLink{display:block;margin-top:7px;padding-top:7px;border-top:1px solid #e2d6ca;color:#6b302d;font-weight:800;text-decoration:none}.bookingGuideShare{width:100%;border-left:0;border-right:0;border-bottom:0;background:transparent;padding-left:0;padding-right:0;text-align:left;font:inherit;cursor:pointer}.bookingGuideMascotBtn{width:78px;height:78px;border:1px solid #d8c2b0;border-radius:50%;background:linear-gradient(145deg,#f4e7dc 0%,#e6d0bf 58%,#dcbca7 100%);box-shadow:0 8px 24px rgba(91,53,35,.20),inset 0 1px 0 rgba(255,255,255,.6);padding:4px;pointer-events:auto;animation:bookingGuideWander 6.6s ease-in-out infinite;touch-action:manipulation;will-change:transform}.bookingGuideMascot{display:block;width:100%;height:100%;transform-origin:50% 88%;animation:bookingMascotFloat 3.1s ease-in-out infinite}.bookingGuideEye{transform-box:fill-box;transform-origin:center;animation:bookingMascotBlink 4.8s infinite}.bookingGuideCheek{animation:bookingMascotCheek 2.8s ease-in-out infinite}.bookingGuide.thinking .bookingGuideMascot{animation:bookingMascotThink .42s ease-in-out infinite alternate}.bookingGuide.done .bookingGuideMascot{animation:bookingMascotDone .82s cubic-bezier(.2,.8,.3,1.2) 1,bookingMascotFloat 3.1s .82s ease-in-out infinite}@keyframes bookingGuideWander{0%,100%{transform:translate3d(0,0,0) rotate(0) scale(1);box-shadow:0 8px 24px rgba(91,53,35,.20)}12%{transform:translate3d(-6px,-3px,0) rotate(-2deg) scale(1.02)}26%{transform:translate3d(-14px,-9px,0) rotate(2deg) scale(1.04);box-shadow:0 12px 30px rgba(91,53,35,.25)}40%{transform:translate3d(-9px,-14px,0) rotate(-1deg) scale(1.02)}54%{transform:translate3d(1px,-8px,0) rotate(2deg) scale(1.04)}68%{transform:translate3d(-5px,-2px,0) rotate(-2deg) scale(1)}82%{transform:translate3d(-12px,-6px,0) rotate(1deg) scale(1.035)}92%{transform:translate3d(-4px,-10px,0) rotate(-1deg) scale(1.015)}}@keyframes bookingMascotFloat{0%,100%{transform:translate3d(0,0,0) rotate(-3deg)}18%{transform:translate3d(2px,-3px,0) rotate(1deg)}36%{transform:translate3d(-1px,-7px,0) rotate(3deg)}52%{transform:translate3d(2px,-9px,0) rotate(0)}70%{transform:translate3d(-2px,-5px,0) rotate(-3deg)}86%{transform:translate3d(1px,-2px,0) rotate(2deg)}}@keyframes bookingMascotBlink{0%,42%,46%,72%,76%,100%{transform:scaleY(1)}44%,74%{transform:scaleY(.1)}}@keyframes bookingMascotCheek{0%,100%{opacity:.52}50%{opacity:1}}@keyframes bookingMascotThink{from{transform:translate3d(-2px,-3px,0) rotate(-8deg) scale(1.03)}to{transform:translate3d(3px,-7px,0) rotate(8deg) scale(1.07)}}@keyframes bookingMascotDone{0%{transform:translateY(0) scale(1) rotate(0)}34%{transform:translateY(-15px) scale(1.12) rotate(-7deg)}58%{transform:translateY(-7px) scale(1.05) rotate(7deg)}80%{transform:translateY(3px) scale(.97) rotate(-3deg)}100%{transform:translateY(0) scale(1) rotate(0)}}@media(prefers-reduced-motion:reduce){.bookingGuideMascotBtn,.bookingGuideMascot,.bookingGuideEye,.bookingGuideCheek,.bookingGuide.thinking .bookingGuideMascot,.bookingGuide.done .bookingGuideMascot{animation:none!important}}
 
+
+/* mascot interactive v2 */
+.bookingGuide{width:82px!important;min-height:82px;align-items:center!important;gap:0!important;transform:translate3d(var(--guide-dx,0px),var(--guide-dy,0px),0);transition:transform .06s linear;will-change:transform}
+.bookingGuideBubble{position:absolute!important;right:0;bottom:104px;width:min(300px,calc(100vw - 24px))!important;z-index:3}
+.bookingGuideAlways{position:absolute;right:0;bottom:91px;width:max-content;max-width:min(225px,calc(100vw - 108px));padding:8px 11px;border:1px solid #dccfc2;border-radius:13px 13px 4px 13px;background:rgba(248,241,234,.97);box-shadow:0 6px 18px rgba(83,53,38,.11);color:#6b302d;font-size:11px;line-height:1.45;font-weight:800;text-align:left;pointer-events:none;z-index:2;transition:opacity .14s ease,transform .14s ease}
+.bookingGuide.open .bookingGuideAlways{opacity:0;transform:translateY(4px)}
+.bookingGuide.guideLeft .bookingGuideBubble,.bookingGuide.guideLeft .bookingGuideAlways{left:0;right:auto}
+.bookingGuide.guideLeft .bookingGuideAlways{border-radius:13px 13px 13px 4px}
+.bookingGuide.guideTop .bookingGuideBubble{top:100px;bottom:auto}
+.bookingGuide.guideTop .bookingGuideAlways{top:91px;bottom:auto;border-radius:4px 13px 13px 13px}
+.bookingGuide.dragging{transition:none!important}
+.bookingGuide.dragging .bookingGuideMascotBtn{animation:none!important;transform:scale(1.08)!important;cursor:grabbing;box-shadow:0 12px 32px rgba(91,53,35,.27),inset 0 1px 0 rgba(255,255,255,.6)}
+.bookingGuide.dragging .bookingGuideMascot{animation:bookingMascotCarry .34s ease-in-out infinite alternate!important}
+.bookingGuideMascotBtn{touch-action:none!important;cursor:grab;user-select:none;-webkit-user-select:none}
+.bookingGuideShare{font-weight:900!important}
+@keyframes bookingMascotCarry{from{transform:translate3d(-3px,-4px,0) rotate(-7deg) scale(1.04)}to{transform:translate3d(3px,-10px,0) rotate(7deg) scale(1.08)}}
+@media(max-width:420px){.bookingGuideAlways{max-width:205px;font-size:10px}}
 </style>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <link rel="stylesheet" href="./customer-brand.css?v=20260815-3">
@@ -75,6 +92,7 @@
     <a class="bookingGuideLink" href="./body-check.html">どれがいいかわからない → お体チェック</a>
     <button class="bookingGuideLink bookingGuideShare" id="bookingGuideShare" type="button">整体なかのを誰かに紹介する</button>
   </div>
+  <div class="bookingGuideAlways" id="bookingGuideAlways">紹介してくれるなら、ぼくをタップしてね</div>
   <button class="bookingGuideMascotBtn" id="bookingGuideMascotBtn" type="button" aria-label="予約ナビを開く">
     <svg class="bookingGuideMascot" viewBox="0 0 80 105" aria-hidden="true">
       <path d="M23 96V51c0-9 7-16 16-16h5c10 0 17-7 17-16C61 10 54 3 45 3H31C18 3 10 12 10 23c0 8 6 14 14 14 6 0 10-3 14-8 4-4 7-6 12-6 11 0 19 8 19 19v54Z" fill="#fff" stroke="#7b1e1b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
@@ -598,5 +616,22 @@ document.addEventListener('click',function(e){
   }catch{}
 },true);
 </script>
-<script src="./pwa-register.js?v=20260816-1" defer></script>
+<script src="./pwa-register.js?v=20260816-1" defer>
+const BOOKING_GUIDE_DEFAULT_HINT='紹介してくれるなら、ぼくをタップしてね';
+let bookingGuideHintTimer=null;
+function bookingGuideHint(t=BOOKING_GUIDE_DEFAULT_HINT,ms=0){const e=$('bookingGuideAlways');if(!e)return;clearTimeout(bookingGuideHintTimer);e.textContent=t;if(ms)bookingGuideHintTimer=setTimeout(()=>e.textContent=BOOKING_GUIDE_DEFAULT_HINT,ms)}
+function bookingGuidePos(){const g=$('bookingGuide');return{x:parseFloat(g?.style.getPropertyValue('--guide-dx'))||0,y:parseFloat(g?.style.getPropertyValue('--guide-dy'))||0}}
+function bookingGuideSetPos(x,y){const g=$('bookingGuide');if(!g)return;g.style.setProperty('--guide-dx',`${Math.round(x)}px`);g.style.setProperty('--guide-dy',`${Math.round(y)}px`)}
+function bookingGuideSides(){const g=$('bookingGuide'),b=$('bookingGuideMascotBtn');if(!g||!b)return;const r=b.getBoundingClientRect();g.classList.toggle('guideLeft',r.left+r.width/2<innerWidth/2);g.classList.toggle('guideTop',r.top<145)}
+function bookingGuideRestore(){try{const v=JSON.parse(localStorage.getItem('nakano_booking_guide_pos_v1')||'null');if(v&&Number.isFinite(v.x)&&Number.isFinite(v.y))bookingGuideSetPos(v.x,v.y)}catch(_){}requestAnimationFrame(()=>{const b=$('bookingGuideMascotBtn');if(!b)return;const p=bookingGuidePos(),r=b.getBoundingClientRect(),m=8;let x=p.x,y=p.y;if(r.left<m)x+=m-r.left;if(r.right>innerWidth-m)x-=r.right-(innerWidth-m);if(r.top<m)y+=m-r.top;if(r.bottom>innerHeight-m)y-=r.bottom-(innerHeight-m);bookingGuideSetPos(x,y);bookingGuideSides()})}
+function bookingGuideDrag(g,b){
+ let id=null,sx=0,sy=0,ox=0,oy=0,x0=0,x1=0,y0=0,y1=0,drag=false,last=0,n=0;
+ const words=['よいしょ、よいしょ','ついていくよ','ここかな？','どこにする？','いっしょに行くね'];
+ b.addEventListener('pointerdown',e=>{if(e.button!=null&&e.button!==0)return;id=e.pointerId;sx=e.clientX;sy=e.clientY;const p=bookingGuidePos();ox=p.x;oy=p.y;const r=b.getBoundingClientRect(),m=8;x0=ox+m-r.left;x1=ox+(innerWidth-m-r.right);y0=oy+m-r.top;y1=oy+(innerHeight-m-r.bottom);drag=false;last=0;n=0;clearTimeout(bookingGuideTimer);try{b.setPointerCapture(id)}catch(_){}});
+ b.addEventListener('pointermove',e=>{if(id!==e.pointerId)return;const dx=e.clientX-sx,dy=e.clientY-sy;if(!drag&&Math.hypot(dx,dy)<7)return;drag=true;e.preventDefault();g.classList.add('dragging');g.classList.remove('open','thinking','done');bookingGuideSetPos(Math.min(x1,Math.max(x0,ox+dx)),Math.min(y1,Math.max(y0,oy+dy)));bookingGuideSides();const now=performance.now();if(now-last>520){bookingGuideHint(words[n++%words.length]);last=now}});
+ const up=e=>{if(id!==e.pointerId)return;try{b.releasePointerCapture(id)}catch(_){}id=null;if(drag){drag=false;g.classList.remove('dragging');try{localStorage.setItem('nakano_booking_guide_pos_v1',JSON.stringify(bookingGuidePos()))}catch(_){}bookingGuideSides();bookingGuideHint('ここで待ってるね',1800);return}bookingGuideSides();const o=!g.classList.contains('open');g.classList.toggle('open',o);g.classList.remove('thinking','done')};
+ b.addEventListener('pointerup',up);b.addEventListener('pointercancel',e=>{if(id!==e.pointerId)return;id=null;g.classList.remove('dragging');bookingGuideHint()});
+}
+function bookingGuideInit(){const g=$('bookingGuide'),b=$('bookingGuideMascotBtn'),sh=$('bookingGuideShare');if(!g||!b)return;if(manageToken){g.classList.add('hidden');return}if(sh)sh.onclick=shareSeitaiNakano;bookingGuideRestore();bookingGuideDrag(g,b);bookingGuideHint();addEventListener('resize',bookingGuideRestore,{passive:true})}
+</script>
 </body></html>

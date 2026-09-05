@@ -1,0 +1,93 @@
+name: patch mascot share once
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-mascot-share-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch mascot share action
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+
+          old_css='.bookingGuideLink{display:block;margin-top:7px;padding-top:7px;border-top:1px solid #e2d6ca;color:#6b302d;font-weight:800;text-decoration:none}'
+          new_css=old_css+'.bookingGuideShare{width:100%;border-left:0;border-right:0;border-bottom:0;background:transparent;padding-left:0;padding-right:0;text-align:left;font:inherit;cursor:pointer}'
+          if '.bookingGuideShare{' not in s:
+              assert old_css in s
+              s=s.replace(old_css,new_css,1)
+
+          old_html='<a class="bookingGuideLink" href="./body-check.html">どれがいいかわからない → お体チェック</a>'
+          new_html=old_html+'\n    <button class="bookingGuideLink bookingGuideShare" id="bookingGuideShare" type="button">整体なかのを誰かに紹介する</button>'
+          if 'id="bookingGuideShare"' not in s:
+              assert old_html in s
+              s=s.replace(old_html,new_html,1)
+
+          anchor='function bookingGuideInit(){'
+          share_js=r'''async function shareSeitaiNakano(){
+  const shareData={
+    title:'整体なかの',
+    text:'整体なかののオンライン予約はこちら。メニューに迷ったら、お体チェックからおすすめも選べます。',
+    url:BASE_URL
+  };
+  try{
+    if(navigator.share){
+      await navigator.share(shareData);
+      bookingGuideSay('紹介ありがとう◎','done',2800);
+      return;
+    }
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(`${shareData.text}\n${shareData.url}`);
+      bookingGuideSay('紹介用の文章とリンクをコピーしました。','done',3400);
+      return;
+    }
+    window.prompt('このリンクをコピーして送ってください',shareData.url);
+  }catch(e){
+    if(e&&e.name==='AbortError')return;
+    console.error(e);
+    try{
+      await navigator.clipboard.writeText(shareData.url);
+      bookingGuideSay('紹介用リンクをコピーしました。','done',3000);
+    }catch(_){
+      window.prompt('このリンクをコピーして送ってください',shareData.url);
+    }
+  }
+}
+'''
+          if 'async function shareSeitaiNakano()' not in s:
+              assert anchor in s
+              s=s.replace(anchor,share_js+anchor,1)
+
+          old_init="function bookingGuideInit(){\n  const guide=$('bookingGuide'),btn=$('bookingGuideMascotBtn');"
+          new_init="function bookingGuideInit(){\n  const guide=$('bookingGuide'),btn=$('bookingGuideMascotBtn'),shareBtn=$('bookingGuideShare');"
+          if new_init not in s:
+              assert old_init in s
+              s=s.replace(old_init,new_init,1)
+
+          old_btn="  btn.onclick=()=>{\n    clearTimeout(bookingGuideTimer);"
+          new_btn="  if(shareBtn)shareBtn.onclick=shareSeitaiNakano;\n  btn.onclick=()=>{\n    clearTimeout(bookingGuideTimer);"
+          if new_btn not in s:
+              assert old_btn in s
+              s=s.replace(old_btn,new_btn,1)
+
+          p.write_text(s)
+          PY
+      - name: Verify
+        run: |
+          grep -q 'id="bookingGuideShare"' index.html
+          grep -q 'async function shareSeitaiNakano' index.html
+          grep -q 'navigator.share' index.html
+      - name: Commit and cleanup
+        run: |
+          rm .github/workflows/patch-mascot-share-once.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html .github/workflows/patch-mascot-share-once.yml
+          git commit -m 'Add share action to booking mascot [skip ci]'
+          git push

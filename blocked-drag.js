@@ -10,8 +10,8 @@ const DAY_END=23*60;
 const PX_PER_MINUTE=2;
 const SNAP_MINUTES=15;
 const DRAG_START_DISTANCE=4;
-const LONG_PRESS_MS=420;
-const LONG_PRESS_CANCEL_DISTANCE=10;
+const LONG_PRESS_MS=500;
+const LONG_PRESS_CANCEL_DISTANCE=14;
 const EDGE_ZONE=120;
 const MAX_AUTO_SPEED=24;
 
@@ -43,7 +43,7 @@ function addStyles(){
   const s=document.createElement('style');
   s.id='nakanoBlockedDragStyle';
   s.textContent=`
-.blockedSchedule,.blockedBlock{-webkit-touch-callout:none;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}
+.blockedSchedule,.blockedBlock{-webkit-touch-callout:none;touch-action:pan-y;cursor:grab;-webkit-user-select:none;user-select:none}
 .blockedSchedule.blockedDragging,.blockedBlock.blockedDragging{z-index:110!important;opacity:.98;box-shadow:0 0 0 3px rgba(138,74,66,.24),0 9px 26px rgba(0,0,0,.22)!important;transform:translateY(8px) scale(1.02);touch-action:none!important;transition:none!important;will-change:left;cursor:grabbing}
 `;
   document.head.appendChild(s);
@@ -217,12 +217,19 @@ async function finishDrag(s){
 function onTouchStart(e,el,item){
   if(drag||e.touches.length!==1)return;
   const t=e.changedTouches[0];
-  const s=createDragState(el,item,t.clientX,t.clientY,'touch',{touchId:t.identifier});
+  const s=createDragState(el,item,t.clientX,t.clientY,'touch',{
+    touchId:t.identifier,scrolling:false
+  });
   if(!s)return;
   drag=s;
   clearTimeout(pressTimer);
   pressTimer=setTimeout(()=>{
-    if(drag!==s||s.interacting)return;
+    if(drag!==s||s.interacting||s.scrolling)return;
+    // Reset the drag origin to the finger's actual position at long-press activation
+    // so tiny natural finger wobble never makes the block jump.
+    s.startX=s.currentX;
+    s.startY=s.currentY;
+    s.startScrollLeft=s.scroll.scrollLeft;
     startDrag();
   },LONG_PRESS_MS);
   e.stopPropagation();
@@ -239,15 +246,29 @@ function onTouchMove(e){
   if(!t)return;
   s.currentX=t.clientX;s.currentY=t.clientY;
   const dx=s.currentX-s.startX,dy=s.currentY-s.startY;
+
   if(!s.interacting){
-    // Touch movement does NOT start a drag. The user must hold first.
-    // A noticeable move before the hold finishes cancels the pending drag.
-    if(Math.hypot(dx,dy)>=LONG_PRESS_CANCEL_DISTANCE){
+    // Before long press activates, a real horizontal swipe means schedule scrolling.
+    // Keep the same touch alive instead of dropping it, so the red block itself
+    // can be used as a reliable horizontal-scroll surface on iPhone.
+    if(!s.scrolling && Math.abs(dx)>=LONG_PRESS_CANCEL_DISTANCE && Math.abs(dx)>=Math.abs(dy)){
       clearTimeout(pressTimer);pressTimer=null;
-      drag=null;
+      s.scrolling=true;
+    }
+    if(s.scrolling){
+      e.preventDefault();
+      e.stopPropagation();
+      const maxScroll=Math.max(0,s.scroll.scrollWidth-s.scroll.clientWidth);
+      s.scroll.scrollLeft=Math.max(0,Math.min(maxScroll,s.startScrollLeft-dx));
+      return;
+    }
+    // Vertical motion belongs to the page; cancel only the pending long press.
+    if(Math.abs(dy)>=LONG_PRESS_CANCEL_DISTANCE && Math.abs(dy)>Math.abs(dx)){
+      clearTimeout(pressTimer);pressTimer=null;
     }
     return;
   }
+
   e.preventDefault();
   e.stopPropagation();
   edgeNudge(s);
@@ -259,9 +280,16 @@ async function onTouchEnd(e){
   clearTimeout(pressTimer);pressTimer=null;
   const t=findTouch(e.changedTouches,s.touchId);
   if(!t)return;
-  if(s.interacting)e.preventDefault();
   drag=null;
+
+  if(s.scrolling){
+    // Prevent the post-swipe synthetic click from opening the editor.
+    suppressClickUntil=Date.now()+450;
+    e.preventDefault();
+    return;
+  }
   if(!s.interacting)return;
+  e.preventDefault();
   await finishDrag(s);
 }
 
@@ -324,7 +352,7 @@ function attach(el,item){
     if(hint)hint.textContent='タップで時間変更';
     return;
   }
-  if(hint)hint.textContent='長押ししてから左右に動かして移動・タップで編集';
+  if(hint)hint.textContent='横スワイプでスクロール・長押ししてから左右に動かして移動';
   el.title=`${String(item.start_time).slice(0,5)}〜${String(item.end_time).slice(0,5)} 長押ししてから左右に動かして時間移動`;
   if(el.dataset.boundBlockMove!=='1'){
     el.dataset.boundBlockMove='1';

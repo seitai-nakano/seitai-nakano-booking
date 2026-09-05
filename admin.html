@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>整体なかの｜管理トップ</title>
-<meta name="nakano-admin-build" content="2026-09-05-manual-booking-v2">
+<meta name="nakano-admin-build" content="2026-09-05-manual-booking-v3-15min">
 
 <style>
 *{box-sizing:border-box}
@@ -685,7 +685,7 @@ CLOSE
 <h2>OPEN / CLOSE</h2>
 
 <p class="muted">
-30分単位で受付可否を変更できます。
+15分単位で受付可否を変更できます。
 </p>
 
 <div class="row">
@@ -1060,7 +1060,7 @@ const times=[];
 for(
   let minutes=DAY_START;
   minutes<DAY_END;
-  minutes+=30
+  minutes+=15
 ){
 
   const h=
@@ -1800,8 +1800,8 @@ function renderTimeline(){
 
   for(
     let min=DAY_START;
-    min<=DAY_END;
-    min+=30
+    min<DAY_END;
+    min+=15
   ){
 
     const time=
@@ -1837,13 +1837,12 @@ function renderTimeline(){
 
 
     cell.style.width=
-      `${30*PX_PER_MINUTE}px`;
+      `${15*PX_PER_MINUTE}px`;
 
     cell.style.cursor='pointer';
     cell.onclick=event=>{
       event.stopPropagation();
-      const quarter=event.offsetX >= (15*PX_PER_MINUTE) ? 15 : 0;
-      openTimelineQuickAdd(min+quarter);
+      openTimelineQuickAdd(min);
     };
 
 
@@ -2180,7 +2179,7 @@ function renderSlotButtons(){
 
 
       const slotEnd=
-        slotStart+30;
+        slotStart+15;
 
 
       const booking=

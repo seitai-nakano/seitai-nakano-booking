@@ -616,7 +616,8 @@ document.addEventListener('click',function(e){
   }catch{}
 },true);
 </script>
-<script src="./pwa-register.js?v=20260816-1" defer>
+<script src="./pwa-register.js?v=20260816-1" defer></script>
+<script>
 const BOOKING_GUIDE_DEFAULT_HINT='紹介してくれるなら、ぼくをタップしてね';
 let bookingGuideHintTimer=null;
 function bookingGuideHint(t=BOOKING_GUIDE_DEFAULT_HINT,ms=0){const e=$('bookingGuideAlways');if(!e)return;clearTimeout(bookingGuideHintTimer);e.textContent=t;if(ms)bookingGuideHintTimer=setTimeout(()=>e.textContent=BOOKING_GUIDE_DEFAULT_HINT,ms)}

@@ -1,0 +1,31 @@
+name: fix-admin-schedule-interactions-once
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-admin-schedule-interactions-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch admin schedule interactions
+        run: python3 .github/scripts/fix_admin_schedule_interactions.py
+      - name: Verify interaction paths
+        run: |
+          grep -q "data.*blockedId\|blockedId" admin.html
+          grep -q "nakano-admin-prefill-booking" admin.html
+          grep -q "この時間から新規予約" booking-drag.js
+          grep -q "DRAG_START_DISTANCE=5" blocked-drag.js
+          grep -q "touch-action:pan-y" blocked-drag.js
+          ! grep -q "LONG_PRESS_MS=430" blocked-drag.js
+      - name: Commit and cleanup
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/fix-admin-schedule-interactions-once.yml
+          git rm .github/scripts/fix_admin_schedule_interactions.py
+          git add admin.html booking-drag.js blocked-drag.js
+          git commit -m 'Restore admin schedule edit drag and booking override [skip ci]'
+          git push

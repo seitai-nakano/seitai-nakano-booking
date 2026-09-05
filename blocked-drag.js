@@ -156,7 +156,6 @@ function startDrag(){
   createGhost(s);
   s.el.classList.add('blockedDragging');
   document.body.classList.add('bookingDragging');
-  try{s.el.setPointerCapture(s.pointerId)}catch{}
   try{navigator.vibrate?.(18)}catch{}
   const st=minutesToTime(s.originalStart).slice(0,5),en=minutesToTime(s.originalStart+s.duration).slice(0,5);
   destination(`${st}–${en}`);
@@ -245,7 +244,22 @@ function onMove(e){
       return;
     }
   }
-  e.preventDefault();updateVisual();
+  e.preventDefault();
+  // iPhone/Safari: scroll immediately while the finger is near either edge.
+  // The RAF loop below continues scrolling even when the finger is held still.
+  const rect=s.scroll.getBoundingClientRect();
+  let immediate=0;
+  if(s.currentX<rect.left+EDGE_ZONE){
+    const p=Math.max(0,Math.min(1,(rect.left+EDGE_ZONE-s.currentX)/EDGE_ZONE));
+    immediate=-(6+p*16);
+  }else if(s.currentX>rect.right-EDGE_ZONE){
+    const p=Math.max(0,Math.min(1,(s.currentX-(rect.right-EDGE_ZONE))/EDGE_ZONE));
+    immediate=6+p*16;
+  }
+  if(immediate){
+    s.scroll.scrollLeft+=immediate;
+  }
+  updateVisual();
 }
 
 async function onUp(e){
@@ -319,6 +333,6 @@ if(supportedPage()){
   $('date')?.addEventListener('change',()=>{rowsDate='';queueHydrate(true)});
   new MutationObserver(()=>queueHydrate()).observe(document.body,{childList:true,subtree:true});
   window.addEventListener('pointermove',onMove,{passive:false});
-  window.addEventListener('pointerup',onUp);
-  window.addEventListener('pointercancel',onCancel);
+  window.addEventListener('pointerup',onUp,{passive:false});
+  window.addEventListener('pointercancel',onCancel,{passive:false});
 }

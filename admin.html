@@ -2103,7 +2103,6 @@ function renderTimeline(){
 
         <span
           class="blockedMoveHandle"
-          data-bound-move="1"
           role="button"
           aria-label="予定時間を左右に移動"
         >↔</span>
@@ -2111,14 +2110,7 @@ function renderTimeline(){
       `;
 
       block.style.cursor='pointer';
-      block.title='タップで予定を変更・削除／↔で移動（画面端で自動スクロール）';
-
-      bindDirectBlockedMove(
-        block,
-        item,
-        start,
-        end
-      );
+      block.title='タップで予定を変更・削除／↔で移動（指を追跡して横スクロール）';
 
       lane.appendChild(
         block
@@ -4271,6 +4263,7 @@ syncAuth();
   自動更新・ホーム画面復帰対応
 -->
 <script type="module">import(`./booking-drag.js?_v=${Date.now()}`);</script>
+<script type="module">import(`./blocked-drag.js?_v=${Date.now()}`);</script>
 <script type="module" src="./admin-booking-calendar.js?v=20260904-1"></script>
 
 

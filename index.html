@@ -58,7 +58,7 @@
 .bookingGuide.dragging{transition:none!important}
 .bookingGuide.dragging .bookingGuideMascotBtn{animation:none!important;transform:scale(1.08)!important;cursor:grabbing;box-shadow:0 12px 32px rgba(91,53,35,.27),inset 0 1px 0 rgba(255,255,255,.6)}
 .bookingGuide.dragging .bookingGuideMascot{animation:bookingMascotCarry .34s ease-in-out infinite alternate!important}
-.bookingGuideMascotBtn{touch-action:none!important;cursor:grab;user-select:none;-webkit-user-select:none}
+.bookingGuideMascotBtn{touch-action:none!important;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .bookingGuideShare{font-weight:900!important}
 @keyframes bookingMascotCarry{from{transform:translate3d(-3px,-4px,0) rotate(-7deg) scale(1.04)}to{transform:translate3d(3px,-10px,0) rotate(7deg) scale(1.08)}}
 @media(max-width:420px){.bookingGuideAlways{max-width:205px;font-size:10px}}
@@ -636,8 +636,8 @@ function bookingGuideInstallDrag(){
  const begin=(x,y)=>{active=true;drag=false;sx=x;sy=y;const p=bookingGuidePos();ox=p.x;oy=p.y;const r=b.getBoundingClientRect(),m=8;x0=ox+m-r.left;x1=ox+(innerWidth-m-r.right);y0=oy+m-r.top;y1=oy+(innerHeight-m-r.bottom);last=0;n=0;clearTimeout(bookingGuideTimer)};
  const move=(x,y,e)=>{if(!active)return;const dx=x-sx,dy=y-sy;if(!drag&&Math.hypot(dx,dy)<6)return;drag=true;if(e&&e.cancelable)e.preventDefault();g.classList.add('dragging');g.classList.remove('open','thinking','done');bookingGuideSetPos(Math.min(x1,Math.max(x0,ox+dx)),Math.min(y1,Math.max(y0,oy+dy)));bookingGuideSides();const now=performance.now();if(now-last>520){bookingGuideHint(words[n++%words.length]);last=now}};
  const finish=()=>{if(!active)return;active=false;if(drag){drag=false;g.classList.remove('dragging');try{localStorage.setItem('nakano_booking_guide_pos_v1',JSON.stringify(bookingGuidePos()))}catch(_){}bookingGuideSides();bookingGuideHint('ここで待ってるね',1800);return}bookingGuideSides();const o=!g.classList.contains('open');g.classList.toggle('open',o);g.classList.remove('thinking','done')};
- b.addEventListener('touchstart',e=>{if(e.touches.length!==1)return;const t=e.touches[0];begin(t.clientX,t.clientY)},{passive:true});
- window.addEventListener('touchmove',e=>{if(!active||e.touches.length!==1)return;const t=e.touches[0];move(t.clientX,t.clientY,e)},{passive:false});
+ b.addEventListener('touchstart',e=>{if(e.touches.length!==1)return;if(e.cancelable)e.preventDefault();const t=e.touches[0];begin(t.clientX,t.clientY)},{passive:false});
+ window.addEventListener('touchmove',e=>{if(!active||e.touches.length!==1)return;if(e.cancelable)e.preventDefault();const t=e.touches[0];move(t.clientX,t.clientY,e)},{passive:false});
  window.addEventListener('touchend',finish,{passive:true});
  window.addEventListener('touchcancel',()=>{active=false;drag=false;g.classList.remove('dragging');bookingGuideHint()},{passive:true});
  b.addEventListener('mousedown',e=>{if(e.button!==0)return;begin(e.clientX,e.clientY);e.preventDefault()});

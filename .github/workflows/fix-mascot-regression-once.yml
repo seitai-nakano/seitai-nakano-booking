@@ -1,0 +1,48 @@
+name: fix mascot regression once
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-mascot-regression-once.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fix body check startup and mascot drag script
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          # Fix normal booking page: close external PWA script before inline mascot code.
+          p=Path('index.html')
+          s=p.read_text()
+          bad='<script src="./pwa-register.js?v=20260816-1" defer>\nconst BOOKING_GUIDE_DEFAULT_HINT='
+          good='<script src="./pwa-register.js?v=20260816-1" defer></script>\n<script>\nconst BOOKING_GUIDE_DEFAULT_HINT='
+          assert bad in s, 'index mascot inline script marker not found'
+          s=s.replace(bad,good,1)
+          p.write_text(s)
+
+          # Fix body check: avoid TDZ crash because start() runs before aiTalkStep initialization.
+          p=Path('body-check.html')
+          s=p.read_text()
+          assert 'let aiTalkStep=0;' in s, 'aiTalkStep marker not found'
+          s=s.replace('let aiTalkStep=0;','var aiTalkStep=0;',1)
+          p.write_text(s)
+          PY
+      - name: Verify fixes
+        run: |
+          grep -q '<script src="./pwa-register.js?v=20260816-1" defer></script>' index.html
+          grep -q "const BOOKING_GUIDE_DEFAULT_HINT='紹介してくれるなら、ぼくをタップしてね';" index.html
+          grep -q 'function bookingGuideDrag' index.html
+          grep -q 'var aiTalkStep=0;' body-check.html
+          grep -q "btn.onclick=()=>" body-check.html
+      - name: Commit and cleanup
+        run: |
+          rm .github/workflows/fix-mascot-regression-once.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html body-check.html .github/workflows/fix-mascot-regression-once.yml
+          git commit -m 'Fix mascot drag and body check progression [skip ci]'
+          git push

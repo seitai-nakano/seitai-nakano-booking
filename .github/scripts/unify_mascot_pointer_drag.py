@@ -3,51 +3,20 @@ from pathlib import Path
 p = Path('index.html')
 s = p.read_text()
 
+# Rename the active contact id consistently.
 s = s.replace('let touchId=null;', 'let activePointerId=null;')
 s = s.replace('touchId=id;', 'activePointerId=id;')
 s = s.replace('touchId=null;', 'activePointerId=null;')
+s = s.replace('touchId===null', 'activePointerId===null')
+s = s.replace('identifier===touchId', 'identifier===activePointerId')
+s = s.replace("touchId==='mouse'", "activePointerId==='mouse'")
 
-old = """  b.addEventListener('touchstart',e=>{
-    if(e.touches.length!==1)return;
-    const t=e.touches[0];
-    begin(t.clientX,t.clientY,t.identifier,e);
-  },{passive:false});
-
-  document.addEventListener('touchmove',e=>{
-    if(!active||activePointerId===null)return;
-    const t=Array.from(e.touches).find(x=>x.identifier===activePointerId);
-    if(!t)return;
-    move(t.clientX,t.clientY,e);
-  },{passive:false,capture:true});
-
-  document.addEventListener('touchend',e=>{
-    if(!active||activePointerId===null)return;
-    const ended=Array.from(e.changedTouches).some(x=>x.identifier===activePointerId);
-    if(ended)finish(e);
-  },{passive:false,capture:true});
-
-  document.addEventListener('touchcancel',e=>{
-    if(!active)return;
-    active=false;
-    dragging=false;
-    activePointerId=null;
-    g.classList.remove('dragging');
-    bookingGuideHint();
-  },{passive:true,capture:true});
-
-  // PC確認用。モバイルのタッチ処理とは独立。
-  b.addEventListener('mousedown',e=>{
-    if(e.button!==0)return;
-    begin(e.clientX,e.clientY,'mouse',e);
-  });
-  document.addEventListener('mousemove',e=>{if(active&&activePointerId==='mouse')move(e.clientX,e.clientY,e)});
-  document.addEventListener('mouseup',e=>{if(active&&activePointerId==='mouse')finish(e)});
-
-  b.addEventListener('click',e=>{
-    e.preventDefault();
-    e.stopPropagation();
-  });
-"""
+start_marker = "  b.addEventListener('touchstart',e=>{"
+end_marker = "  requestAnimationFrame(restorePosition);"
+start = s.find(start_marker)
+end = s.find(end_marker, start)
+if start < 0 or end < 0:
+    raise SystemExit('drag input markers not found')
 
 new = """  // iPhone / Android / PC / tablet / pen: one unified input path.
   if('PointerEvent' in window){
@@ -110,10 +79,8 @@ new = """  // iPhone / Android / PC / tablet / pen: one unified input path.
     e.preventDefault();
     e.stopPropagation();
   });
+
 """
 
-if old not in s:
-    raise SystemExit('target input block not found')
-
-s = s.replace(old, new, 1)
+s = s[:start] + new + s[end:]
 p.write_text(s)

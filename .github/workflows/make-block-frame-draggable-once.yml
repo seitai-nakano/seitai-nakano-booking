@@ -1,0 +1,27 @@
+name: make block frame draggable once
+on:
+  push:
+    paths:
+      - '.github/workflows/make-block-frame-draggable-once.yml'
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch red block direct drag
+        run: python .github/scripts/make-block-frame-draggable.py
+      - name: Verify direct block drag markers
+        run: |
+          grep -q "boundBlockMove='1'" blocked-drag.js
+          grep -q "touchAction='none'" blocked-drag.js
+          grep -q "枠を左右にドラッグして移動" blocked-drag.js
+      - name: Commit patch and cleanup
+        run: |
+          rm -f .github/scripts/make-block-frame-draggable.py .github/workflows/make-block-frame-draggable-once.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "Make red plan block itself draggable on iPhone [skip ci]" || exit 0
+          git push

@@ -1,0 +1,44 @@
+name: fix ios touch grab once
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-ios-touch-grab-once.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fix iOS touch capture
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          old="""b.addEventListener('touchstart',e=>{if(e.touches.length!==1)return;const t=e.touches[0];begin(t.clientX,t.clientY)},{passive:true});"""
+          new="""b.addEventListener('touchstart',e=>{if(e.touches.length!==1)return;if(e.cancelable)e.preventDefault();const t=e.touches[0];begin(t.clientX,t.clientY)},{passive:false});"""
+          assert old in s
+          s=s.replace(old,new,1)
+          old2="""window.addEventListener('touchmove',e=>{if(!active||e.touches.length!==1)return;const t=e.touches[0];move(t.clientX,t.clientY,e)},{passive:false});"""
+          new2="""window.addEventListener('touchmove',e=>{if(!active||e.touches.length!==1)return;if(e.cancelable)e.preventDefault();const t=e.touches[0];move(t.clientX,t.clientY,e)},{passive:false});"""
+          assert old2 in s
+          s=s.replace(old2,new2,1)
+          css=".bookingGuideMascotBtn{touch-action:none!important;cursor:grab;user-select:none;-webkit-user-select:none}"
+          css2=".bookingGuideMascotBtn{touch-action:none!important;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}"
+          if css in s:
+            s=s.replace(css,css2,1)
+          p.write_text(s)
+          PY
+      - name: Verify
+        run: |
+          grep -q "touchstart.*preventDefault" index.html
+          grep -q "-webkit-touch-callout:none" index.html
+      - name: Commit and cleanup
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/fix-ios-touch-grab-once.yml
+          git add index.html
+          git commit -m 'Prevent iOS scroll from stealing mascot drag [skip ci]'
+          git push

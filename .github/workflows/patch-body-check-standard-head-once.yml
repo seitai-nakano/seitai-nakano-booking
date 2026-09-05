@@ -1,0 +1,27 @@
+name: patch body check standard head once
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-body-check-standard-head-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch recommendations
+        run: python scripts/patch-body-check-standard-head.py
+      - name: Verify
+        run: |
+          grep -q "standard:\['m90h','m120h','m60h'\]" index.html
+          grep -q "standard:\['m60h','m90h','m120h'\]" index.html
+      - name: Commit and cleanup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Use head-inclusive menus for standard body check" || true
+          git rm scripts/patch-body-check-standard-head.py .github/workflows/patch-body-check-standard-head-once.yml
+          git commit -m "Remove temporary body check standard-head files [skip ci]" || true
+          git push

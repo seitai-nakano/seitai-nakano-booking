@@ -1,0 +1,58 @@
+name: fix ios mascot drag once
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-ios-mascot-drag-once.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace mascot drag with touch-first implementation
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          start=s.index('function bookingGuideDrag(g,b){')
+          end=s.index('bookingGuideInit();', start)+len('bookingGuideInit();')
+          new=r'''function bookingGuideInstallDrag(){
+ const g=$('bookingGuide'),old=$('bookingGuideMascotBtn'),sh=$('bookingGuideShare');
+ if(!g||!old||manageToken)return;
+ const b=old.cloneNode(true);old.replaceWith(b);
+ if(sh)sh.onclick=shareSeitaiNakano;
+ bookingGuideRestore();bookingGuideHint();
+ let active=false,drag=false,sx=0,sy=0,ox=0,oy=0,x0=0,x1=0,y0=0,y1=0,last=0,n=0;
+ const words=['よいしょ、よいしょ','ついていくよ','ここかな？','どこにする？','いっしょに行くね'];
+ const begin=(x,y)=>{active=true;drag=false;sx=x;sy=y;const p=bookingGuidePos();ox=p.x;oy=p.y;const r=b.getBoundingClientRect(),m=8;x0=ox+m-r.left;x1=ox+(innerWidth-m-r.right);y0=oy+m-r.top;y1=oy+(innerHeight-m-r.bottom);last=0;n=0;clearTimeout(bookingGuideTimer)};
+ const move=(x,y,e)=>{if(!active)return;const dx=x-sx,dy=y-sy;if(!drag&&Math.hypot(dx,dy)<6)return;drag=true;if(e?.cancelable)e.preventDefault();g.classList.add('dragging');g.classList.remove('open','thinking','done');bookingGuideSetPos(Math.min(x1,Math.max(x0,ox+dx)),Math.min(y1,Math.max(y0,oy+dy)));bookingGuideSides();const now=performance.now();if(now-last>520){bookingGuideHint(words[n++%words.length]);last=now}};
+ const finish=()=>{if(!active)return;active=false;if(drag){drag=false;g.classList.remove('dragging');try{localStorage.setItem('nakano_booking_guide_pos_v1',JSON.stringify(bookingGuidePos()))}catch(_){}bookingGuideSides();bookingGuideHint('ここで待ってるね',1800);return}bookingGuideSides();const o=!g.classList.contains('open');g.classList.toggle('open',o);g.classList.remove('thinking','done')};
+ b.addEventListener('touchstart',e=>{if(e.touches.length!==1)return;const t=e.touches[0];begin(t.clientX,t.clientY)},{passive:true});
+ window.addEventListener('touchmove',e=>{if(!active||e.touches.length!==1)return;const t=e.touches[0];move(t.clientX,t.clientY,e)},{passive:false});
+ window.addEventListener('touchend',finish,{passive:true});
+ window.addEventListener('touchcancel',()=>{active=false;drag=false;g.classList.remove('dragging');bookingGuideHint()},{passive:true});
+ b.addEventListener('mousedown',e=>{if(e.button!==0)return;begin(e.clientX,e.clientY);e.preventDefault()});
+ window.addEventListener('mousemove',e=>move(e.clientX,e.clientY,e));
+ window.addEventListener('mouseup',finish);
+ b.addEventListener('click',e=>e.preventDefault());
+ addEventListener('resize',bookingGuideRestore,{passive:true});
+}
+bookingGuideInstallDrag();'''
+          s=s[:start]+new+s[end:]
+          p.write_text(s)
+          PY
+      - name: Verify
+        run: |
+          grep -q "function bookingGuideInstallDrag" index.html
+          grep -q "touchmove" index.html
+          grep -q "old.cloneNode(true)" index.html
+      - name: Commit and cleanup
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/fix-ios-mascot-drag-once.yml
+          git add index.html
+          git commit -m 'Fix iPhone mascot drag with touch tracking [skip ci]'
+          git push

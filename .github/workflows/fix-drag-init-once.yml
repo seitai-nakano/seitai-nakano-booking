@@ -1,0 +1,37 @@
+name: fix drag init once
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-drag-init-once.yml'
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enable enhanced mascot drag initializer
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          old="function bookingGuideInit(){const g=$('bookingGuide'),b=$('bookingGuideMascotBtn'),sh=$('bookingGuideShare');if(!g||!b)return;if(manageToken){g.classList.add('hidden');return}if(sh)sh.onclick=shareSeitaiNakano;bookingGuideRestore();bookingGuideDrag(g,b);bookingGuideHint();addEventListener('resize',bookingGuideRestore,{passive:true})}\n</script>"
+          new="function bookingGuideInit(){const g=$('bookingGuide'),b=$('bookingGuideMascotBtn'),sh=$('bookingGuideShare');if(!g||!b)return;if(manageToken){g.classList.add('hidden');return}if(b.dataset.dragReady==='1')return;b.dataset.dragReady='1';b.onclick=null;if(sh)sh.onclick=shareSeitaiNakano;bookingGuideRestore();bookingGuideDrag(g,b);bookingGuideHint();addEventListener('resize',bookingGuideRestore,{passive:true})}\nbookingGuideInit();\n</script>"
+          assert old in s, 'enhanced bookingGuideInit target not found'
+          s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+      - name: Verify
+        run: |
+          grep -q "b.dataset.dragReady='1'" index.html
+          grep -q '^bookingGuideInit();$' index.html
+          grep -q 'touch-action:none!important' index.html
+      - name: Commit and cleanup
+        run: |
+          rm .github/workflows/fix-drag-init-once.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html .github/workflows/fix-drag-init-once.yml
+          git commit -m 'Initialize draggable booking mascot [skip ci]'
+          git push

@@ -252,7 +252,7 @@ button:disabled{
   height:82px;
   z-index:3;
   overflow:hidden;
-  padding:8px 38px 8px 8px;
+  padding:8px;
   border:1px solid #dda8a1;
   border-radius:10px;
   background:#f4dfdc;
@@ -2100,14 +2100,7 @@ function renderTimeline(){
         <br>
 
         ${esc(item.memo||'')}
-
-        <span
-          class="blockedMoveHandle"
-          role="button"
-          aria-label="予定時間を左右に移動"
-        >↔</span>
-
-      `;
+`;
 
       block.style.cursor='pointer';
       block.title='タップで予定を変更・削除／↔で移動（指を追跡して横スクロール）';

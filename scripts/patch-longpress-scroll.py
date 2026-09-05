@@ -1,0 +1,25 @@
+from pathlib import Path
+p=Path('blocked-drag.js')
+s=p.read_text()
+s=s.replace("const LONG_PRESS_MS=420;\nconst LONG_PRESS_CANCEL_DISTANCE=10;", "const LONG_PRESS_MS=500;\nconst LONG_PRESS_CANCEL_DISTANCE=14;")
+s=s.replace(".blockedSchedule,.blockedBlock{-webkit-touch-callout:none;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}", ".blockedSchedule,.blockedBlock{-webkit-touch-callout:none;touch-action:pan-y;cursor:grab;-webkit-user-select:none;user-select:none}")
+old='''function onTouchStart(e,el,item){\n  if(drag||e.touches.length!==1)return;\n  const t=e.changedTouches[0];\n  const s=createDragState(el,item,t.clientX,t.clientY,'touch',{touchId:t.identifier});\n  if(!s)return;\n  drag=s;\n  clearTimeout(pressTimer);\n  pressTimer=setTimeout(()=>{\n    if(drag!==s||s.interacting)return;\n    startDrag();\n  },LONG_PRESS_MS);\n  e.stopPropagation();\n}\n'''
+new='''function onTouchStart(e,el,item){\n  if(drag||e.touches.length!==1)return;\n  const t=e.changedTouches[0];\n  const s=createDragState(el,item,t.clientX,t.clientY,'touch',{\n    touchId:t.identifier,scrolling:false\n  });\n  if(!s)return;\n  drag=s;\n  clearTimeout(pressTimer);\n  pressTimer=setTimeout(()=>{\n    if(drag!==s||s.interacting||s.scrolling)return;\n    // Reset the drag origin to the finger's actual position at long-press activation\n    // so tiny natural finger wobble never makes the block jump.\n    s.startX=s.currentX;\n    s.startY=s.currentY;\n    s.startScrollLeft=s.scroll.scrollLeft;\n    startDrag();\n  },LONG_PRESS_MS);\n  e.stopPropagation();\n}\n'''
+if old not in s: raise SystemExit('touchstart anchor missing')
+s=s.replace(old,new)
+old='''function onTouchMove(e){\n  const s=drag;if(!s||s.inputType!=='touch')return;\n  const t=findTouch(e.touches,s.touchId)||findTouch(e.changedTouches,s.touchId);\n  if(!t)return;\n  s.currentX=t.clientX;s.currentY=t.clientY;\n  const dx=s.currentX-s.startX,dy=s.currentY-s.startY;\n  if(!s.interacting){\n    // Touch movement does NOT start a drag. The user must hold first.\n    // A noticeable move before the hold finishes cancels the pending drag.\n    if(Math.hypot(dx,dy)>=LONG_PRESS_CANCEL_DISTANCE){\n      clearTimeout(pressTimer);pressTimer=null;\n      drag=null;\n    }\n    return;\n  }\n  e.preventDefault();\n  e.stopPropagation();\n  edgeNudge(s);\n  updateVisual();\n}\n'''
+new='''function onTouchMove(e){\n  const s=drag;if(!s||s.inputType!=='touch')return;\n  const t=findTouch(e.touches,s.touchId)||findTouch(e.changedTouches,s.touchId);\n  if(!t)return;\n  s.currentX=t.clientX;s.currentY=t.clientY;\n  const dx=s.currentX-s.startX,dy=s.currentY-s.startY;\n\n  if(!s.interacting){\n    // Before long press activates, a real horizontal swipe means schedule scrolling.\n    // Keep the same touch alive instead of dropping it, so the red block itself\n    // can be used as a reliable horizontal-scroll surface on iPhone.\n    if(!s.scrolling && Math.abs(dx)>=LONG_PRESS_CANCEL_DISTANCE && Math.abs(dx)>=Math.abs(dy)){\n      clearTimeout(pressTimer);pressTimer=null;\n      s.scrolling=true;\n    }\n    if(s.scrolling){\n      e.preventDefault();\n      e.stopPropagation();\n      const maxScroll=Math.max(0,s.scroll.scrollWidth-s.scroll.clientWidth);\n      s.scroll.scrollLeft=Math.max(0,Math.min(maxScroll,s.startScrollLeft-dx));\n      return;\n    }\n    // Vertical motion belongs to the page; cancel only the pending long press.\n    if(Math.abs(dy)>=LONG_PRESS_CANCEL_DISTANCE && Math.abs(dy)>Math.abs(dx)){\n      clearTimeout(pressTimer);pressTimer=null;\n    }\n    return;\n  }\n\n  e.preventDefault();\n  e.stopPropagation();\n  edgeNudge(s);\n  updateVisual();\n}\n'''
+if old not in s: raise SystemExit('touchmove anchor missing')
+s=s.replace(old,new)
+old='''async function onTouchEnd(e){\n  const s=drag;if(!s||s.inputType!=='touch')return;\n  clearTimeout(pressTimer);pressTimer=null;\n  const t=findTouch(e.changedTouches,s.touchId);\n  if(!t)return;\n  if(s.interacting)e.preventDefault();\n  drag=null;\n  if(!s.interacting)return;\n  await finishDrag(s);\n}\n'''
+new='''async function onTouchEnd(e){\n  const s=drag;if(!s||s.inputType!=='touch')return;\n  clearTimeout(pressTimer);pressTimer=null;\n  const t=findTouch(e.changedTouches,s.touchId);\n  if(!t)return;\n  drag=null;\n\n  if(s.scrolling){\n    // Prevent the post-swipe synthetic click from opening the editor.\n    suppressClickUntil=Date.now()+450;\n    e.preventDefault();\n    return;\n  }\n  if(!s.interacting)return;\n  e.preventDefault();\n  await finishDrag(s);\n}\n'''
+if old not in s: raise SystemExit('touchend anchor missing')
+s=s.replace(old,new)
+old="  if(hint)hint.textContent='長押ししてから左右に動かして移動・タップで編集';"
+if old in s:
+    s=s.replace(old,"  if(hint)hint.textContent='横スワイプでスクロール・長押ししてから左右に動かして移動';")
+old="  el.title=`${String(item.start_time).slice(0,5)}〜${String(item.end_time).slice(0,5)} 長押ししてから左右にドラッグして時間移動`;"
+if old in s:
+    s=s.replace(old,"  el.title=`${String(item.start_time).slice(0,5)}〜${String(item.end_time).slice(0,5)} 横スワイプでスクロール／長押しで時間移動`;" )
+p.write_text(s)
+print('patched')

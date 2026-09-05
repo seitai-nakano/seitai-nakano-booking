@@ -10,6 +10,8 @@ const DAY_END=23*60;
 const PX_PER_MINUTE=2;
 const SNAP_MINUTES=15;
 const DRAG_START_DISTANCE=5;
+const TOUCH_HOLD_TO_DRAG_MS=240;
+const SCROLL_INTENT_DISTANCE=8;
 const EDGE_ZONE=72;
 const MAX_AUTO_SPEED=13;
 
@@ -41,7 +43,7 @@ function addStyles(){
   const s=document.createElement('style');
   s.id='nakanoBlockedDragStyle';
   s.textContent=`
-.blockedSchedule,.blockedBlock{-webkit-touch-callout:none;touch-action:none;cursor:grab}
+.blockedSchedule,.blockedBlock{-webkit-touch-callout:none;touch-action:pan-x;cursor:grab}
 .blockedSchedule.blockedDragging,.blockedBlock.blockedDragging{z-index:110!important;opacity:.96;box-shadow:0 0 0 3px rgba(138,74,66,.24),0 9px 26px rgba(0,0,0,.22)!important;transform:translateY(8px) scale(1.02);touch-action:none!important}
 .blockedDragGhost{pointer-events:none!important;z-index:4!important;opacity:.45!important;border:2px dashed rgba(138,74,66,.62)!important;background:rgba(244,223,220,.40)!important;box-shadow:none!important}
 `;
@@ -165,7 +167,7 @@ function onDown(e,el,item){
   if(!scroll||!movable(item))return;
   const r=range(item);
   drag={
-    el,item,scroll,pointerId:e.pointerId,
+    el,item,scroll,pointerId:e.pointerId,pointerType:e.pointerType||'touch',
     startX:e.clientX,startY:e.clientY,currentX:e.clientX,currentY:e.clientY,
     startScrollLeft:scroll.scrollLeft,
     originalStart:r.start,newStart:r.start,duration:r.duration,
@@ -173,9 +175,16 @@ function onDown(e,el,item){
     originalWidth:parseFloat(el.style.width)||Math.max(36,r.duration*PX_PER_MINUTE),
     interacting:false,ghost:null
   };
-  // Capture immediately so iPhone/Android/desktop keep sending the same pointer
-  // even when the finger or mouse moves across the horizontally scrollable schedule.
-  try{el.setPointerCapture(e.pointerId)}catch{}
+
+  // Touch: ordinary horizontal swipe must remain native schedule scrolling.
+  // Only a short hold arms moving the red blocked/plan card.
+  clearTimeout(pressTimer);
+  if(e.pointerType!=='mouse'){
+    const pointerId=e.pointerId;
+    pressTimer=setTimeout(()=>{
+      if(drag&&drag.pointerId===pointerId&&!drag.interacting)startDrag();
+    },TOUCH_HOLD_TO_DRAG_MS);
+  }
 }
 
 function onMove(e){
@@ -183,10 +192,23 @@ function onMove(e){
   s.currentX=e.clientX;s.currentY=e.clientY;
   if(!s.interacting){
     const dx=s.currentX-s.startX,dy=s.currentY-s.startY;
-    if(Math.hypot(dx,dy)<DRAG_START_DISTANCE)return;
-    if(Math.abs(dy)>Math.abs(dx)*1.25){drag=null;return}
-    startDrag();
-    if(!drag?.interacting)return;
+
+    if(s.pointerType==='mouse'){
+      if(Math.hypot(dx,dy)<DRAG_START_DISTANCE)return;
+      if(Math.abs(dy)>Math.abs(dx)*1.25){clearTimeout(pressTimer);pressTimer=null;drag=null;return}
+      startDrag();
+      if(!drag?.interacting)return;
+    }else{
+      // Before the hold fires, a clear horizontal gesture belongs to native scrolling.
+      if(Math.abs(dx)>=SCROLL_INTENT_DISTANCE&&Math.abs(dx)>Math.abs(dy)*1.1){
+        clearTimeout(pressTimer);pressTimer=null;drag=null;return;
+      }
+      // Vertical movement also cancels the pending card drag.
+      if(Math.abs(dy)>=12&&Math.abs(dy)>=Math.abs(dx)){
+        clearTimeout(pressTimer);pressTimer=null;drag=null;return;
+      }
+      return;
+    }
   }
   e.preventDefault();updateVisual();
 }
@@ -223,14 +245,14 @@ function onCancel(e){
 function attach(el,item){
   if(el.dataset.blockedLongDrag==='1')return;
   el.dataset.blockedLongDrag='1';
-  el.style.touchAction='none';
+  el.style.touchAction='pan-x';
   const hint=el.querySelector('.blockedTapHint');
   if(!movable(item)){
     if(hint)hint.textContent='タップで時間変更';
     return;
   }
-  if(hint)hint.textContent='タップで編集・左右ドラッグで移動';
-  el.title=`${String(item.start_time).slice(0,5)}〜${String(item.end_time).slice(0,5)} タップで編集／左右ドラッグで移動`;
+  if(hint)hint.textContent='タップで編集・長押しして左右で移動';
+  el.title=`${String(item.start_time).slice(0,5)}〜${String(item.end_time).slice(0,5)} タップで編集／長押しして左右で移動`;
   el.addEventListener('pointerdown',e=>onDown(e,el,item));
   el.addEventListener('contextmenu',e=>e.preventDefault());
 }

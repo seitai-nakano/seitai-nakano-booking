@@ -9,16 +9,13 @@ const DAY_START=8*60;
 const DAY_END=23*60;
 const PX_PER_MINUTE=2;
 const SNAP_MINUTES=15;
-const DRAG_START_DISTANCE=5;
-const TOUCH_HOLD_TO_DRAG_MS=240;
-const SCROLL_INTENT_DISTANCE=8;
+const DRAG_START_DISTANCE=4;
 const EDGE_ZONE=120;
 const MAX_AUTO_SPEED=24;
 
 let rows=[];
 let rowsDate='';
 let drag=null;
-let pressTimer=null;
 let autoFrame=null;
 let suppressClickUntil=0;
 let hydrateTimer=null;
@@ -43,11 +40,8 @@ function addStyles(){
   const s=document.createElement('style');
   s.id='nakanoBlockedDragStyle';
   s.textContent=`
-.blockedSchedule,.blockedBlock{-webkit-touch-callout:none;touch-action:none;cursor:grab}
-.blockedSchedule.blockedDragging,.blockedBlock.blockedDragging{z-index:110!important;opacity:.98;box-shadow:0 0 0 3px rgba(138,74,66,.24),0 9px 26px rgba(0,0,0,.22)!important;transform:translateY(8px) scale(1.02);touch-action:none!important;transition:none!important;will-change:left}
-.blockedDragGhost{pointer-events:none!important;z-index:4!important;opacity:.45!important;border:2px dashed rgba(138,74,66,.62)!important;background:rgba(244,223,220,.40)!important;box-shadow:none!important}
-.blockedMoveHandle{position:absolute;right:2px;top:50%;transform:translateY(-50%);z-index:30;width:28px;height:34px;border:1px solid rgba(120,70,64,.30);border-radius:9px;background:rgba(255,255,255,.88);display:flex;align-items:center;justify-content:center;color:#8a4a42;font-size:15px;font-weight:900;line-height:1;touch-action:none!important;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:ew-resize;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-.blockedMoveHandle:active{background:#fff1ef;transform:translateY(-50%) scale(.96)}
+.blockedSchedule,.blockedBlock{-webkit-touch-callout:none;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}
+.blockedSchedule.blockedDragging,.blockedBlock.blockedDragging{z-index:110!important;opacity:.98;box-shadow:0 0 0 3px rgba(138,74,66,.24),0 9px 26px rgba(0,0,0,.22)!important;transform:translateY(8px) scale(1.02);touch-action:none!important;transition:none!important;will-change:left;cursor:grabbing}
 `;
   document.head.appendChild(s);
 }
@@ -101,24 +95,15 @@ async function fetchRows(force=false){
   return rows;
 }
 
-function createGhost(s){
-  const g=s.el.cloneNode(true);
-  g.classList.remove('blockedSelected','blockedDragging');
-  g.classList.add('blockedDragGhost');
-  g.style.left=`${s.originalLeft}px`;
-  g.style.width=`${s.originalWidth}px`;
-  g.removeAttribute('id');
-  s.el.parentElement?.insertBefore(g,s.el);
-  s.ghost=g;
-}
-function removeGhost(s){if(s?.ghost){s.ghost.remove();s.ghost=null}}
 function stopAuto(){if(autoFrame){cancelAnimationFrame(autoFrame);autoFrame=null}hideEdges()}
 function cleanup(s){
-  clearTimeout(pressTimer);pressTimer=null;
   s?.el?.classList.remove('blockedDragging');
   document.body.classList.remove('bookingDragging');
-  removeGhost(s);hideDestination();stopAuto();
-  try{s?.captureTarget?.releasePointerCapture?.(s.pointerId)}catch{}
+  hideDestination();
+  stopAuto();
+  if(s?.inputType==='pointer'){
+    try{s.captureTarget?.releasePointerCapture?.(s.pointerId)}catch{}
+  }
 }
 function restore(s){if(!s)return;s.el.style.left=`${s.originalLeft}px`;s.el.style.width=`${s.originalWidth}px`}
 
@@ -131,7 +116,6 @@ function updateVisual(){
   snappedStart=Math.max(DAY_START,Math.min(DAY_END-s.duration,snappedStart));
   s.visualStart=visualStart;
   s.newStart=snappedStart;
-  // The actual red block follows the finger continuously.
   s.el.style.left=`${(visualStart-DAY_START)*PX_PER_MINUTE}px`;
   const st=minutesToTime(snappedStart).slice(0,5);
   const en=minutesToTime(snappedStart+s.duration).slice(0,5);
@@ -164,7 +148,6 @@ function startDrag(){
   const s=drag;if(!s||s.interacting)return;
   s.interacting=true;
   $('blockedInlineEditor')?.classList.remove('open');
-  // Move the actual block itself; do not leave a duplicate ghost behind.
   s.el.classList.add('blockedDragging');
   document.body.classList.add('bookingDragging');
   try{navigator.vibrate?.(18)}catch{}
@@ -173,71 +156,22 @@ function startDrag(){
   autoFrame=requestAnimationFrame(autoLoop);
 }
 
-function ensureMoveHandle(el,item){
-  let h=el.querySelector('.blockedMoveHandle');
-  if(!movable(item)){if(h)h.remove();return null}
-  if(h)return h;
-  h=document.createElement('span');
-  h.className='blockedMoveHandle';
-  h.textContent='↔';
-  h.title='ここを左右に動かして予定時間を変更';
-  h.setAttribute('aria-label','予定時間を左右に移動');
-  h.addEventListener('click',e=>{e.preventDefault();e.stopPropagation()});
-  el.appendChild(h);
-  return h;
-}
-
-function onHandleDown(e,el,item){
-  if(drag||(e.pointerType==='mouse'&&e.button!==0))return;
+function createDragState(el,item,x,y,inputType,extra={}){
   const scroll=el.closest('.timelineScroll,.scheduleScroll');
-  if(!scroll||!movable(item))return;
+  if(!scroll||!movable(item))return null;
   const r=range(item);
-  e.preventDefault();
-  e.stopPropagation();
-  const captureTarget=e.currentTarget||e.target;
-  try{captureTarget?.setPointerCapture?.(e.pointerId)}catch{}
-  drag={
-    el,item,scroll,pointerId:e.pointerId,pointerType:e.pointerType||'touch',captureTarget,
-    startX:e.clientX,startY:e.clientY,currentX:e.clientX,currentY:e.clientY,
+  return{
+    el,item,scroll,inputType,...extra,
+    startX:x,startY:y,currentX:x,currentY:y,
     startScrollLeft:scroll.scrollLeft,
     originalStart:r.start,newStart:r.start,duration:r.duration,
     originalLeft:parseFloat(el.style.left)||((r.start-DAY_START)*PX_PER_MINUTE),
     originalWidth:parseFloat(el.style.width)||Math.max(36,r.duration*PX_PER_MINUTE),
-    interacting:false,ghost:null
-  };
-  startDrag();
-}
-
-function onDown(e,el,item){
-  if(drag||(e.pointerType==='mouse'&&e.button!==0))return;
-  const scroll=el.closest('.timelineScroll,.scheduleScroll');
-  if(!scroll||!movable(item))return;
-  const r=range(item);
-  const captureTarget=el;
-  try{captureTarget.setPointerCapture?.(e.pointerId)}catch{}
-  drag={
-    el,item,scroll,pointerId:e.pointerId,pointerType:e.pointerType||'touch',captureTarget,
-    startX:e.clientX,startY:e.clientY,currentX:e.clientX,currentY:e.clientY,
-    startScrollLeft:scroll.scrollLeft,
-    originalStart:r.start,newStart:r.start,duration:r.duration,
-    originalLeft:parseFloat(el.style.left)||((r.start-DAY_START)*PX_PER_MINUTE),
-    originalWidth:parseFloat(el.style.width)||Math.max(36,r.duration*PX_PER_MINUTE),
-    interacting:false,ghost:null
+    interacting:false
   };
 }
 
-function onMove(e){
-  const s=drag;if(!s||s.pointerId!==e.pointerId)return;
-  s.currentX=e.clientX;s.currentY=e.clientY;
-  const dx=s.currentX-s.startX,dy=s.currentY-s.startY;
-  if(!s.interacting){
-    if(Math.abs(dx)<DRAG_START_DISTANCE)return;
-    // The red plan block itself is the drag surface. Horizontal intent starts moving immediately.
-    if(Math.abs(dx)<Math.abs(dy)*0.7)return;
-    startDrag();
-    if(!drag?.interacting)return;
-  }
-  e.preventDefault();
+function edgeNudge(s){
   const rect=s.scroll.getBoundingClientRect();
   let immediate=0;
   if(s.currentX<rect.left+EDGE_ZONE){
@@ -251,18 +185,11 @@ function onMove(e){
     const maxScroll=Math.max(0,s.scroll.scrollWidth-s.scroll.clientWidth);
     s.scroll.scrollLeft=Math.max(0,Math.min(maxScroll,s.scroll.scrollLeft+immediate));
   }
-  updateVisual();
 }
 
-async function onUp(e){
-  const s=drag;if(!s||s.pointerId!==e.pointerId)return;
-  clearTimeout(pressTimer);pressTimer=null;drag=null;
-  if(!s.interacting){
-    try{s.captureTarget?.releasePointerCapture?.(s.pointerId)}catch{}
-    return;
-  }
+async function finishDrag(s){
+  if(!s?.interacting)return;
   suppressClickUntil=Date.now()+900;
-  // Snap the visible block to the final 15-minute slot before confirming.
   s.el.style.left=`${(s.newStart-DAY_START)*PX_PER_MINUTE}px`;
   cleanup(s);
   if(s.newStart===s.originalStart){restore(s);return}
@@ -282,14 +209,101 @@ async function onUp(e){
   setTimeout(()=>location.reload(),160);
 }
 
-function onCancel(e){
-  const s=drag;if(!s||s.pointerId!==e.pointerId)return;
-  clearTimeout(pressTimer);pressTimer=null;drag=null;
+// iPhone / touch devices: use native Touch Events instead of Pointer Events.
+function onTouchStart(e,el,item){
+  if(drag||e.touches.length!==1)return;
+  const t=e.changedTouches[0];
+  const s=createDragState(el,item,t.clientX,t.clientY,'touch',{touchId:t.identifier});
+  if(!s)return;
+  drag=s;
+  e.stopPropagation();
+}
+
+function findTouch(list,id){
+  for(let i=0;i<list.length;i++)if(list[i].identifier===id)return list[i];
+  return null;
+}
+
+function onTouchMove(e){
+  const s=drag;if(!s||s.inputType!=='touch')return;
+  const t=findTouch(e.touches,s.touchId)||findTouch(e.changedTouches,s.touchId);
+  if(!t)return;
+  s.currentX=t.clientX;s.currentY=t.clientY;
+  const dx=s.currentX-s.startX,dy=s.currentY-s.startY;
+  if(!s.interacting){
+    if(Math.abs(dx)<DRAG_START_DISTANCE)return;
+    // Allow normal finger wobble; only an overwhelmingly vertical gesture is ignored.
+    if(Math.abs(dy)>Math.abs(dx)*2.5)return;
+    startDrag();
+    if(!drag?.interacting)return;
+  }
+  e.preventDefault();
+  e.stopPropagation();
+  edgeNudge(s);
+  updateVisual();
+}
+
+async function onTouchEnd(e){
+  const s=drag;if(!s||s.inputType!=='touch')return;
+  const t=findTouch(e.changedTouches,s.touchId);
+  if(!t)return;
+  if(s.interacting)e.preventDefault();
+  drag=null;
+  if(!s.interacting)return;
+  await finishDrag(s);
+}
+
+function onTouchCancel(e){
+  const s=drag;if(!s||s.inputType!=='touch')return;
+  const t=findTouch(e.changedTouches,s.touchId);
+  if(!t)return;
+  drag=null;
+  if(s.interacting){restore(s);cleanup(s)}
+}
+
+// Mouse / pen: Pointer Events remain fine and give precise desktop dragging.
+function onPointerDown(e,el,item){
+  if(e.pointerType==='touch'||drag||(e.pointerType==='mouse'&&e.button!==0))return;
+  const s=createDragState(el,item,e.clientX,e.clientY,'pointer',{
+    pointerId:e.pointerId,captureTarget:el,pointerType:e.pointerType||'mouse'
+  });
+  if(!s)return;
+  try{el.setPointerCapture?.(e.pointerId)}catch{}
+  drag=s;
+}
+
+function onPointerMove(e){
+  const s=drag;if(!s||s.inputType!=='pointer'||s.pointerId!==e.pointerId)return;
+  s.currentX=e.clientX;s.currentY=e.clientY;
+  const dx=s.currentX-s.startX,dy=s.currentY-s.startY;
+  if(!s.interacting){
+    if(Math.abs(dx)<DRAG_START_DISTANCE)return;
+    if(Math.abs(dy)>Math.abs(dx)*2.5)return;
+    startDrag();
+    if(!drag?.interacting)return;
+  }
+  e.preventDefault();
+  edgeNudge(s);
+  updateVisual();
+}
+
+async function onPointerUp(e){
+  const s=drag;if(!s||s.inputType!=='pointer'||s.pointerId!==e.pointerId)return;
+  drag=null;
+  if(!s.interacting){
+    try{s.captureTarget?.releasePointerCapture?.(s.pointerId)}catch{}
+    return;
+  }
+  await finishDrag(s);
+}
+
+function onPointerCancel(e){
+  const s=drag;if(!s||s.inputType!=='pointer'||s.pointerId!==e.pointerId)return;
+  drag=null;
   if(s.interacting){restore(s);cleanup(s)}
 }
 
 function attach(el,item){
-  // Starting on the red plan block means moving that block; empty schedule space still scrolls normally.
   el.style.touchAction='none';
   el.querySelector('.blockedMoveHandle')?.remove();
   const hint=el.querySelector('.blockedTapHint');
@@ -301,7 +315,8 @@ function attach(el,item){
   el.title=`${String(item.start_time).slice(0,5)}〜${String(item.end_time).slice(0,5)} 枠を左右にドラッグして時間移動`;
   if(el.dataset.boundBlockMove!=='1'){
     el.dataset.boundBlockMove='1';
-    el.addEventListener('pointerdown',e=>onDown(e,el,item));
+    el.addEventListener('touchstart',e=>onTouchStart(e,el,item),{passive:false});
+    el.addEventListener('pointerdown',e=>onPointerDown(e,el,item));
     el.addEventListener('contextmenu',e=>e.preventDefault());
   }
 }
@@ -319,6 +334,13 @@ function queueHydrate(force=false){
   hydrateTimer=setTimeout(()=>hydrate(force),120);
 }
 
+function cancelStaleDrag(){
+  if(!drag)return;
+  const s=drag;drag=null;
+  if(s.interacting){restore(s);cleanup(s)}
+  else if(s.inputType==='pointer')try{s.captureTarget?.releasePointerCapture?.(s.pointerId)}catch{}
+}
+
 if(supportedPage()){
   addStyles();
   queueHydrate(true);
@@ -327,9 +349,14 @@ if(supportedPage()){
       e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
     }
   },true);
-  $('date')?.addEventListener('change',()=>{rowsDate='';queueHydrate(true)});
+  $('date')?.addEventListener('change',()=>{rowsDate='';cancelStaleDrag();queueHydrate(true)});
   new MutationObserver(()=>queueHydrate()).observe(document.body,{childList:true,subtree:true});
-  window.addEventListener('pointermove',onMove,{passive:false});
-  window.addEventListener('pointerup',onUp,{passive:false});
-  window.addEventListener('pointercancel',onCancel,{passive:false});
+  window.addEventListener('touchmove',onTouchMove,{passive:false,capture:true});
+  window.addEventListener('touchend',onTouchEnd,{passive:false,capture:true});
+  window.addEventListener('touchcancel',onTouchCancel,{passive:false,capture:true});
+  window.addEventListener('pointermove',onPointerMove,{passive:false});
+  window.addEventListener('pointerup',onPointerUp,{passive:false});
+  window.addEventListener('pointercancel',onPointerCancel,{passive:false});
+  window.addEventListener('blur',cancelStaleDrag);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelStaleDrag()});
 }

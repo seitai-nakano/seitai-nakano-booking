@@ -110,7 +110,7 @@ function showResult(){
   ids.forEach((id,index)=>{
     const m=menus[id];if(!m)return;
     const item=document.createElement('div');item.className='resultItem';
-    item.innerHTML=`<div class="resultTop"><div><div class="rank">おすすめ${index+1}</div><div class="menuName">${m.name}</div></div><div class="price">${yen(m.price)}</div></div><a class="reserve" href="./?menu=${encodeURIComponent(m.id)}#menuCard">このメニューで予約する</a>`;
+    item.innerHTML=`<div class="resultTop"><div><div class="rank">おすすめ${index+1}</div><div class="menuName">${m.name}</div></div><div class="price">${yen(m.price)}</div></div><a class="reserve" href="./?menu=${encodeURIComponent(m.id)}&fromcheck=1#date">このメニューで予約へ進む</a>`;
     list.appendChild(item);
   });
   $('result').classList.remove('hidden');$('result').scrollIntoView({behavior:'smooth',block:'start'});

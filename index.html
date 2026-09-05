@@ -324,9 +324,17 @@ function selectRecommendedMenuFromQuery(){
     const button=Array.from(menusRoot.querySelectorAll('.menu')).find(b=>b.dataset.menuId===String(menuId));
     if(!button)return false;
     button.click();
+    const fromCheck=url.searchParams.get('fromcheck')==='1';
     url.searchParams.delete('menu');
-    history.replaceState(null,'',url.pathname+(url.search||'')+(url.hash||''));
-    setTimeout(()=>button.scrollIntoView({behavior:'smooth',block:'center'}),120);
+    url.searchParams.delete('fromcheck');
+    history.replaceState(null,'',url.pathname+(url.search||''));
+    setTimeout(()=>{
+      if(fromCheck){
+        $('date').scrollIntoView({behavior:'smooth',block:'center'});
+      }else{
+        button.scrollIntoView({behavior:'smooth',block:'center'});
+      }
+    },160);
     return true;
   };
   if(select())return;

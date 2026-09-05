@@ -17,6 +17,8 @@ let gesture=null;
 let pressTimer=null;
 let autoFrame=null;
 let suppressClickUntil=0;
+let ignorePointerUntil=0;
+let commitInFlight=false;
 
 const $=id=>document.getElementById(id);
 const blockedSelector='.blockedSchedule,.blockedBlock';
@@ -201,6 +203,8 @@ function restore(s){
 }
 
 async function commitDrag(s){
+  if(commitInFlight)return;
+  commitInFlight=true;
   const snapped=clamp(snapMinutes(s.newStart),DAY_START,s.timelineEnd-s.duration);
   s.el.style.left=`${(snapped-DAY_START)*PX_PER_MINUTE}px`;
   cleanup(s);
@@ -209,6 +213,7 @@ async function commitDrag(s){
   const original=snapMinutes(s.originalStart);
   if(snapped===original){
     restore(s);
+    commitInFlight=false;
     return;
   }
 
@@ -218,6 +223,7 @@ async function commitDrag(s){
 
   if(!confirm(`${oldLabel} → ${newLabel}（〜${endLabel}）に予定を移動しますか？`)){
     restore(s);
+    commitInFlight=false;
     return;
   }
 
@@ -230,6 +236,7 @@ async function commitDrag(s){
     console.error(error);
     restore(s);
     alert('その時間には移動できません。予約・別の予定を確認してください。');
+    commitInFlight=false;
     return;
   }
 
@@ -237,6 +244,7 @@ async function commitDrag(s){
 }
 
 function startTouch(e,el){
+  ignorePointerUntil=Date.now()+2200;
   if(gesture||e.touches.length!==1)return;
   const t=e.changedTouches[0];
   const s=stateFromElement(el,t.clientX,t.clientY,'touch',{touchId:t.identifier});
@@ -287,6 +295,7 @@ function moveTouch(e){
 }
 
 async function endTouch(e){
+  ignorePointerUntil=Date.now()+2200;
   const s=gesture;
   if(!s||s.inputType!=='touch')return;
   const t=findTouch(e.changedTouches,s.touchId);
@@ -308,6 +317,7 @@ async function endTouch(e){
 }
 
 function cancelTouch(e){
+  ignorePointerUntil=Date.now()+2200;
   const s=gesture;
   if(!s||s.inputType!=='touch')return;
   const t=findTouch(e.changedTouches,s.touchId);
@@ -319,7 +329,7 @@ function cancelTouch(e){
 }
 
 function startPointer(e,el){
-  if(e.pointerType==='touch'||gesture||(e.pointerType==='mouse'&&e.button!==0))return;
+  if(Date.now()<ignorePointerUntil||e.pointerType==='touch'||gesture||(e.pointerType==='mouse'&&e.button!==0))return;
   const s=stateFromElement(el,e.clientX,e.clientY,'pointer',{pointerId:e.pointerId});
   if(!s)return;
   s.mode='drag';

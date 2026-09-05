@@ -1,0 +1,27 @@
+name: fix native scroll longpress once
+on:
+  push:
+    branches: [main]
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply native scroll longpress patch
+        run: python .github/scripts/fix_native_scroll_longpress.py
+      - name: Verify
+        run: |
+          grep -q "touch-action:pan-x" blocked-drag.js
+          grep -q "let Safari handle horizontal scrolling natively" blocked-drag.js
+          grep -q "el.style.touchAction='pan-x'" blocked-drag.js
+      - name: Commit patch and cleanup
+        run: |
+          rm -f .github/scripts/fix_native_scroll_longpress.py .github/workflows/fix-native-scroll-longpress-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add blocked-drag.js .github/scripts/fix_native_scroll_longpress.py .github/workflows/fix-native-scroll-longpress-once.yml
+          git commit -m "Restore native iPhone scroll with long press drag [skip ci]"
+          git push

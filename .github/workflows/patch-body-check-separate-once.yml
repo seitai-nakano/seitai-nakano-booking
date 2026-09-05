@@ -1,0 +1,31 @@
+name: patch body check separate once
+
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-body-check-separate-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch booking page
+        run: python scripts/patch-body-check-separate.py
+      - name: Verify
+        run: |
+          grep -q 'href="./body-check.html"' index.html
+          grep -q 'selectRecommendedMenuFromQuery' index.html
+          grep -q '回答を変更する' body-check.html
+          grep -q "m120h','m90h','m60h" body-check.html
+      - name: Commit and cleanup
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          rm -f scripts/patch-body-check-separate.py .github/workflows/patch-body-check-separate-once.yml
+          git add -A
+          git commit -m 'Move body check to separate page [skip ci]'
+          git push

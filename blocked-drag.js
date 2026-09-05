@@ -44,7 +44,7 @@ function addStyles(){
   s.id='nakanoBlockedDragStyle';
   s.textContent=`
 .blockedSchedule,.blockedBlock{-webkit-touch-callout:none;touch-action:pan-x;cursor:pointer}
-.blockedSchedule.blockedDragging,.blockedBlock.blockedDragging{z-index:110!important;opacity:.96;box-shadow:0 0 0 3px rgba(138,74,66,.24),0 9px 26px rgba(0,0,0,.22)!important;transform:translateY(8px) scale(1.02);touch-action:none!important}
+.blockedSchedule.blockedDragging,.blockedBlock.blockedDragging{z-index:110!important;opacity:.98;box-shadow:0 0 0 3px rgba(138,74,66,.24),0 9px 26px rgba(0,0,0,.22)!important;transform:translateY(8px) scale(1.02);touch-action:none!important;transition:none!important;will-change:left}
 .blockedDragGhost{pointer-events:none!important;z-index:4!important;opacity:.45!important;border:2px dashed rgba(138,74,66,.62)!important;background:rgba(244,223,220,.40)!important;box-shadow:none!important}
 .blockedMoveHandle{position:absolute;right:2px;top:50%;transform:translateY(-50%);z-index:30;width:28px;height:34px;border:1px solid rgba(120,70,64,.30);border-radius:9px;background:rgba(255,255,255,.88);display:flex;align-items:center;justify-content:center;color:#8a4a42;font-size:15px;font-weight:900;line-height:1;touch-action:none!important;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:ew-resize;box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .blockedMoveHandle:active{background:#fff1ef;transform:translateY(-50%) scale(.96)}
@@ -124,13 +124,17 @@ function restore(s){if(!s)return;s.el.style.left=`${s.originalLeft}px`;s.el.styl
 
 function updateVisual(){
   const s=drag;if(!s?.interacting)return;
-  const moved=(s.currentX-s.startX+s.scroll.scrollLeft-s.startScrollLeft)/PX_PER_MINUTE;
-  let next=snap(s.originalStart+moved);
-  next=Math.max(DAY_START,Math.min(DAY_END-s.duration,next));
-  s.newStart=next;
-  s.el.style.left=`${(next-DAY_START)*PX_PER_MINUTE}px`;
-  const st=minutesToTime(next).slice(0,5);
-  const en=minutesToTime(next+s.duration).slice(0,5);
+  const movedMinutes=(s.currentX-s.startX+s.scroll.scrollLeft-s.startScrollLeft)/PX_PER_MINUTE;
+  let visualStart=s.originalStart+movedMinutes;
+  visualStart=Math.max(DAY_START,Math.min(DAY_END-s.duration,visualStart));
+  let snappedStart=snap(visualStart);
+  snappedStart=Math.max(DAY_START,Math.min(DAY_END-s.duration,snappedStart));
+  s.visualStart=visualStart;
+  s.newStart=snappedStart;
+  // The actual red block follows the finger continuously.
+  s.el.style.left=`${(visualStart-DAY_START)*PX_PER_MINUTE}px`;
+  const st=minutesToTime(snappedStart).slice(0,5);
+  const en=minutesToTime(snappedStart+s.duration).slice(0,5);
   destination(`${st}–${en}`);
 }
 
@@ -160,7 +164,7 @@ function startDrag(){
   const s=drag;if(!s||s.interacting)return;
   s.interacting=true;
   $('blockedInlineEditor')?.classList.remove('open');
-  createGhost(s);
+  // Move the actual block itself; do not leave a duplicate ghost behind.
   s.el.classList.add('blockedDragging');
   document.body.classList.add('bookingDragging');
   try{navigator.vibrate?.(18)}catch{}
@@ -277,6 +281,8 @@ async function onUp(e){
   clearTimeout(pressTimer);pressTimer=null;drag=null;
   if(!s.interacting)return;
   suppressClickUntil=Date.now()+900;
+  // Snap the visible block to the final 15-minute slot before confirming.
+  s.el.style.left=`${(s.newStart-DAY_START)*PX_PER_MINUTE}px`;
   cleanup(s);
   if(s.newStart===s.originalStart){restore(s);return}
   const oldStart=minutesToTime(s.originalStart).slice(0,5);

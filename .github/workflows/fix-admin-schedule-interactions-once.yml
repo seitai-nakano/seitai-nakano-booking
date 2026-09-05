@@ -17,9 +17,10 @@ jobs:
           node --check booking-drag.js
           node --check blocked-drag.js
           grep -q "blockedInlineBook" booking-drag.js
+          grep -q "bookBlockedAsBooking" booking-drag.js
           grep -q "nakano-admin-prefill-booking" booking-drag.js
           grep -q "touch-action:none;cursor:grab" blocked-drag.js
-          grep -q "setPointerCapture(e.pointerId)" blocked-drag.js
+          grep -q "Capture immediately so iPhone/Android/desktop" blocked-drag.js
       - name: Commit and cleanup
         run: |
           git config user.name 'github-actions[bot]'

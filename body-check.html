@@ -11,6 +11,8 @@
 <title>整体なかの｜お体チェック</title>
 <style>
 *{box-sizing:border-box}html,body{max-width:100%;overflow-x:hidden}body{margin:0;background:#f6f3ee;color:#2f2d2a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic",Meiryo,sans-serif}main{max-width:580px;margin:auto;padding:22px 14px 70px}.header{margin-bottom:16px}.brand{font-size:24px;font-weight:800;letter-spacing:.02em}.sub{margin-top:4px;color:#77716a;font-size:13px}.card{background:#fff;border:1px solid #e7e0d7;border-radius:18px;padding:18px}.title{font-size:20px;font-weight:800}.lead{margin-top:7px;color:#716a63;font-size:13px;line-height:1.7}.chat{display:grid;gap:10px;margin-top:18px}.speaker{font-size:10px;font-weight:800;color:#817970;margin:0 0 -5px 2px}.bubble{max-width:88%;padding:11px 13px;border-radius:14px;font-size:13px;line-height:1.65}.bubble.guide{justify-self:start;background:#f3efe9;border:1px solid #e3dbd2;border-bottom-left-radius:5px}.bubble.user{justify-self:end;background:#61574d;color:#fff;border-bottom-right-radius:5px}.question{margin-top:12px;scroll-margin-top:18px}.progress{display:flex;align-items:center;gap:8px;font-size:11px;color:#8b837b;margin-bottom:9px}.progressTrack{height:4px;flex:1;background:#eee8e1;border-radius:99px;overflow:hidden}.progressFill{height:100%;background:#756b62;border-radius:99px;transition:width .25s ease}.answers{display:grid;gap:8px}.answer{width:100%;border:1px solid #d8d0c7;border-radius:12px;background:#fff;color:#49443f;padding:13px 12px;font:inherit;font-weight:700;text-align:left;transition:background .12s,border-color .12s,transform .08s;touch-action:manipulation}.answer:active{background:#f3eee8;transform:scale(.995)}.answer.selected{background:#eee7df;border-color:#61574d;box-shadow:0 0 0 1px #61574d inset}.answer:disabled{opacity:1}.liveThinking{display:flex;align-items:center;gap:8px;padding:10px 3px;color:#746d66;font-size:12px}.analyzing{margin-top:15px;padding:17px 12px;text-align:center;border-radius:13px;background:#faf8f5;border:1px solid #eee7df;color:#625c56;font-size:13px;line-height:1.7}.dots{display:inline-flex;gap:4px;margin-right:7px;vertical-align:middle}.dots i{display:block;width:5px;height:5px;border-radius:50%;background:#776e66;animation:dot 1s infinite ease-in-out}.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}@keyframes dot{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-2px)}}.hidden{display:none!important}.result{margin-top:16px}.resultTitle{font-size:18px;font-weight:800}.resultSummary{margin-top:8px;padding:12px;border-radius:12px;background:#edf4ee;border:1px solid #cbdccb;font-size:12px;line-height:1.7;color:#536053}.resultList{display:grid;gap:10px;margin-top:11px}.resultItem{padding:13px;border:1px solid #e0ddd8;border-radius:13px;background:#fff}.resultTop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.rank{font-size:10px;font-weight:800;color:#667266}.menuName{margin-top:2px;font-size:16px;font-weight:800}.price{font-size:14px;font-weight:800;color:#4c584c;white-space:nowrap;padding-top:13px}.reserve{display:block;width:100%;margin-top:10px;border:1px solid #61574d;border-radius:12px;background:#61574d;color:#fff;padding:12px;font-weight:800;text-align:center;text-decoration:none}.note{margin-top:10px;color:#8a837c;font-size:10px;line-height:1.6}.secondary{display:block;width:100%;margin-top:9px;border:1px solid #cfc6bc;border-radius:12px;background:#fff;color:#49443f;padding:12px;font:inherit;font-weight:700;text-align:center;text-decoration:none}.change{width:100%;margin-top:10px;border:0;background:transparent;color:#6f6861;text-decoration:underline;padding:8px;font:inherit;font-size:12px}.back{display:inline-block;margin:0 0 12px;color:#5e564f;font-size:13px;text-decoration:none}
+
+.aiCompanion{display:flex;align-items:center;gap:12px;margin:15px 0 2px;padding:11px 13px;border:1px solid #e9e0d7;border-radius:16px;background:#fbf8f4}.aiMascot{width:64px;height:82px;flex:0 0 64px;transform-origin:50% 90%;animation:mascotFloat 3.2s ease-in-out infinite}.aiMascot svg{display:block;width:100%;height:100%;overflow:visible}.aiEye{transform-box:fill-box;transform-origin:center;animation:mascotBlink 4.6s infinite}.aiCheek{animation:mascotCheek 2.8s ease-in-out infinite}.aiStatus{min-width:0;color:#5f5852;font-size:12px;line-height:1.65;font-weight:700}.aiStatusSmall{display:block;margin-top:2px;color:#908880;font-size:10px;font-weight:600}.aiCompanion.thinking .aiMascot{animation:mascotThink .48s ease-in-out infinite alternate}.aiCompanion.thinking .aiCheek{animation:mascotCheekFast .7s ease-in-out infinite alternate}.aiCompanion.done .aiMascot{animation:mascotDone .72s cubic-bezier(.2,.8,.3,1.2) 1,mascotFloat 3.2s .72s ease-in-out infinite}@keyframes mascotFloat{0%,100%{transform:translateY(0) rotate(-.8deg)}50%{transform:translateY(-4px) rotate(.8deg)}}@keyframes mascotBlink{0%,44%,48%,100%{transform:scaleY(1)}46%{transform:scaleY(.12)}}@keyframes mascotCheek{0%,100%{opacity:.55}50%{opacity:1}}@keyframes mascotCheekFast{from{opacity:.45;transform:scale(.92)}to{opacity:1;transform:scale(1.08)}}@keyframes mascotThink{from{transform:translateY(-1px) rotate(-3deg)}to{transform:translateY(-3px) rotate(3deg)}}@keyframes mascotDone{0%{transform:translateY(0) scale(1)}45%{transform:translateY(-8px) scale(1.04)}75%{transform:translateY(1px) scale(.99)}100%{transform:translateY(0) scale(1)}}@media(prefers-reduced-motion:reduce){.aiMascot,.aiEye,.aiCheek,.aiCompanion.thinking .aiMascot,.aiCompanion.thinking .aiCheek,.aiCompanion.done .aiMascot{animation:none!important}}
 </style>
 </head>
 <body><main>
@@ -19,6 +21,20 @@
 <section class="card">
   <div class="title">あなたに合いそうなメニューをチェック</div>
   <div class="lead">3つの質問に1つずつ答えると、おすすめのコースを3つご案内します。</div>
+  <div class="aiCompanion" id="aiCompanion" aria-live="polite">
+    <div class="aiMascot" aria-hidden="true">
+      <svg viewBox="0 0 80 105" role="img">
+        <path d="M23 96V51c0-9 7-16 16-16h5c10 0 17-7 17-16C61 10 54 3 45 3H31C18 3 10 12 10 23c0 8 6 14 14 14 6 0 10-3 14-8 4-4 7-6 12-6 11 0 19 8 19 19v54Z" fill="#fff" stroke="#7b1e1b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <ellipse class="aiCheek" cx="34" cy="75" rx="6" ry="2.6" fill="#f6cfe5"/>
+        <ellipse class="aiCheek" cx="58" cy="75" rx="6" ry="2.6" fill="#f6cfe5"/>
+        <circle class="aiEye" cx="40" cy="70" r="1.8" fill="#7b1e1b"/>
+        <circle class="aiEye" cx="52" cy="70" r="1.8" fill="#7b1e1b"/>
+        <path d="M44 77c1.6 1.7 3.4 1.7 5 0" fill="none" stroke="#7b1e1b" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M21 101h49" fill="none" stroke="#8c8a88" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="aiStatus"><span id="aiStatusText">3つだけ質問します</span><span class="aiStatusSmall">選んだ内容に合わせておすすめを絞ります</span></div>
+  </div>
   <div class="chat" id="chat"></div>
   <div class="question" id="questionArea"></div>
   <div class="analyzing hidden" id="analyzing"><span class="dots"><i></i><i></i><i></i></span>回答内容からおすすめを整理しています…</div>
@@ -84,6 +100,15 @@ const recommendations={
 const state={concern:'',severity:'',approach:'',labels:[]};
 const $=id=>document.getElementById(id);
 const yen=n=>new Intl.NumberFormat('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}).format(n);
+function setAiMood(mood,text){
+  const box=$('aiCompanion');
+  if(!box)return;
+  box.classList.remove('thinking','done');
+  if(mood==='thinking')box.classList.add('thinking');
+  if(mood==='done')box.classList.add('done');
+  const t=$('aiStatusText');
+  if(t&&text)t.textContent=text;
+}
 function bubble(kind,text,speaker=''){
   if(speaker){const s=document.createElement('div');s.className='speaker';s.textContent=speaker;$('chat').appendChild(s)}
   const b=document.createElement('div');b.className=`bubble ${kind}`;b.textContent=text;$('chat').appendChild(b);
@@ -96,6 +121,7 @@ function scrollToQuestion(){
 function showQuestion(index){
   const q=questions[index];
   if(!q){
+    setAiMood('thinking','おすすめを整理しています…');
     $('questionArea').classList.add('hidden');
     $('analyzing').classList.remove('hidden');
     $('analyzing').scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -114,6 +140,7 @@ function showQuestion(index){
       btn.classList.add('selected');
       state[q.key]=value;
       state.labels[index]=label;
+      setAiMood('thinking','回答を見ています…');
       setTimeout(()=>{
         bubble('user',label);
         area.innerHTML=`<div class="liveThinking">${dots()}回答を見ています…</div>`;
@@ -122,6 +149,7 @@ function showQuestion(index){
           if(index+1<questions.length){
             bubble('guide',questions[index+1].text,'お体チェック');
           }
+          setAiMood('idle',index+1<questions.length?'次の質問です':'おすすめを整理しています…');
           showQuestion(index+1);
           scrollToQuestion();
         },260);
@@ -132,6 +160,7 @@ function showQuestion(index){
   scrollToQuestion();
 }
 function showResult(){
+  setAiMood('done','おすすめがまとまりました');
   const ids=recommendations[state.concern]?.[state.severity]?.[state.approach]||[];
   $('analyzing').classList.add('hidden');
   $('resultSummary').textContent=`「${state.labels[0]}」「${state.labels[1]}」「${state.labels[2]}」という回答から、施術範囲とボリュームのバランスで候補を選びました。`;
@@ -145,6 +174,7 @@ function showResult(){
   $('result').classList.remove('hidden');$('result').scrollIntoView({behavior:'smooth',block:'start'});
 }
 function start(){
+  setAiMood('idle','3つだけ質問します');
   state.concern='';state.severity='';state.approach='';state.labels=[];
   $('chat').innerHTML='';$('result').classList.add('hidden');$('analyzing').classList.add('hidden');$('questionArea').classList.remove('hidden');
   bubble('guide','3つだけ質問します。今のお体に近いものを選んでください。','お体チェック');

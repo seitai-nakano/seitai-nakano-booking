@@ -8,6 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>整体なかの｜管理トップ</title>
+<meta name="nakano-admin-build" content="2026-09-05-manual-booking-v2">
 
 <style>
 *{box-sizing:border-box}
@@ -849,14 +850,20 @@ CLOSE
 </select>
 
 <label>予約時間</label>
+<input
+  type="time"
+  id="adminTimeManual"
+  step="900"
+>
+<div class="muted adminTimeHelp">15分単位で直接指定できます。下の候補をタップしても入力されます。</div>
 
-<select id="adminTime" class="adminTimeSelect" aria-label="予約時間">
+<select id="adminTime" class="adminTimeSelect" aria-label="予約時間候補">
 <option value="">
 空き時間を選択
 </option>
 </select>
 <div id="adminTimeButtons" class="adminTimeButtons" aria-label="空き時間一覧"></div>
-<div class="muted adminTimeHelp">空いている時間をタップしてください。</div>
+<div class="muted adminTimeHelp">候補はOPEN枠から表示しています。</div>
 
 <label>お客様名</label>
 <input id="customerName">
@@ -3092,12 +3099,19 @@ async function getAvailableTimes(
 async function loadAdminTimes(){
 
   const box=$('adminTime');
+  const manual=$('adminTimeManual');
   const buttonBox=$('adminTimeButtons');
   const previous=box.value;
   const date=$('adminBookingDate').value;
   const menuId=$('menu').value;
 
   box.innerHTML='<option value="">空き時間を選択</option>';
+
+  // 「この時間から新規予約」で渡された時刻は、候補RPCの成否に関係なく
+  // 管理者の直接入力欄へ先に保持する。
+  if(timelinePreferredTime&&manual){
+    manual.value=String(timelinePreferredTime).slice(0,5);
+  }
 
   if(!date||!menuId){
     if(buttonBox)buttonBox.innerHTML='<div class="adminTimeEmpty">日付とメニューを選択してください。</div>';
@@ -3142,6 +3156,7 @@ async function loadAdminTimes(){
     button.onclick=()=>{
       timelinePreferredTime=null;
       box.value=value;
+      if(manual)manual.value=value.slice(0,5);
       buttonBox.querySelectorAll('.adminTimeButton').forEach(x=>x.classList.toggle('selected',x===button));
     };
     buttonBox.appendChild(button);
@@ -3152,6 +3167,7 @@ async function loadAdminTimes(){
     const found=(data||[]).some(slot=>String(slot.start_time)===wanted);
     if(found){
       box.value=wanted;
+      if(manual)manual.value=wanted.slice(0,5);
       buttonBox.querySelectorAll('.adminTimeButton').forEach(button=>{
         button.classList.toggle('selected',button.textContent===wanted.slice(0,5));
       });
@@ -3172,6 +3188,26 @@ $('adminBookingDate').onchange=
 loadAdminTimes;
 
 
+$('adminTimeManual').onchange=
+()=>{
+  const value=$('adminTimeManual').value;
+  if(!value)return;
+  timelinePreferredTime=null;
+  const candidate=`${value}:00`;
+  const box=$('adminTime');
+  if([...box.options].some(option=>option.value===candidate)){
+    box.value=candidate;
+    $('adminTimeButtons').querySelectorAll('.adminTimeButton').forEach(button=>{
+      button.classList.toggle('selected',button.textContent===value);
+    });
+  }
+  else{
+    box.value='';
+    $('adminTimeButtons').querySelectorAll('.adminTimeButton').forEach(button=>button.classList.remove('selected'));
+  }
+};
+
+
 /* ==========================
    店側予約追加
 ========================== */
@@ -3185,6 +3221,10 @@ async()=>{
       $('adminBookingDate').value,
 
     p_start_time:
+      $('adminTimeManual').value
+      ?
+      `${$('adminTimeManual').value}:00`
+      :
       $('adminTime').value,
 
     p_menu_id:
@@ -3246,8 +3286,29 @@ async()=>{
     );
 
 
-    $('addMsg').textContent=
-      '予約を追加できませんでした。';
+    const raw=String(error?.message||'');
+    let friendly='予約を追加できませんでした。';
+
+    if(raw.includes('CLOSE')){
+      friendly='この時間はCLOSEです。OPENにしてから予約してください。';
+    }
+    else if(raw.includes('別の予約')||raw.includes('already been booked')){
+      friendly='すでに別の予約が入っている時間です。';
+    }
+    else if(raw.includes('15分')){
+      friendly='予約時間は15分単位で指定してください。';
+    }
+    else if(raw.includes('22:00')||raw.includes('22時')){
+      friendly='22:00までに終了する時間を指定してください。';
+    }
+    else if(raw.includes('管理者ログイン')){
+      friendly='ログイン状態が切れています。管理画面を開き直してログインしてください。';
+    }
+    else if(raw.includes('電話番号')){
+      friendly='電話番号を確認してください。';
+    }
+
+    $('addMsg').textContent=friendly;
 
     await loadAdminTimes();
 
@@ -3270,6 +3331,7 @@ async()=>{
   $('phone').value='';
   $('memo').value='';
   $('adminTime').value='';
+  $('adminTimeManual').value='';
 
   await loadCustomers();
   await loadDay();

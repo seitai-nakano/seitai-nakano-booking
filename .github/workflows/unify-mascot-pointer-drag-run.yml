@@ -24,3 +24,4 @@ jobs:
           git add index.html
           git commit -m 'Unify mascot drag across mobile and desktop [skip ci]'
           git push
+# retry 2

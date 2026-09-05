@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>整体なかの｜お体チェック</title>
+<style>
+*{box-sizing:border-box}html,body{max-width:100%;overflow-x:hidden}body{margin:0;background:#f6f3ee;color:#2f2d2a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic",Meiryo,sans-serif}main{max-width:580px;margin:auto;padding:22px 14px 70px}.header{margin-bottom:16px}.brand{font-size:24px;font-weight:800;letter-spacing:.02em}.sub{margin-top:4px;color:#77716a;font-size:13px}.card{background:#fff;border:1px solid #e7e0d7;border-radius:18px;padding:18px}.title{font-size:20px;font-weight:800}.lead{margin-top:7px;color:#716a63;font-size:13px;line-height:1.7}.chat{display:grid;gap:10px;margin-top:18px}.speaker{font-size:10px;font-weight:800;color:#817970;margin:0 0 -5px 2px}.bubble{max-width:88%;padding:11px 13px;border-radius:14px;font-size:13px;line-height:1.65}.bubble.guide{justify-self:start;background:#f3efe9;border:1px solid #e3dbd2;border-bottom-left-radius:5px}.bubble.user{justify-self:end;background:#61574d;color:#fff;border-bottom-right-radius:5px}.question{margin-top:15px}.progress{font-size:11px;color:#8b837b;margin-bottom:7px}.questionText{font-size:16px;font-weight:800;line-height:1.55;margin-bottom:10px}.answers{display:grid;gap:8px}.answer{width:100%;border:1px solid #d8d0c7;border-radius:12px;background:#fff;color:#49443f;padding:13px 12px;font:inherit;font-weight:700;text-align:left}.answer:active{background:#f3eee8}.analyzing{margin-top:15px;padding:17px 12px;text-align:center;border-radius:13px;background:#faf8f5;border:1px solid #eee7df;color:#625c56;font-size:13px;line-height:1.7}.dots{display:inline-flex;gap:4px;margin-right:7px;vertical-align:middle}.dots i{display:block;width:5px;height:5px;border-radius:50%;background:#776e66;animation:dot 1s infinite ease-in-out}.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}@keyframes dot{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-2px)}}.hidden{display:none!important}.result{margin-top:16px}.resultTitle{font-size:18px;font-weight:800}.resultSummary{margin-top:8px;padding:12px;border-radius:12px;background:#edf4ee;border:1px solid #cbdccb;font-size:12px;line-height:1.7;color:#536053}.resultList{display:grid;gap:10px;margin-top:11px}.resultItem{padding:13px;border:1px solid #e0ddd8;border-radius:13px;background:#fff}.resultTop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.rank{font-size:10px;font-weight:800;color:#667266}.menuName{margin-top:2px;font-size:16px;font-weight:800}.price{font-size:14px;font-weight:800;color:#4c584c;white-space:nowrap;padding-top:13px}.reserve{display:block;width:100%;margin-top:10px;border:1px solid #61574d;border-radius:12px;background:#61574d;color:#fff;padding:12px;font-weight:800;text-align:center;text-decoration:none}.note{margin-top:10px;color:#8a837c;font-size:10px;line-height:1.6}.secondary{display:block;width:100%;margin-top:9px;border:1px solid #cfc6bc;border-radius:12px;background:#fff;color:#49443f;padding:12px;font:inherit;font-weight:700;text-align:center;text-decoration:none}.change{width:100%;margin-top:10px;border:0;background:transparent;color:#6f6861;text-decoration:underline;padding:8px;font:inherit;font-size:12px}.back{display:inline-block;margin:0 0 12px;color:#5e564f;font-size:13px;text-decoration:none}
+</style>
+</head>
+<body><main>
+<header class="header"><div class="brand">整体なかの</div><div class="sub">お体チェック</div></header>
+<a class="back" href="./">← 予約ページに戻る</a>
+<section class="card">
+  <div class="title">あなたに合いそうなメニューをチェック</div>
+  <div class="lead">3つの質問に1つずつ答えると、おすすめのコースを3つご案内します。</div>
+  <div class="chat" id="chat"></div>
+  <div class="question" id="questionArea"></div>
+  <div class="analyzing hidden" id="analyzing"><span class="dots"><i></i><i></i><i></i></span>回答内容からおすすめを整理しています…</div>
+  <div class="result hidden" id="result">
+    <div class="resultTitle">おすすめメニュー</div>
+    <div class="resultSummary" id="resultSummary"></div>
+    <div class="resultList" id="resultList"></div>
+    <div class="note">メニュー選びのための自動チェックです。医療上の診断ではありません。</div>
+    <button class="change" id="changeAnswers" type="button">回答を変更する</button>
+    <a class="secondary" href="./">予約ページに戻る</a>
+  </div>
+</section>
+<script>
+const menus={
+  m30:{id:'m30',name:'30分コース',price:3980},
+  m60:{id:'m60',name:'60分コース',price:6250},
+  m90:{id:'m90',name:'90分コース',price:9350},
+  m120:{id:'m120',name:'120分コース',price:12500},
+  m60h:{id:'m60h',name:'60分＋ヘッド',price:9000},
+  m90h:{id:'m90h',name:'90分＋ヘッド',price:11500},
+  m120h:{id:'m120h',name:'120分＋ヘッド',price:14500}
+};
+const questions=[
+  {key:'concern',text:'今、いちばん気になっているのはどこですか？',options:[
+    ['part','首・肩・腰など、気になる場所がはっきりしている'],
+    ['whole','全身が気になる'],
+    ['head','頭・目の疲れ、または頭痛が気になる'],
+    ['unsure','自分ではよくわからない']
+  ]},
+  {key:'severity',text:'そのつらさは、今どのくらいですか？',options:[
+    ['mild','わからない・あまり感じない'],
+    ['ongoing','続いていて気になる'],
+    ['strong','とてもつらい・何とかしてほしい']
+  ]},
+  {key:'approach',text:'今日は、どんな受け方をしたいですか？',options:[
+    ['efficient','気になるところを中心に、効率よく受けたい'],
+    ['balanced','全身をまんべんなく見てほしい'],
+    ['deep','時間をかけて、細かいところまでしっかり見てほしい']
+  ]}
+];
+const recommendations={
+  part:{
+    mild:{efficient:['m30','m60','m60h'],balanced:['m60h','m90','m90h'],deep:['m120h','m90h','m60h']},
+    ongoing:{efficient:['m60','m60h','m90'],balanced:['m90','m90h','m120'],deep:['m120h','m90h','m60h']},
+    strong:{efficient:['m60h','m90','m90h'],balanced:['m90h','m120','m120h'],deep:['m120h','m90h','m60h']}
+  },
+  whole:{
+    mild:{efficient:['m30','m60','m90'],balanced:['m90','m120','m60h'],deep:['m120h','m90h','m60h']},
+    ongoing:{efficient:['m60','m90','m120'],balanced:['m120','m60h','m90h'],deep:['m120h','m90h','m60h']},
+    strong:{efficient:['m90','m120','m60h'],balanced:['m60h','m90h','m120h'],deep:['m120h','m90h','m60h']}
+  },
+  head:{
+    mild:{efficient:['m60h','m60','m90'],balanced:['m90','m60h','m120'],deep:['m120h','m90h','m60h']},
+    ongoing:{efficient:['m60h','m90h','m60'],balanced:['m90h','m120','m60h'],deep:['m120h','m90h','m60h']},
+    strong:{efficient:['m90h','m60h','m120'],balanced:['m90h','m120h','m120'],deep:['m120h','m90h','m60h']}
+  },
+  unsure:{
+    mild:{efficient:['m30','m60','m60h'],balanced:['m60h','m90','m90h'],deep:['m120h','m90h','m60h']},
+    ongoing:{efficient:['m60','m60h','m90'],balanced:['m90','m90h','m120'],deep:['m120h','m90h','m60h']},
+    strong:{efficient:['m60h','m90','m90h'],balanced:['m90h','m120','m120h'],deep:['m120h','m90h','m60h']}
+  }
+};
+const state={concern:'',severity:'',approach:'',labels:[]};
+const $=id=>document.getElementById(id);
+const yen=n=>new Intl.NumberFormat('ja-JP',{style:'currency',currency:'JPY',maximumFractionDigits:0}).format(n);
+function bubble(kind,text,speaker=''){
+  if(speaker){const s=document.createElement('div');s.className='speaker';s.textContent=speaker;$('chat').appendChild(s)}
+  const b=document.createElement('div');b.className=`bubble ${kind}`;b.textContent=text;$('chat').appendChild(b);
+}
+function showQuestion(index){
+  const q=questions[index];
+  if(!q){$('questionArea').classList.add('hidden');$('analyzing').classList.remove('hidden');setTimeout(showResult,700);return}
+  const area=$('questionArea');area.classList.remove('hidden');area.innerHTML=`<div class="progress">${index+1} / ${questions.length}</div><div class="questionText">${q.text}</div><div class="answers"></div>`;
+  const list=area.querySelector('.answers');
+  q.options.forEach(([value,label])=>{
+    const btn=document.createElement('button');btn.type='button';btn.className='answer';btn.textContent=label;
+    btn.onclick=()=>{
+      state[q.key]=value;state.labels[index]=label;bubble('user',label);area.classList.add('hidden');
+      setTimeout(()=>{if(index+1<questions.length)bubble('guide',questions[index+1].text,'お体チェック');showQuestion(index+1)},220);
+    };
+    list.appendChild(btn);
+  });
+}
+function showResult(){
+  const ids=recommendations[state.concern]?.[state.severity]?.[state.approach]||[];
+  $('analyzing').classList.add('hidden');
+  $('resultSummary').textContent=`「${state.labels[0]}」「${state.labels[1]}」「${state.labels[2]}」という回答から、施術範囲とボリュームのバランスで候補を選びました。`;
+  const list=$('resultList');list.innerHTML='';
+  ids.forEach((id,index)=>{
+    const m=menus[id];if(!m)return;
+    const item=document.createElement('div');item.className='resultItem';
+    item.innerHTML=`<div class="resultTop"><div><div class="rank">おすすめ${index+1}</div><div class="menuName">${m.name}</div></div><div class="price">${yen(m.price)}</div></div><a class="reserve" href="./?menu=${encodeURIComponent(m.id)}#menuCard">このメニューで予約する</a>`;
+    list.appendChild(item);
+  });
+  $('result').classList.remove('hidden');$('result').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function start(){
+  state.concern='';state.severity='';state.approach='';state.labels=[];
+  $('chat').innerHTML='';$('result').classList.add('hidden');$('analyzing').classList.add('hidden');$('questionArea').classList.remove('hidden');
+  bubble('guide','3つだけ質問します。今のお体に近いものを選んでください。','お体チェック');
+  setTimeout(()=>{bubble('guide',questions[0].text,'お体チェック');showQuestion(0)},180);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+$('changeAnswers').onclick=start;
+start();
+</script>
+</main></body></html>

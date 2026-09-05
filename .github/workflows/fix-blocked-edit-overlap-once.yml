@@ -1,0 +1,27 @@
+name: fix blocked edit overlap once
+on:
+  push:
+    paths:
+      - '.github/scripts/fix_blocked_edit_overlap.py'
+      - '.github/workflows/fix-blocked-edit-overlap-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply overlap validation patch
+        run: python .github/scripts/fix_blocked_edit_overlap.py
+      - name: Verify
+        run: |
+          grep -q "別の予定（" booking-drag.js
+          grep -q "neq('id',item.id)" booking-drag.js
+      - name: Commit patch and cleanup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add booking-drag.js
+          git rm .github/scripts/fix_blocked_edit_overlap.py .github/workflows/fix-blocked-edit-overlap-once.yml
+          git commit -m "Prevent overlapping blocked times when editing [skip ci]"
+          git push

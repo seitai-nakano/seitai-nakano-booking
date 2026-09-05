@@ -633,6 +633,7 @@ function bookingGuideDrag(g,b){
  const up=e=>{if(id!==e.pointerId)return;try{b.releasePointerCapture(id)}catch(_){}id=null;if(drag){drag=false;g.classList.remove('dragging');try{localStorage.setItem('nakano_booking_guide_pos_v1',JSON.stringify(bookingGuidePos()))}catch(_){}bookingGuideSides();bookingGuideHint('ここで待ってるね',1800);return}bookingGuideSides();const o=!g.classList.contains('open');g.classList.toggle('open',o);g.classList.remove('thinking','done')};
  b.addEventListener('pointerup',up);b.addEventListener('pointercancel',e=>{if(id!==e.pointerId)return;id=null;g.classList.remove('dragging');bookingGuideHint()});
 }
-function bookingGuideInit(){const g=$('bookingGuide'),b=$('bookingGuideMascotBtn'),sh=$('bookingGuideShare');if(!g||!b)return;if(manageToken){g.classList.add('hidden');return}if(sh)sh.onclick=shareSeitaiNakano;bookingGuideRestore();bookingGuideDrag(g,b);bookingGuideHint();addEventListener('resize',bookingGuideRestore,{passive:true})}
+function bookingGuideInit(){const g=$('bookingGuide'),b=$('bookingGuideMascotBtn'),sh=$('bookingGuideShare');if(!g||!b)return;if(manageToken){g.classList.add('hidden');return}if(b.dataset.dragReady==='1')return;b.dataset.dragReady='1';b.onclick=null;if(sh)sh.onclick=shareSeitaiNakano;bookingGuideRestore();bookingGuideDrag(g,b);bookingGuideHint();addEventListener('resize',bookingGuideRestore,{passive:true})}
+bookingGuideInit();
 </script>
 </body></html>

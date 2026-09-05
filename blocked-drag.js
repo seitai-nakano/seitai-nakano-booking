@@ -41,7 +41,7 @@ function addStyles(){
   const s=document.createElement('style');
   s.id='nakanoBlockedDragStyle';
   s.textContent=`
-.blockedSchedule,.blockedBlock{-webkit-touch-callout:none;touch-action:pan-y;cursor:grab}
+.blockedSchedule,.blockedBlock{-webkit-touch-callout:none;touch-action:none;cursor:grab}
 .blockedSchedule.blockedDragging,.blockedBlock.blockedDragging{z-index:110!important;opacity:.96;box-shadow:0 0 0 3px rgba(138,74,66,.24),0 9px 26px rgba(0,0,0,.22)!important;transform:translateY(8px) scale(1.02);touch-action:none!important}
 .blockedDragGhost{pointer-events:none!important;z-index:4!important;opacity:.45!important;border:2px dashed rgba(138,74,66,.62)!important;background:rgba(244,223,220,.40)!important;box-shadow:none!important}
 `;
@@ -173,6 +173,9 @@ function onDown(e,el,item){
     originalWidth:parseFloat(el.style.width)||Math.max(36,r.duration*PX_PER_MINUTE),
     interacting:false,ghost:null
   };
+  // Capture immediately so iPhone/Android/desktop keep sending the same pointer
+  // even when the finger or mouse moves across the horizontally scrollable schedule.
+  try{el.setPointerCapture(e.pointerId)}catch{}
 }
 
 function onMove(e){
@@ -220,6 +223,7 @@ function onCancel(e){
 function attach(el,item){
   if(el.dataset.blockedLongDrag==='1')return;
   el.dataset.blockedLongDrag='1';
+  el.style.touchAction='none';
   const hint=el.querySelector('.blockedTapHint');
   if(!movable(item)){
     if(hint)hint.textContent='タップで時間変更';

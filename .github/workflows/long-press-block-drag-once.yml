@@ -1,0 +1,28 @@
+name: long press block drag once
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/long-press-block-drag-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply long press drag patch
+        run: python .github/scripts/long_press_block_drag.py
+      - name: Verify markers
+        run: |
+          grep -q 'const LONG_PRESS_MS=420' blocked-drag.js
+          grep -q '長押ししてから左右に動かして移動' blocked-drag.js
+          grep -q 'pressTimer=setTimeout' blocked-drag.js
+      - name: Commit patch and cleanup
+        run: |
+          rm -f .github/scripts/long_press_block_drag.py .github/workflows/long-press-block-drag-once.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add blocked-drag.js .github/scripts/long_press_block_drag.py .github/workflows/long-press-block-drag-once.yml
+          git commit -m 'Require long press before moving red plan block [skip ci]'
+          git push

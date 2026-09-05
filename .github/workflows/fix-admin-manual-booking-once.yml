@@ -1,0 +1,30 @@
+name: fix admin manual booking once
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-admin-manual-booking-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply admin manual booking fix
+        run: python3 .github/scripts/fix_admin_manual_booking.py
+      - name: Verify repair
+        run: |
+          grep -q 'id="adminTimeManual"' admin.html
+          grep -q '2026-09-05-manual-booking-v2' admin.html
+          grep -q 'この時間はCLOSEです' admin.html
+          grep -q "nakano_admin_create_booking" admin.html
+          grep -q "nakano_admin_available_slots" admin.html
+      - name: Commit repair and cleanup
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/fix-admin-manual-booking-once.yml
+          git rm .github/scripts/fix_admin_manual_booking.py
+          git add admin.html
+          git commit -m 'Fix admin manual booking input and errors [skip ci]'
+          git push

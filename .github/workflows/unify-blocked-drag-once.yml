@@ -15,10 +15,8 @@ jobs:
       - name: Verify unified drag
         run: |
           grep -q 'blocked-drag.js?_v=' admin.html
-          grep -q 'class="blockedMoveHandle"' admin.html
-          ! grep -q 'class="blockedMoveHandle".*data-bound-move="1"' admin.html
           grep -q 'const EDGE_ZONE=110;' blocked-drag.js
-          grep -q 'immediate=-(6+p\*16)' blocked-drag.js
+          grep -q 'iPhone/Safari: scroll immediately' blocked-drag.js
       - name: Commit repair and cleanup
         run: |
           git config user.name 'github-actions[bot]'

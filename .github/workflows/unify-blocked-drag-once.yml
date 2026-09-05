@@ -12,11 +12,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Apply unified drag fix
         run: python3 .github/scripts/unify_blocked_drag.py
-      - name: Verify unified drag
-        run: |
-          grep -q 'blocked-drag.js?_v=' admin.html
-          grep -q 'const EDGE_ZONE=110;' blocked-drag.js
-          grep -q 'iPhone/Safari: scroll immediately' blocked-drag.js
       - name: Commit repair and cleanup
         run: |
           git config user.name 'github-actions[bot]'

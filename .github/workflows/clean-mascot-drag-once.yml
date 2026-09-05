@@ -1,0 +1,28 @@
+name: clean mascot drag once
+on:
+  push:
+    paths:
+      - '.github/workflows/clean-mascot-drag-once.yml'
+permissions:
+  contents: write
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Clean mascot drag implementation
+        run: python3 _tmp_clean_mascot_drag.py
+      - name: Verify single drag implementation
+        run: |
+          test "$(grep -c "function bookingGuideInstallDrag" index.html)" -eq 1
+          test "$(grep -c "function bookingGuideInstallDirectDrag" index.html || true)" -eq 0
+          grep -q "document.addEventListener('touchmove'" index.html
+          grep -q "nakano_booking_guide_drag_pos_v2" index.html
+      - name: Commit and cleanup
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/clean-mascot-drag-once.yml _tmp_clean_mascot_drag.py
+          git add index.html
+          git commit -m 'Replace mascot drag with one clean implementation [skip ci]'
+          git push

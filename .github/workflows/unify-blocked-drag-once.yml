@@ -1,0 +1,30 @@
+name: unify blocked drag once
+on:
+  push:
+    paths:
+      - '.github/workflows/unify-blocked-drag-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply unified drag fix
+        run: python3 .github/scripts/unify_blocked_drag.py
+      - name: Verify unified drag
+        run: |
+          grep -q 'blocked-drag.js?_v=' admin.html
+          grep -q 'class="blockedMoveHandle"' admin.html
+          ! grep -q 'class="blockedMoveHandle".*data-bound-move="1"' admin.html
+          grep -q 'const EDGE_ZONE=110;' blocked-drag.js
+          grep -q 'immediate=-(6+p\*16)' blocked-drag.js
+      - name: Commit repair and cleanup
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/unify-blocked-drag-once.yml
+          git rm .github/scripts/unify_blocked_drag.py
+          git add admin.html blocked-drag.js
+          git commit -m 'Unify blocked drag tracking and iPhone auto-scroll [skip ci]'
+          git push

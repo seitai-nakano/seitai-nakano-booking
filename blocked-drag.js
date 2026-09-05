@@ -6,6 +6,7 @@ const supabase=createClient(
 );
 
 const DAY_START=8*60;
+const DAY_END=22*60;
 const PX_PER_MINUTE=2;
 const SNAP_MINUTES=15;
 const LONG_PRESS_MS=450;
@@ -97,9 +98,9 @@ function stateFromElement(el,x,y,inputType,extra={}){
   const width=Math.max(30,parseFloat(el.style.width)||30);
   const start=DAY_START+left/PX_PER_MINUTE;
   const duration=Math.max(SNAP_MINUTES,snapMinutes(width/PX_PER_MINUTE));
-  const timelineEnd=DAY_START+scroll.scrollWidth/PX_PER_MINUTE;
+  const timelineEnd=DAY_END;
 
-  if(start<DAY_START||duration<=0||start+duration>timelineEnd+SNAP_MINUTES)return null;
+  if(start<DAY_START||duration<=0||duration>DAY_END-DAY_START)return null;
 
   return{
     el,
@@ -150,7 +151,7 @@ function updateDragVisual(s){
   const dx=s.currentX-s.startX;
   const scrollDelta=s.scroll.scrollLeft-s.startScrollLeft;
   const movedMinutes=(dx+scrollDelta)/PX_PER_MINUTE;
-  const maxStart=s.timelineEnd-s.duration;
+  const maxStart=DAY_END-s.duration;
   const visual=clamp(s.originalStart+movedMinutes,DAY_START,maxStart);
   const snapped=clamp(snapMinutes(visual),DAY_START,maxStart);
 
@@ -205,7 +206,7 @@ function restore(s){
 async function commitDrag(s){
   if(commitInFlight)return;
   commitInFlight=true;
-  const snapped=clamp(snapMinutes(s.newStart),DAY_START,s.timelineEnd-s.duration);
+  const snapped=clamp(snapMinutes(s.newStart),DAY_START,DAY_END-s.duration);
   s.el.style.left=`${(snapped-DAY_START)*PX_PER_MINUTE}px`;
   cleanup(s);
   suppressClickUntil=Date.now()+900;

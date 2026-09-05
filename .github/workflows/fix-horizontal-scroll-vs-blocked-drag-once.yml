@@ -1,0 +1,28 @@
+name: fix horizontal scroll vs blocked drag once
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-horizontal-scroll-vs-blocked-drag-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply gesture fix
+        run: python3 .github/scripts/fix_horizontal_scroll_vs_blocked_drag.py
+      - name: Verify
+        run: |
+          grep -q 'touch-action:pan-x' blocked-drag.js
+          grep -q 'TOUCH_HOLD_TO_DRAG_MS=240' blocked-drag.js
+          grep -q '長押しして左右で移動' blocked-drag.js
+      - name: Commit and cleanup
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/fix-horizontal-scroll-vs-blocked-drag-once.yml
+          git rm .github/scripts/fix_horizontal_scroll_vs_blocked_drag.py
+          git add blocked-drag.js
+          git commit -m 'Restore horizontal scrolling and keep blocked drag [skip ci]'
+          git push

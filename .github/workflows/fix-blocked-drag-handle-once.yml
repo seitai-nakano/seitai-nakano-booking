@@ -1,0 +1,29 @@
+name: fix blocked drag handle once
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-blocked-drag-handle-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply reliable blocked drag handle fix
+        run: python3 .github/scripts/fix_blocked_drag_handle.py
+      - name: Verify patch
+        run: |
+          grep -q 'blockedMoveHandle' blocked-drag.js
+          grep -q 'onHandleDown' blocked-drag.js
+          grep -q "touch-action:none!important" blocked-drag.js
+          grep -q '↔を左右に動かして移動' blocked-drag.js
+      - name: Commit repair and cleanup
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/fix-blocked-drag-handle-once.yml
+          git rm .github/scripts/fix_blocked_drag_handle.py
+          git add blocked-drag.js
+          git commit -m 'Use dedicated drag handle for blocked schedule [skip ci]'
+          git push

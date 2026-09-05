@@ -33,7 +33,7 @@ jobs:
       - name: Verify
         run: |
           grep -q "touchstart.*preventDefault" index.html
-          grep -q "-webkit-touch-callout:none" index.html
+          grep -q -- "-webkit-touch-callout:none" index.html
       - name: Commit and cleanup
         run: |
           git config user.name 'github-actions[bot]'

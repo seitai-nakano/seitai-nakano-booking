@@ -10,12 +10,15 @@ const DAY_END=23*60;
 const PX_PER_MINUTE=2;
 const SNAP_MINUTES=15;
 const DRAG_START_DISTANCE=4;
+const LONG_PRESS_MS=420;
+const LONG_PRESS_CANCEL_DISTANCE=10;
 const EDGE_ZONE=120;
 const MAX_AUTO_SPEED=24;
 
 let rows=[];
 let rowsDate='';
 let drag=null;
+let pressTimer=null;
 let autoFrame=null;
 let suppressClickUntil=0;
 let hydrateTimer=null;
@@ -97,6 +100,7 @@ async function fetchRows(force=false){
 
 function stopAuto(){if(autoFrame){cancelAnimationFrame(autoFrame);autoFrame=null}hideEdges()}
 function cleanup(s){
+  clearTimeout(pressTimer);pressTimer=null;
   s?.el?.classList.remove('blockedDragging');
   document.body.classList.remove('bookingDragging');
   hideDestination();
@@ -216,6 +220,11 @@ function onTouchStart(e,el,item){
   const s=createDragState(el,item,t.clientX,t.clientY,'touch',{touchId:t.identifier});
   if(!s)return;
   drag=s;
+  clearTimeout(pressTimer);
+  pressTimer=setTimeout(()=>{
+    if(drag!==s||s.interacting)return;
+    startDrag();
+  },LONG_PRESS_MS);
   e.stopPropagation();
 }
 
@@ -231,11 +240,13 @@ function onTouchMove(e){
   s.currentX=t.clientX;s.currentY=t.clientY;
   const dx=s.currentX-s.startX,dy=s.currentY-s.startY;
   if(!s.interacting){
-    if(Math.abs(dx)<DRAG_START_DISTANCE)return;
-    // Allow normal finger wobble; only an overwhelmingly vertical gesture is ignored.
-    if(Math.abs(dy)>Math.abs(dx)*2.5)return;
-    startDrag();
-    if(!drag?.interacting)return;
+    // Touch movement does NOT start a drag. The user must hold first.
+    // A noticeable move before the hold finishes cancels the pending drag.
+    if(Math.hypot(dx,dy)>=LONG_PRESS_CANCEL_DISTANCE){
+      clearTimeout(pressTimer);pressTimer=null;
+      drag=null;
+    }
+    return;
   }
   e.preventDefault();
   e.stopPropagation();
@@ -245,6 +256,7 @@ function onTouchMove(e){
 
 async function onTouchEnd(e){
   const s=drag;if(!s||s.inputType!=='touch')return;
+  clearTimeout(pressTimer);pressTimer=null;
   const t=findTouch(e.changedTouches,s.touchId);
   if(!t)return;
   if(s.interacting)e.preventDefault();
@@ -255,6 +267,7 @@ async function onTouchEnd(e){
 
 function onTouchCancel(e){
   const s=drag;if(!s||s.inputType!=='touch')return;
+  clearTimeout(pressTimer);pressTimer=null;
   const t=findTouch(e.changedTouches,s.touchId);
   if(!t)return;
   drag=null;
@@ -311,8 +324,8 @@ function attach(el,item){
     if(hint)hint.textContent='タップで時間変更';
     return;
   }
-  if(hint)hint.textContent='枠を左右にドラッグして移動・タップで編集';
-  el.title=`${String(item.start_time).slice(0,5)}〜${String(item.end_time).slice(0,5)} 枠を左右にドラッグして時間移動`;
+  if(hint)hint.textContent='長押ししてから左右に動かして移動・タップで編集';
+  el.title=`${String(item.start_time).slice(0,5)}〜${String(item.end_time).slice(0,5)} 長押ししてから左右に動かして時間移動`;
   if(el.dataset.boundBlockMove!=='1'){
     el.dataset.boundBlockMove='1';
     el.addEventListener('touchstart',e=>onTouchStart(e,el,item),{passive:false});
@@ -335,6 +348,7 @@ function queueHydrate(force=false){
 }
 
 function cancelStaleDrag(){
+  clearTimeout(pressTimer);pressTimer=null;
   if(!drag)return;
   const s=drag;drag=null;
   if(s.interacting){restore(s);cleanup(s)}

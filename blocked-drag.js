@@ -6,390 +6,382 @@ const supabase=createClient(
 );
 
 const DAY_START=8*60;
-const DAY_END=23*60;
 const PX_PER_MINUTE=2;
 const SNAP_MINUTES=15;
-const DRAG_START_DISTANCE=4;
-const LONG_PRESS_MS=500;
-const LONG_PRESS_CANCEL_DISTANCE=14;
-const EDGE_ZONE=120;
-const MAX_AUTO_SPEED=24;
+const LONG_PRESS_MS=450;
+const MOVE_THRESHOLD=12;
+const EDGE_ZONE=96;
+const EDGE_MAX_SPEED=18;
 
-let rows=[];
-let rowsDate='';
-let drag=null;
+let gesture=null;
 let pressTimer=null;
 let autoFrame=null;
 let suppressClickUntil=0;
-let hydrateTimer=null;
 
 const $=id=>document.getElementById(id);
-const selectedDate=()=>$('date')?.value||'';
-const scheduleScroll=()=>document.querySelector('.timelineScroll,.scheduleScroll');
+const blockedSelector='.blockedSchedule,.blockedBlock';
 const supportedPage=()=>location.pathname.endsWith('/admin.html')||location.pathname.endsWith('/bookings.html')||location.pathname.endsWith('/');
 
-function timeToMinutes(t){
-  const [h,m]=String(t||'').slice(0,5).split(':').map(Number);
-  return h*60+m;
+function timeFromMinutes(n){
+  const v=Math.max(0,Math.round(n));
+  return `${String(Math.floor(v/60)).padStart(2,'0')}:${String(v%60).padStart(2,'0')}:00`;
 }
-function blockEndMinutes(t){return String(t||'').startsWith('23:59')?24*60:timeToMinutes(t)}
-function minutesToTime(n){return `${String(Math.floor(n/60)).padStart(2,'0')}:${String(n%60).padStart(2,'0')}:00`}
-function snap(v){return Math.round(v/SNAP_MINUTES)*SNAP_MINUTES}
-function range(item){const start=timeToMinutes(item?.start_time),end=blockEndMinutes(item?.end_time);return{start,end,duration:end-start}}
-function movable(item){const r=range(item);return !!item?.id&&r.duration>0&&r.start>=DAY_START&&r.end<=DAY_END&&!(r.start===0&&r.end>=24*60)}
-
-function addStyles(){
-  if($('nakanoBlockedDragStyle'))return;
-  const s=document.createElement('style');
-  s.id='nakanoBlockedDragStyle';
-  s.textContent=`
-.blockedSchedule,.blockedBlock{-webkit-touch-callout:none;touch-action:pan-x;cursor:grab;-webkit-user-select:none;user-select:none}
-.blockedSchedule.blockedDragging,.blockedBlock.blockedDragging{z-index:110!important;opacity:.98;box-shadow:0 0 0 3px rgba(138,74,66,.24),0 9px 26px rgba(0,0,0,.22)!important;transform:translateY(8px) scale(1.02);touch-action:none!important;transition:none!important;will-change:left;cursor:grabbing}
-`;
-  document.head.appendChild(s);
-}
-
-function destination(text,show=true){
-  let slot=$('dragDestinationSlot');
-  if(!slot){
-    const scroll=scheduleScroll();
-    if(!scroll)return;
-    slot=document.createElement('div');
-    slot.id='dragDestinationSlot';
-    slot.className='dragDestinationSlot';
-    slot.innerHTML='<div class="dragDestinationPill"><span class="dragDestinationLabel">変更先</span><span class="dragDestinationTime">--:--</span></div>';
-    scroll.insertAdjacentElement('beforebegin',slot);
-  }
-  const t=slot.querySelector('.dragDestinationTime');
-  if(t)t.textContent=text;
-  slot.classList.toggle('show',show);
-}
-function hideDestination(){$('dragDestinationSlot')?.classList.remove('show')}
-function hideEdges(){$('dragEdgeLeft')?.classList.remove('show');$('dragEdgeRight')?.classList.remove('show')}
-
-function inferRow(el){
-  const id=el.dataset.blockedId;
-  if(id){const found=rows.find(r=>String(r.id)===String(id));if(found)return found}
-  const left=parseFloat(el.style.left)||0;
-  const width=parseFloat(el.style.width)||0;
-  const start=Math.round(DAY_START+left/PX_PER_MINUTE);
-  const duration=Math.max(15,Math.round((width/PX_PER_MINUTE)/15)*15);
-  let best=null,bestScore=Infinity;
-  for(const r of rows){
-    const rr=range(r);
-    const score=Math.abs(rr.start-start)*8+Math.abs(rr.duration-duration);
-    if(score<bestScore){best=r;bestScore=score}
-  }
-  return bestScore<=75?best:null;
-}
-
-async function fetchRows(force=false){
-  const date=selectedDate();
-  if(!date)return[];
-  if(!force&&rowsDate===date)return rows;
-  const {data,error}=await supabase
-    .from('nakano_blocked_times')
-    .select('id,blocked_date,start_time,end_time,memo')
-    .eq('blocked_date',date)
-    .order('start_time');
-  if(error){console.warn('予約不可時間の取得に失敗',error);return[]}
-  rows=data||[];
-  rowsDate=date;
-  return rows;
-}
-
-function stopAuto(){if(autoFrame){cancelAnimationFrame(autoFrame);autoFrame=null}hideEdges()}
-function cleanup(s){
-  clearTimeout(pressTimer);pressTimer=null;
-  s?.el?.classList.remove('blockedDragging');
-  document.body.classList.remove('bookingDragging');
-  hideDestination();
-  stopAuto();
-  if(s?.inputType==='pointer'){
-    try{s.captureTarget?.releasePointerCapture?.(s.pointerId)}catch{}
-  }
-}
-function restore(s){if(!s)return;s.el.style.left=`${s.originalLeft}px`;s.el.style.width=`${s.originalWidth}px`}
-
-function updateVisual(){
-  const s=drag;if(!s?.interacting)return;
-  const movedMinutes=(s.currentX-s.startX+s.scroll.scrollLeft-s.startScrollLeft)/PX_PER_MINUTE;
-  let visualStart=s.originalStart+movedMinutes;
-  visualStart=Math.max(DAY_START,Math.min(DAY_END-s.duration,visualStart));
-  let snappedStart=snap(visualStart);
-  snappedStart=Math.max(DAY_START,Math.min(DAY_END-s.duration,snappedStart));
-  s.visualStart=visualStart;
-  s.newStart=snappedStart;
-  s.el.style.left=`${(visualStart-DAY_START)*PX_PER_MINUTE}px`;
-  const st=minutesToTime(snappedStart).slice(0,5);
-  const en=minutesToTime(snappedStart+s.duration).slice(0,5);
-  destination(`${st}–${en}`);
-}
-
-function autoLoop(){
-  const s=drag;if(!s?.interacting){stopAuto();return}
-  const rect=s.scroll.getBoundingClientRect(),x=s.currentX;
-  const ld=x-rect.left,rd=rect.right-x;
-  let speed=0;hideEdges();
-  if(ld<EDGE_ZONE){
-    const p=Math.max(0,Math.min(1,(EDGE_ZONE-ld)/EDGE_ZONE));
-    speed=-(4+p*MAX_AUTO_SPEED);$('dragEdgeLeft')?.classList.add('show');
-  }else if(rd<EDGE_ZONE){
-    const p=Math.max(0,Math.min(1,(EDGE_ZONE-rd)/EDGE_ZONE));
-    speed=4+p*MAX_AUTO_SPEED;$('dragEdgeRight')?.classList.add('show');
-  }
-  if(speed){
-    const before=s.scroll.scrollLeft;
-    const maxScroll=Math.max(0,s.scroll.scrollWidth-s.scroll.clientWidth);
-    const nextScroll=Math.max(0,Math.min(maxScroll,before+speed));
-    s.scroll.scrollLeft=nextScroll;
-    if(before!==nextScroll)updateVisual();
-  }
-  autoFrame=requestAnimationFrame(autoLoop);
-}
-
-function startDrag(){
-  const s=drag;if(!s||s.interacting)return;
-  s.interacting=true;
-  $('blockedInlineEditor')?.classList.remove('open');
-  s.el.classList.add('blockedDragging');
-  document.body.classList.add('bookingDragging');
-  try{navigator.vibrate?.(18)}catch{}
-  const st=minutesToTime(s.originalStart).slice(0,5),en=minutesToTime(s.originalStart+s.duration).slice(0,5);
-  destination(`${st}–${en}`);
-  autoFrame=requestAnimationFrame(autoLoop);
-}
-
-function createDragState(el,item,x,y,inputType,extra={}){
-  const scroll=el.closest('.timelineScroll,.scheduleScroll');
-  if(!scroll||!movable(item))return null;
-  const r=range(item);
-  return{
-    el,item,scroll,inputType,...extra,
-    startX:x,startY:y,currentX:x,currentY:y,
-    startScrollLeft:scroll.scrollLeft,
-    originalStart:r.start,newStart:r.start,duration:r.duration,
-    originalLeft:parseFloat(el.style.left)||((r.start-DAY_START)*PX_PER_MINUTE),
-    originalWidth:parseFloat(el.style.width)||Math.max(36,r.duration*PX_PER_MINUTE),
-    interacting:false
-  };
-}
-
-function edgeNudge(s){
-  const rect=s.scroll.getBoundingClientRect();
-  let immediate=0;
-  if(s.currentX<rect.left+EDGE_ZONE){
-    const q=Math.max(0,Math.min(1,(rect.left+EDGE_ZONE-s.currentX)/EDGE_ZONE));
-    immediate=-(6+q*16);
-  }else if(s.currentX>rect.right-EDGE_ZONE){
-    const q=Math.max(0,Math.min(1,(s.currentX-(rect.right-EDGE_ZONE))/EDGE_ZONE));
-    immediate=6+q*16;
-  }
-  if(immediate){
-    const maxScroll=Math.max(0,s.scroll.scrollWidth-s.scroll.clientWidth);
-    s.scroll.scrollLeft=Math.max(0,Math.min(maxScroll,s.scroll.scrollLeft+immediate));
-  }
-}
-
-async function finishDrag(s){
-  if(!s?.interacting)return;
-  suppressClickUntil=Date.now()+900;
-  s.el.style.left=`${(s.newStart-DAY_START)*PX_PER_MINUTE}px`;
-  cleanup(s);
-  if(s.newStart===s.originalStart){restore(s);return}
-  const oldStart=minutesToTime(s.originalStart).slice(0,5);
-  const newStart=minutesToTime(s.newStart).slice(0,5);
-  const newEnd=minutesToTime(s.newStart+s.duration).slice(0,5);
-  if(!confirm(`${oldStart} → ${newStart}（〜${newEnd}）に予約不可／予定を移動しますか？`)){restore(s);return}
-  const {error}=await supabase.rpc('nakano_admin_move_blocked_time',{
-    p_blocked_id:String(s.item.id),
-    p_start_time:minutesToTime(s.newStart)
-  });
-  if(error){
-    console.error(error);
-    alert('その時間には移動できません。予約・別の予定を確認してください。');
-    restore(s);return;
-  }
-  setTimeout(()=>location.reload(),160);
-}
-
-// iPhone / touch devices: use native Touch Events instead of Pointer Events.
-function onTouchStart(e,el,item){
-  if(drag||e.touches.length!==1)return;
-  const t=e.changedTouches[0];
-  const s=createDragState(el,item,t.clientX,t.clientY,'touch',{
-    touchId:t.identifier,scrolling:false
-  });
-  if(!s)return;
-  drag=s;
-  clearTimeout(pressTimer);
-  pressTimer=setTimeout(()=>{
-    if(drag!==s||s.interacting||s.scrolling)return;
-    // Reset the drag origin to the finger's actual position at long-press activation
-    // so tiny natural finger wobble never makes the block jump.
-    s.startX=s.currentX;
-    s.startY=s.currentY;
-    s.startScrollLeft=s.scroll.scrollLeft;
-    startDrag();
-  },LONG_PRESS_MS);
-  e.stopPropagation();
-}
-
+function snapMinutes(n){return Math.round(n/SNAP_MINUTES)*SNAP_MINUTES}
+function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
 function findTouch(list,id){
   for(let i=0;i<list.length;i++)if(list[i].identifier===id)return list[i];
   return null;
 }
 
-function onTouchMove(e){
-  const s=drag;if(!s||s.inputType!=='touch')return;
+function addStyles(){
+  if($('nakanoBlockedDragStyleV2'))return;
+  const style=document.createElement('style');
+  style.id='nakanoBlockedDragStyleV2';
+  style.textContent=`
+${blockedSelector}{
+  -webkit-touch-callout:none!important;
+  -webkit-user-select:none!important;
+  user-select:none!important;
+  touch-action:none!important;
+  cursor:grab!important;
+}
+${blockedSelector}.blockedDragging{
+  z-index:160!important;
+  opacity:.98!important;
+  transform:translateY(6px) scale(1.035)!important;
+  box-shadow:0 0 0 4px rgba(138,74,66,.24),0 12px 30px rgba(0,0,0,.24)!important;
+  transition:none!important;
+  will-change:left,transform!important;
+  cursor:grabbing!important;
+}
+`;
+  document.head.appendChild(style);
+}
+
+function destination(text,show=true){
+  let slot=$('dragDestinationSlot');
+  const scroll=gesture?.scroll||document.querySelector('.timelineScroll,.scheduleScroll');
+  if(!slot&&scroll){
+    slot=document.createElement('div');
+    slot.id='dragDestinationSlot';
+    slot.className='dragDestinationSlot';
+    slot.innerHTML='<div class="dragDestinationPill"><span class="dragDestinationLabel">移動先</span><span class="dragDestinationTime">--:--</span></div>';
+    scroll.insertAdjacentElement('beforebegin',slot);
+  }
+  if(!slot)return;
+  const time=slot.querySelector('.dragDestinationTime');
+  if(time)time.textContent=text;
+  slot.classList.toggle('show',show);
+}
+function hideDestination(){
+  $('dragDestinationSlot')?.classList.remove('show');
+}
+
+function stopAuto(){
+  if(autoFrame){cancelAnimationFrame(autoFrame);autoFrame=null}
+}
+
+function stateFromElement(el,x,y,inputType,extra={}){
+  const id=el.dataset.blockedId;
+  const scroll=el.closest('.timelineScroll,.scheduleScroll');
+  if(!id||!scroll)return null;
+
+  const left=parseFloat(el.style.left)||0;
+  const width=Math.max(30,parseFloat(el.style.width)||30);
+  const start=DAY_START+left/PX_PER_MINUTE;
+  const duration=Math.max(SNAP_MINUTES,snapMinutes(width/PX_PER_MINUTE));
+  const timelineEnd=DAY_START+scroll.scrollWidth/PX_PER_MINUTE;
+
+  if(start<DAY_START||duration<=0||start+duration>timelineEnd+SNAP_MINUTES)return null;
+
+  return{
+    el,
+    id:String(id),
+    scroll,
+    inputType,
+    ...extra,
+    mode:'pending',
+    startX:x,
+    startY:y,
+    currentX:x,
+    currentY:y,
+    startScrollLeft:scroll.scrollLeft,
+    originalLeft:left,
+    originalStart:start,
+    duration,
+    timelineEnd,
+    visualStart:start,
+    newStart:snapMinutes(start)
+  };
+}
+
+function clearPress(){
+  if(pressTimer){clearTimeout(pressTimer);pressTimer=null}
+}
+
+function beginDrag(s){
+  if(gesture!==s||s.mode!=='pending')return;
+  s.mode='drag';
+  s.startX=s.currentX;
+  s.startY=s.currentY;
+  s.startScrollLeft=s.scroll.scrollLeft;
+  s.originalStart=DAY_START+s.originalLeft/PX_PER_MINUTE;
+  s.visualStart=s.originalStart;
+  s.newStart=snapMinutes(s.originalStart);
+  s.el.classList.add('blockedDragging');
+  document.body.classList.add('bookingDragging');
+  try{navigator.vibrate?.(25)}catch{}
+  const st=timeFromMinutes(s.newStart).slice(0,5);
+  const en=timeFromMinutes(s.newStart+s.duration).slice(0,5);
+  destination(`${st}–${en}`);
+  stopAuto();
+  autoFrame=requestAnimationFrame(autoScrollLoop);
+}
+
+function updateDragVisual(s){
+  if(gesture!==s||s.mode!=='drag')return;
+  const dx=s.currentX-s.startX;
+  const scrollDelta=s.scroll.scrollLeft-s.startScrollLeft;
+  const movedMinutes=(dx+scrollDelta)/PX_PER_MINUTE;
+  const maxStart=s.timelineEnd-s.duration;
+  const visual=clamp(s.originalStart+movedMinutes,DAY_START,maxStart);
+  const snapped=clamp(snapMinutes(visual),DAY_START,maxStart);
+
+  s.visualStart=visual;
+  s.newStart=snapped;
+  s.el.style.left=`${(visual-DAY_START)*PX_PER_MINUTE}px`;
+
+  const st=timeFromMinutes(snapped).slice(0,5);
+  const en=timeFromMinutes(snapped+s.duration).slice(0,5);
+  destination(`${st}–${en}`);
+}
+
+function autoScrollLoop(){
+  const s=gesture;
+  if(!s||s.mode!=='drag'){stopAuto();return}
+
+  const rect=s.scroll.getBoundingClientRect();
+  const x=s.currentX;
+  let speed=0;
+
+  if(x<rect.left+EDGE_ZONE){
+    const p=clamp((rect.left+EDGE_ZONE-x)/EDGE_ZONE,0,1);
+    speed=-(4+p*EDGE_MAX_SPEED);
+  }else if(x>rect.right-EDGE_ZONE){
+    const p=clamp((x-(rect.right-EDGE_ZONE))/EDGE_ZONE,0,1);
+    speed=4+p*EDGE_MAX_SPEED;
+  }
+
+  if(speed){
+    const maxScroll=Math.max(0,s.scroll.scrollWidth-s.scroll.clientWidth);
+    const before=s.scroll.scrollLeft;
+    s.scroll.scrollLeft=clamp(before+speed,0,maxScroll);
+    if(s.scroll.scrollLeft!==before)updateDragVisual(s);
+  }
+
+  autoFrame=requestAnimationFrame(autoScrollLoop);
+}
+
+function cleanup(s){
+  clearPress();
+  stopAuto();
+  s?.el?.classList.remove('blockedDragging');
+  document.body.classList.remove('bookingDragging');
+  hideDestination();
+}
+
+function restore(s){
+  if(!s)return;
+  s.el.style.left=`${s.originalLeft}px`;
+}
+
+async function commitDrag(s){
+  const snapped=clamp(snapMinutes(s.newStart),DAY_START,s.timelineEnd-s.duration);
+  s.el.style.left=`${(snapped-DAY_START)*PX_PER_MINUTE}px`;
+  cleanup(s);
+  suppressClickUntil=Date.now()+900;
+
+  const original=snapMinutes(s.originalStart);
+  if(snapped===original){
+    restore(s);
+    return;
+  }
+
+  const oldLabel=timeFromMinutes(original).slice(0,5);
+  const newLabel=timeFromMinutes(snapped).slice(0,5);
+  const endLabel=timeFromMinutes(snapped+s.duration).slice(0,5);
+
+  if(!confirm(`${oldLabel} → ${newLabel}（〜${endLabel}）に予定を移動しますか？`)){
+    restore(s);
+    return;
+  }
+
+  const {error}=await supabase.rpc('nakano_admin_move_blocked_time',{
+    p_blocked_id:s.id,
+    p_start_time:timeFromMinutes(snapped)
+  });
+
+  if(error){
+    console.error(error);
+    restore(s);
+    alert('その時間には移動できません。予約・別の予定を確認してください。');
+    return;
+  }
+
+  setTimeout(()=>location.reload(),120);
+}
+
+function startTouch(e,el){
+  if(gesture||e.touches.length!==1)return;
+  const t=e.changedTouches[0];
+  const s=stateFromElement(el,t.clientX,t.clientY,'touch',{touchId:t.identifier});
+  if(!s)return;
+  gesture=s;
+  clearPress();
+  pressTimer=setTimeout(()=>beginDrag(s),LONG_PRESS_MS);
+}
+
+function moveTouch(e){
+  const s=gesture;
+  if(!s||s.inputType!=='touch')return;
   const t=findTouch(e.touches,s.touchId)||findTouch(e.changedTouches,s.touchId);
   if(!t)return;
-  s.currentX=t.clientX;s.currentY=t.clientY;
-  const dx=s.currentX-s.startX,dy=s.currentY-s.startY;
 
-  if(!s.interacting){
-    // Before long press activates, let Safari handle horizontal scrolling natively.
-    // We only cancel the pending long press; we do not preventDefault here.
-    if(!s.scrolling && Math.abs(dx)>=LONG_PRESS_CANCEL_DISTANCE && Math.abs(dx)>=Math.abs(dy)){
-      clearTimeout(pressTimer);pressTimer=null;
-      s.scrolling=true;
+  s.currentX=t.clientX;
+  s.currentY=t.clientY;
+  const dx=s.currentX-s.startX;
+  const dy=s.currentY-s.startY;
+
+  if(s.mode==='pending'){
+    if(Math.abs(dx)>=MOVE_THRESHOLD&&Math.abs(dx)>=Math.abs(dy)){
+      clearPress();
+      s.mode='scroll';
+    }else if(Math.abs(dy)>=MOVE_THRESHOLD&&Math.abs(dy)>Math.abs(dx)){
+      clearPress();
+      s.mode='cancelled';
+      return;
+    }else{
+      return;
     }
-    if(s.scrolling)return;
-    if(Math.abs(dy)>=LONG_PRESS_CANCEL_DISTANCE && Math.abs(dy)>Math.abs(dx)){
-      clearTimeout(pressTimer);pressTimer=null;
-    }
+  }
+
+  if(s.mode==='scroll'){
+    e.preventDefault();
+    e.stopPropagation();
+    const maxScroll=Math.max(0,s.scroll.scrollWidth-s.scroll.clientWidth);
+    // Requested direction: moving the finger to the right moves the viewport to later/right times.
+    s.scroll.scrollLeft=clamp(s.startScrollLeft+dx,0,maxScroll);
     return;
   }
 
-  e.preventDefault();
-  e.stopPropagation();
-  edgeNudge(s);
-  updateVisual();
+  if(s.mode==='drag'){
+    e.preventDefault();
+    e.stopPropagation();
+    updateDragVisual(s);
+  }
 }
 
-async function onTouchEnd(e){
-  const s=drag;if(!s||s.inputType!=='touch')return;
-  clearTimeout(pressTimer);pressTimer=null;
+async function endTouch(e){
+  const s=gesture;
+  if(!s||s.inputType!=='touch')return;
   const t=findTouch(e.changedTouches,s.touchId);
   if(!t)return;
-  drag=null;
 
-  if(s.scrolling){
-    // Native Safari scroll already happened; only suppress the synthetic click.
-    suppressClickUntil=Date.now()+450;
+  clearPress();
+  gesture=null;
+
+  if(s.mode==='drag'){
+    e.preventDefault();
+    await commitDrag(s);
     return;
   }
-  if(!s.interacting)return;
-  e.preventDefault();
-  await finishDrag(s);
+
+  if(s.mode==='scroll'){
+    e.preventDefault();
+    suppressClickUntil=Date.now()+500;
+  }
 }
 
-function onTouchCancel(e){
-  const s=drag;if(!s||s.inputType!=='touch')return;
-  clearTimeout(pressTimer);pressTimer=null;
+function cancelTouch(e){
+  const s=gesture;
+  if(!s||s.inputType!=='touch')return;
   const t=findTouch(e.changedTouches,s.touchId);
   if(!t)return;
-  drag=null;
-  if(s.interacting){restore(s);cleanup(s)}
+  gesture=null;
+  clearPress();
+  if(s.mode==='drag')restore(s);
+  cleanup(s);
 }
 
-// Mouse / pen: Pointer Events remain fine and give precise desktop dragging.
-function onPointerDown(e,el,item){
-  if(e.pointerType==='touch'||drag||(e.pointerType==='mouse'&&e.button!==0))return;
-  const s=createDragState(el,item,e.clientX,e.clientY,'pointer',{
-    pointerId:e.pointerId,captureTarget:el,pointerType:e.pointerType||'mouse'
-  });
+function startPointer(e,el){
+  if(e.pointerType==='touch'||gesture||(e.pointerType==='mouse'&&e.button!==0))return;
+  const s=stateFromElement(el,e.clientX,e.clientY,'pointer',{pointerId:e.pointerId});
   if(!s)return;
+  s.mode='drag';
+  gesture=s;
   try{el.setPointerCapture?.(e.pointerId)}catch{}
-  drag=s;
+  s.el.classList.add('blockedDragging');
+  document.body.classList.add('bookingDragging');
+  autoFrame=requestAnimationFrame(autoScrollLoop);
 }
 
-function onPointerMove(e){
-  const s=drag;if(!s||s.inputType!=='pointer'||s.pointerId!==e.pointerId)return;
-  s.currentX=e.clientX;s.currentY=e.clientY;
-  const dx=s.currentX-s.startX,dy=s.currentY-s.startY;
-  if(!s.interacting){
-    if(Math.abs(dx)<DRAG_START_DISTANCE)return;
-    if(Math.abs(dy)>Math.abs(dx)*2.5)return;
-    startDrag();
-    if(!drag?.interacting)return;
-  }
+function movePointer(e){
+  const s=gesture;
+  if(!s||s.inputType!=='pointer'||s.pointerId!==e.pointerId)return;
+  s.currentX=e.clientX;
+  s.currentY=e.clientY;
   e.preventDefault();
-  edgeNudge(s);
-  updateVisual();
+  updateDragVisual(s);
 }
 
-async function onPointerUp(e){
-  const s=drag;if(!s||s.inputType!=='pointer'||s.pointerId!==e.pointerId)return;
-  drag=null;
-  if(!s.interacting){
-    try{s.captureTarget?.releasePointerCapture?.(s.pointerId)}catch{}
-    return;
-  }
-  await finishDrag(s);
+async function endPointer(e){
+  const s=gesture;
+  if(!s||s.inputType!=='pointer'||s.pointerId!==e.pointerId)return;
+  gesture=null;
+  try{s.el.releasePointerCapture?.(s.pointerId)}catch{}
+  await commitDrag(s);
 }
 
-function onPointerCancel(e){
-  const s=drag;if(!s||s.inputType!=='pointer'||s.pointerId!==e.pointerId)return;
-  drag=null;
-  if(s.interacting){restore(s);cleanup(s)}
-}
-
-function attach(el,item){
-  el.style.touchAction='pan-x';
-  el.querySelector('.blockedMoveHandle')?.remove();
-  const hint=el.querySelector('.blockedTapHint');
-  if(!movable(item)){
-    if(hint)hint.textContent='タップで時間変更';
-    return;
-  }
-  if(hint)hint.textContent='横スワイプでスクロール・0.5秒長押し後に左右へ移動';
-  el.title=`${String(item.start_time).slice(0,5)}〜${String(item.end_time).slice(0,5)} 長押ししてから左右に動かして時間移動`;
-  if(el.dataset.boundBlockMove!=='1'){
-    el.dataset.boundBlockMove='1';
-    el.addEventListener('touchstart',e=>onTouchStart(e,el,item),{passive:false});
-    el.addEventListener('pointerdown',e=>onPointerDown(e,el,item));
-    el.addEventListener('contextmenu',e=>e.preventDefault());
-  }
-}
-
-async function hydrate(force=false){
-  if(!supportedPage())return;
-  await fetchRows(force);
-  document.querySelectorAll('.blockedSchedule,.blockedBlock').forEach(el=>{
-    const item=inferRow(el);if(item)attach(el,item);
-  });
-}
-
-function queueHydrate(force=false){
-  clearTimeout(hydrateTimer);
-  hydrateTimer=setTimeout(()=>hydrate(force),120);
-}
-
-function cancelStaleDrag(){
-  clearTimeout(pressTimer);pressTimer=null;
-  if(!drag)return;
-  const s=drag;drag=null;
-  if(s.interacting){restore(s);cleanup(s)}
-  else if(s.inputType==='pointer')try{s.captureTarget?.releasePointerCapture?.(s.pointerId)}catch{}
+function cancelGesture(){
+  const s=gesture;
+  gesture=null;
+  clearPress();
+  if(s?.mode==='drag')restore(s);
+  cleanup(s);
 }
 
 if(supportedPage()){
   addStyles();
-  queueHydrate(true);
+
+  document.addEventListener('touchstart',e=>{
+    const el=e.target.closest?.(blockedSelector);
+    if(el)startTouch(e,el);
+  },{passive:true,capture:true});
+
+  document.addEventListener('touchmove',moveTouch,{passive:false,capture:true});
+  document.addEventListener('touchend',endTouch,{passive:false,capture:true});
+  document.addEventListener('touchcancel',cancelTouch,{passive:false,capture:true});
+
+  document.addEventListener('pointerdown',e=>{
+    const el=e.target.closest?.(blockedSelector);
+    if(el)startPointer(e,el);
+  },true);
+  window.addEventListener('pointermove',movePointer,{passive:false});
+  window.addEventListener('pointerup',endPointer,{passive:false});
+  window.addEventListener('pointercancel',cancelGesture,{passive:false});
+
   document.addEventListener('click',e=>{
-    if(Date.now()<suppressClickUntil&&e.target.closest('.blockedSchedule,.blockedBlock')){
-      e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+    if(Date.now()<suppressClickUntil&&e.target.closest?.(blockedSelector)){
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
     }
   },true);
-  $('date')?.addEventListener('change',()=>{rowsDate='';cancelStaleDrag();queueHydrate(true)});
-  new MutationObserver(()=>queueHydrate()).observe(document.body,{childList:true,subtree:true});
-  window.addEventListener('touchmove',onTouchMove,{passive:false,capture:true});
-  window.addEventListener('touchend',onTouchEnd,{passive:false,capture:true});
-  window.addEventListener('touchcancel',onTouchCancel,{passive:false,capture:true});
-  window.addEventListener('pointermove',onPointerMove,{passive:false});
-  window.addEventListener('pointerup',onPointerUp,{passive:false});
-  window.addEventListener('pointercancel',onPointerCancel,{passive:false});
-  window.addEventListener('blur',cancelStaleDrag);
-  document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelStaleDrag()});
+
+  document.addEventListener('contextmenu',e=>{
+    if(e.target.closest?.(blockedSelector))e.preventDefault();
+  },true);
+
+  window.addEventListener('blur',cancelGesture);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelGesture()});
 }

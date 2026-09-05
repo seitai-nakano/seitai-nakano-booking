@@ -1,0 +1,151 @@
+name: patch booking guide mascot once
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-booking-guide-mascot-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch booking guide mascot
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+
+          css_anchor='\n</style>'
+          css=r'''
+
+/* booking guide mascot */
+.bookingGuide{position:fixed;right:max(12px,env(safe-area-inset-right));bottom:max(14px,calc(env(safe-area-inset-bottom) + 12px));z-index:90;display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none}.bookingGuideBubble{width:min(285px,calc(100vw - 86px));padding:11px 12px;border:1px solid #e3dbd2;border-radius:14px;background:rgba(255,255,255,.98);box-shadow:0 8px 28px rgba(54,43,35,.12);color:#514a44;font-size:12px;line-height:1.6;opacity:0;transform:translateY(7px) scale(.98);transition:opacity .16s ease,transform .16s ease;pointer-events:none}.bookingGuide.open .bookingGuideBubble{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}.bookingGuideText{font-weight:700}.bookingGuideLink{display:block;margin-top:7px;padding-top:7px;border-top:1px solid #eee7df;color:#6b302d;font-weight:800;text-decoration:none}.bookingGuideMascotBtn{width:58px;height:58px;border:1px solid #e1d8cf;border-radius:50%;background:#fff;box-shadow:0 5px 18px rgba(54,43,35,.14);padding:5px;pointer-events:auto;touch-action:manipulation}.bookingGuideMascot{display:block;width:100%;height:100%;transform-origin:50% 88%;animation:bookingMascotFloat 3.2s ease-in-out infinite}.bookingGuideEye{transform-box:fill-box;transform-origin:center;animation:bookingMascotBlink 4.8s infinite}.bookingGuideCheek{animation:bookingMascotCheek 2.8s ease-in-out infinite}.bookingGuide.thinking .bookingGuideMascot{animation:bookingMascotThink .45s ease-in-out infinite alternate}.bookingGuide.done .bookingGuideMascot{animation:bookingMascotDone .7s cubic-bezier(.2,.8,.3,1.2) 1,bookingMascotFloat 3.2s .7s ease-in-out infinite}@keyframes bookingMascotFloat{0%,100%{transform:translateY(0) rotate(-.8deg)}50%{transform:translateY(-3px) rotate(.8deg)}}@keyframes bookingMascotBlink{0%,44%,48%,100%{transform:scaleY(1)}46%{transform:scaleY(.1)}}@keyframes bookingMascotCheek{0%,100%{opacity:.55}50%{opacity:1}}@keyframes bookingMascotThink{from{transform:translateY(-1px) rotate(-3deg)}to{transform:translateY(-2px) rotate(3deg)}}@keyframes bookingMascotDone{0%{transform:translateY(0) scale(1)}45%{transform:translateY(-7px) scale(1.05)}75%{transform:translateY(1px) scale(.99)}100%{transform:translateY(0) scale(1)}}@media(prefers-reduced-motion:reduce){.bookingGuideMascot,.bookingGuideEye,.bookingGuideCheek,.bookingGuide.thinking .bookingGuideMascot,.bookingGuide.done .bookingGuideMascot{animation:none!important}}
+'''
+          if '.bookingGuide{' not in s:
+              assert css_anchor in s
+              s=s.replace(css_anchor,css+css_anchor,1)
+
+          html_anchor='<script type="module">\nimport {createClient}'
+          mascot_html=r'''<div class="bookingGuide" id="bookingGuide" aria-live="polite">
+  <div class="bookingGuideBubble" id="bookingGuideBubble">
+    <div class="bookingGuideText" id="bookingGuideText">メニュー選びから予約までご案内します。</div>
+    <a class="bookingGuideLink" href="./body-check.html">どれがいいかわからない → お体チェック</a>
+  </div>
+  <button class="bookingGuideMascotBtn" id="bookingGuideMascotBtn" type="button" aria-label="予約ナビを開く">
+    <svg class="bookingGuideMascot" viewBox="0 0 80 105" aria-hidden="true">
+      <path d="M23 96V51c0-9 7-16 16-16h5c10 0 17-7 17-16C61 10 54 3 45 3H31C18 3 10 12 10 23c0 8 6 14 14 14 6 0 10-3 14-8 4-4 7-6 12-6 11 0 19 8 19 19v54Z" fill="#fff" stroke="#7b1e1b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <ellipse class="bookingGuideCheek" cx="34" cy="75" rx="6" ry="2.6" fill="#f6cfe5"/>
+      <ellipse class="bookingGuideCheek" cx="58" cy="75" rx="6" ry="2.6" fill="#f6cfe5"/>
+      <circle class="bookingGuideEye" cx="40" cy="70" r="1.8" fill="#7b1e1b"/>
+      <circle class="bookingGuideEye" cx="52" cy="70" r="1.8" fill="#7b1e1b"/>
+      <path d="M44 77c1.6 1.7 3.4 1.7 5 0" fill="none" stroke="#7b1e1b" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M21 101h49" fill="none" stroke="#8c8a88" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  </button>
+</div>
+'''
+          if 'id="bookingGuide"' not in s:
+              assert html_anchor in s
+              s=s.replace(html_anchor,mascot_html+html_anchor,1)
+
+          js_anchor="const params=new URLSearchParams(location.search),manageToken=params.get('manage');"
+          js=r'''
+let bookingGuideTimer=null;
+function bookingGuideSay(text,mode='talk',hideAfter=4400){
+  const guide=$('bookingGuide'),textEl=$('bookingGuideText');
+  if(!guide||!textEl||manageToken)return;
+  clearTimeout(bookingGuideTimer);
+  textEl.textContent=text;
+  guide.classList.remove('thinking','done');
+  if(mode==='thinking')guide.classList.add('thinking');
+  if(mode==='done')guide.classList.add('done');
+  guide.classList.add('open');
+  if(hideAfter>0)bookingGuideTimer=setTimeout(()=>guide.classList.remove('open','thinking','done'),hideAfter);
+}
+function bookingMenuGuideText(menu){
+  const id=String(menu?.id||''),name=String(menu?.name||'');
+  const byId={
+    m30:'30分は、気になるところを短時間で見てほしい方に向いています。次は日付を選んでね。',
+    m60:'60分は、気になるところを中心に全身も見てほしい方に。次は日付を選んでね。',
+    m90:'90分は、全身をまんべんなく少し余裕をもって受けたい方に。次は日付を選んでね。',
+    m120:'120分は、時間をかけて細かいところまでしっかり見てほしい方に。次は日付を選んでね。',
+    head:'ヘッド30分は、頭や目の疲れを短時間でケアしたい方に。次は日付を選んでね。',
+    m60h:'60分＋ヘッドは、体に加えて頭や目の疲れも気になる方に。次は日付を選んでね。',
+    m90h:'90分＋ヘッドは、全身と頭をバランスよくしっかり受けたい方に。次は日付を選んでね。',
+    m120h:'120分＋ヘッドは、時間をかけて全身と頭までしっかり見てほしい方に。次は日付を選んでね。'
+  };
+  if(byId[id])return byId[id];
+  if(/ヘッド/.test(name)&&/120/.test(name))return byId.m120h;
+  if(/ヘッド/.test(name)&&/90/.test(name))return byId.m90h;
+  if(/ヘッド/.test(name)&&/60/.test(name))return byId.m60h;
+  if(/ヘッド/.test(name))return byId.head;
+  if(/120/.test(name))return byId.m120;
+  if(/90/.test(name))return byId.m90;
+  if(/60/.test(name))return byId.m60;
+  if(/30/.test(name))return byId.m30;
+  return `${name||'このメニュー'}を選びました。次は日付を選んでね。`;
+}
+function bookingGuideInit(){
+  const guide=$('bookingGuide'),btn=$('bookingGuideMascotBtn');
+  if(!guide||!btn)return;
+  if(manageToken){guide.classList.add('hidden');return;}
+  btn.onclick=()=>{
+    clearTimeout(bookingGuideTimer);
+    const willOpen=!guide.classList.contains('open');
+    guide.classList.toggle('open',willOpen);
+    guide.classList.remove('thinking','done');
+  };
+  setTimeout(()=>bookingGuideSay('メニュー選びから予約までお手伝いします。迷ったらお体チェックも使えます。','talk',5200),700);
+}
+'''
+          if 'function bookingGuideSay(' not in s:
+              assert js_anchor in s
+              s=s.replace(js_anchor,js_anchor+js,1)
+
+          old="selectedMenu=menu;selectedTime=null;$('confirmCard').classList.add('hidden');loadSlots();setTimeout(()=>{const dateCard=$('date').closest('.card');"
+          new="selectedMenu=menu;selectedTime=null;$('confirmCard').classList.add('hidden');loadSlots();bookingGuideSay(bookingMenuGuideText(menu),'talk',5200);setTimeout(()=>{const dateCard=$('date').closest('.card');"
+          if new not in s:
+              assert old in s
+              s=s.replace(old,new,1)
+
+          old="$('date').min=todayJapan();$('manageDate').min=todayJapan();$('date').onchange=()=>{selectedTime=null;loadSlots()};"
+          new="$('date').min=todayJapan();$('manageDate').min=todayJapan();$('date').onchange=()=>{selectedTime=null;bookingGuideSay('日付を選びました。空いている時間を確認しています…','thinking',3600);loadSlots()};"
+          if new not in s:
+              assert old in s
+              s=s.replace(old,new,1)
+
+          old="selectedTime=s.start_time;$('confirmCard').classList.add('hidden')};choices.appendChild(b)"
+          new="selectedTime=s.start_time;$('confirmCard').classList.add('hidden');bookingGuideSay('時間を選びました。あとはお客様情報を入力すれば予約できます。','done',5000)};choices.appendChild(b)"
+          if new not in s:
+              assert old in s
+              s=s.replace(old,new,1)
+
+          old="$('successArea').classList.remove('hidden');\n    $('successArea').scrollIntoView({behavior:'smooth',block:'start'});"
+          new="$('successArea').classList.remove('hidden');\n    bookingGuideSay('予約できました◎ ご予約ありがとうございます。','done',0);\n    $('successArea').scrollIntoView({behavior:'smooth',block:'start'});"
+          if new not in s:
+              assert old in s
+              s=s.replace(old,new,1)
+
+          old="async function start(){loadLatestManage();await loadMenus();if(manageToken)await loadManageBooking()}start();"
+          new="async function start(){bookingGuideInit();loadLatestManage();await loadMenus();if(manageToken)await loadManageBooking()}start();"
+          if new not in s:
+              assert old in s
+              s=s.replace(old,new,1)
+
+          p.write_text(s)
+          PY
+      - name: Verify
+        run: |
+          grep -q 'id="bookingGuide"' index.html
+          grep -q 'function bookingGuideSay' index.html
+          grep -q 'bookingMenuGuideText(menu)' index.html
+      - name: Commit and cleanup
+        run: |
+          rm .github/workflows/patch-booking-guide-mascot-once.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html .github/workflows/patch-booking-guide-mascot-once.yml
+          git commit -m 'Add interactive booking guide mascot [skip ci]'
+          git push

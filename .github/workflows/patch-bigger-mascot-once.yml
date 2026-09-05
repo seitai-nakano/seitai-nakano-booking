@@ -1,0 +1,51 @@
+name: patch bigger mascot once
+on:
+  push:
+    paths:
+      - '.github/workflows/patch-bigger-mascot-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enlarge and animate booking mascot
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          reps={
+            "width:min(285px,calc(100vw - 86px))":"width:min(300px,calc(100vw - 106px))",
+            "width:58px;height:58px":"width:76px;height:76px",
+            "padding:5px;pointer-events:auto":"padding:4px;pointer-events:auto;animation:bookingGuidePulse 4.6s ease-in-out infinite",
+            "animation:bookingMascotFloat 3.2s ease-in-out infinite":"animation:bookingMascotFloat 2.7s ease-in-out infinite",
+            "animation:bookingMascotDone .7s cubic-bezier(.2,.8,.3,1.2) 1,bookingMascotFloat 3.2s .7s ease-in-out infinite":"animation:bookingMascotDone .78s cubic-bezier(.2,.8,.3,1.2) 1,bookingMascotFloat 2.7s .78s ease-in-out infinite",
+            "@keyframes bookingMascotFloat{0%,100%{transform:translateY(0) rotate(-.8deg)}50%{transform:translateY(-3px) rotate(.8deg)}}":"@keyframes bookingMascotFloat{0%,100%{transform:translateY(0) rotate(-2deg)}25%{transform:translateY(-4px) rotate(1.5deg)}50%{transform:translateY(-8px) rotate(2.4deg)}75%{transform:translateY(-4px) rotate(-1deg)}}",
+            "@keyframes bookingMascotThink{from{transform:translateY(-1px) rotate(-3deg)}to{transform:translateY(-2px) rotate(3deg)}}":"@keyframes bookingMascotThink{from{transform:translateY(-2px) rotate(-6deg) scale(1.02)}to{transform:translateY(-5px) rotate(6deg) scale(1.05)}}",
+            "@keyframes bookingMascotDone{0%{transform:translateY(0) scale(1)}45%{transform:translateY(-7px) scale(1.05)}75%{transform:translateY(1px) scale(.99)}100%{transform:translateY(0) scale(1)}}":"@keyframes bookingMascotDone{0%{transform:translateY(0) scale(1) rotate(0)}38%{transform:translateY(-13px) scale(1.10) rotate(-5deg)}62%{transform:translateY(-6px) scale(1.04) rotate(5deg)}82%{transform:translateY(2px) scale(.98) rotate(-2deg)}100%{transform:translateY(0) scale(1) rotate(0)}}"
+          }
+          for old,new in reps.items():
+              assert old in s, old
+              s=s.replace(old,new,1)
+          marker='@keyframes bookingMascotBlink'
+          pulse='@keyframes bookingGuidePulse{0%,100%{box-shadow:0 6px 20px rgba(54,43,35,.16);transform:scale(1)}50%{box-shadow:0 9px 28px rgba(54,43,35,.22);transform:scale(1.045)}}'
+          assert marker in s
+          s=s.replace(marker,pulse+marker,1)
+          s=s.replace('.bookingGuideMascot,.bookingGuideEye,.bookingGuideCheek,.bookingGuide.thinking .bookingGuideMascot,.bookingGuide.done .bookingGuideMascot{animation:none!important}', '.bookingGuideMascotBtn,.bookingGuideMascot,.bookingGuideEye,.bookingGuideCheek,.bookingGuide.thinking .bookingGuideMascot,.bookingGuide.done .bookingGuideMascot{animation:none!important}',1)
+          p.write_text(s)
+          PY
+      - name: Verify
+        run: |
+          grep -q 'width:76px;height:76px' index.html
+          grep -q 'bookingGuidePulse' index.html
+          grep -q 'translateY(-13px)' index.html
+      - name: Commit and cleanup
+        run: |
+          rm .github/workflows/patch-bigger-mascot-once.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html .github/workflows/patch-bigger-mascot-once.yml
+          git commit -m 'Make booking mascot larger and livelier [skip ci]'
+          git push

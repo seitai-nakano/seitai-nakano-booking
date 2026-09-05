@@ -328,16 +328,18 @@ function selectRecommendedMenuFromQuery(){
     url.searchParams.delete('menu');
     url.searchParams.delete('fromcheck');
     history.replaceState(null,'',url.pathname+(url.search||''));
-    setTimeout(()=>{
-      if(fromCheck){
+    if(fromCheck){
+      const scrollToDateCard=()=>{
         const dateCard=$('date').closest('.card');
         const target=dateCard||$('date');
-        const top=target.getBoundingClientRect().top+window.scrollY-12;
+        const top=target.getBoundingClientRect().top+window.scrollY-18;
         window.scrollTo({top,behavior:'smooth'});
-      }else{
-        button.scrollIntoView({behavior:'smooth',block:'center'});
-      }
-    },160);
+      };
+      setTimeout(scrollToDateCard,320);
+      setTimeout(scrollToDateCard,820);
+    }else{
+      setTimeout(()=>button.scrollIntoView({behavior:'smooth',block:'center'}),160);
+    }
     return true;
   };
   if(select())return;

@@ -1,0 +1,25 @@
+name: bump pwa version once
+on:
+  push:
+    paths:
+      - '.github/workflows/bump-pwa-version-once.yml'
+      - '.github/scripts/bump_pwa_version_20260908.py'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply patch
+        run: python .github/scripts/bump_pwa_version_20260908.py
+      - name: Verify
+        run: grep -q 'pwa-register.js?v=20260908-3' index.html
+      - name: Commit patch and cleanup
+        run: |
+          rm -f .github/scripts/bump_pwa_version_20260908.py .github/workflows/bump-pwa-version-once.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Refresh customer add-to-home flow [skip ci]' || exit 0
+          git push

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>整体なかの｜店舗会計・店販</title>
+<style>
+*{box-sizing:border-box}html,body{max-width:100%;overflow-x:hidden}body{margin:0;background:#f6f3ee;color:#2f2d2a;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic",Meiryo,sans-serif}main{max-width:760px;margin:auto;padding:18px 10px 80px}h1{margin:0;font-size:24px}h2{margin:0 0 10px;font-size:19px}.muted{color:#77716a;font-size:12px;line-height:1.6}.hidden{display:none!important}.card{background:#fff;border:1px solid #e7e0d7;border-radius:18px;padding:15px;margin-bottom:13px}.top{display:flex;align-items:center;justify-content:space-between;gap:10px}.back{display:inline-flex;padding:9px 12px;border:1px solid #ddd5cc;border-radius:11px;background:#fff;color:#49443f;text-decoration:none;font-size:13px;font-weight:700}input,textarea,button{font:inherit}input,textarea{width:100%;padding:12px;border:1px solid #e1d9d0;border-radius:11px;background:#fff;color:#2f2d2a}textarea{min-height:72px;resize:vertical}label{display:block;margin:10px 0 5px;font-size:12px;font-weight:800}.primary,.secondary,.danger{width:100%;padding:12px;border-radius:12px;font-weight:800}.primary{border:1px solid #61574d;background:#61574d;color:#fff}.secondary{border:1px solid #ddd5cc;background:#fff;color:#49443f}.danger{border:1px solid #d8aaa5;background:#fff;color:#9b4138}.status{min-height:18px;margin-top:8px;font-size:12px;color:#8a433b}.bookingRow{padding:12px 0;border-bottom:1px solid #eee7df;cursor:pointer}.bookingRow:last-child{border-bottom:0}.bookingTop{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.bookingTime{font-weight:900}.bookingName{margin-top:3px;font-weight:800}.bookingMeta{margin-top:3px;color:#77716a;font-size:12px}.badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:800;white-space:nowrap}.badge.open{background:#f1f0ee;color:#6f6963}.badge.done{background:#e9f2ea;color:#317046}.editorTitle{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.summary{padding:10px 12px;border-radius:12px;background:#faf8f5;line-height:1.6;font-size:12px}.moneyRow{display:grid;grid-template-columns:1fr 120px;gap:9px;align-items:center;margin:8px 0}.moneyRow input{text-align:right}.productRow{display:grid;grid-template-columns:1fr 78px 92px;gap:7px;align-items:center;padding:10px 0;border-bottom:1px solid #eee7df}.productRow:last-child{border-bottom:0}.productName{font-weight:800}.productPrice{color:#77716a;font-size:11px;margin-top:2px}.qty{height:42px;text-align:center}.lineAmount{text-align:right;font-weight:800}.totalBox{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:12px;padding:14px;border-radius:13px;background:#f5f0ea}.totalLabel{font-size:13px;font-weight:800}.total{font-size:26px;font-weight:900}.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.notice{padding:11px;border-radius:11px;background:#fff8ef;color:#715d4b;font-size:11px;line-height:1.6}.loading{padding:15px;text-align:center;color:#77716a;font-size:12px}@media(max-width:420px){.productRow{grid-template-columns:1fr 66px 82px}.moneyRow{grid-template-columns:1fr 105px}.total{font-size:23px}}
+</style>
+</head>
+<body>
+<main>
+<div class="top"><div><h1>店舗会計・店販</h1><div class="muted">店舗内だけの会計データです</div></div><a class="back" href="./admin.html">← 管理</a></div>
+
+<section id="authCard" class="card hidden" style="margin-top:14px">
+<h2>管理者ログイン</h2>
+<input id="email" type="email" autocomplete="email" placeholder="メールアドレス">
+<input id="password" type="password" autocomplete="current-password" placeholder="パスワード" style="margin-top:8px">
+<button id="login" class="primary" style="margin-top:10px">ログイン</button>
+<div id="loginMsg" class="status"></div>
+</section>
+
+<div id="area" class="hidden">
+<section class="card" style="margin-top:14px">
+<h2>会計する予約</h2>
+<label>予約日</label>
+<input id="date" type="date">
+<div id="list"><div class="loading">読み込んでいます…</div></div>
+<div id="listMsg" class="status"></div>
+</section>
+
+<section id="editor" class="card hidden">
+<div class="editorTitle"><div><h2>会計</h2><div id="bookingSummary" class="muted"></div></div><button id="close" class="secondary" type="button" style="width:auto;padding:8px 11px">閉じる</button></div>
+<div class="notice" style="margin-top:10px">この会計を保存・修正しても、お客様への予約変更通知や金額変更通知は送信されません。</div>
+
+<label>施術料金</label>
+<div class="moneyRow"><div id="treatmentName" style="font-weight:800">施術</div><input id="treatmentAmount" type="number" inputmode="numeric" min="0" step="10"></div>
+
+<label>店舗販売品</label>
+<div id="products"></div>
+
+<label>その他調整額</label>
+<div class="moneyRow"><div class="muted">値引きはマイナスで入力できます</div><input id="adjustment" type="number" inputmode="numeric" step="10" value="0"></div>
+
+<label>会計メモ（店内のみ）</label>
+<textarea id="memo" placeholder="例：店販追加、後日修正など"></textarea>
+
+<div class="totalBox"><div class="totalLabel">会計合計</div><div id="total" class="total">¥0</div></div>
+<div class="actions"><button id="save" class="primary" type="button">会計を保存</button><button id="deleteSale" class="danger" type="button">会計データ削除</button></div>
+<div id="saveMsg" class="status"></div>
+</section>
+</div>
+</main>
+
+<script type="module">
+import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const supabase=createClient('https://scjzofjyxmchfjsngqtb.supabase.co','sb_publishable_EGlr-6w0xh4gD8OImboE_Q_V-COJ7t9');
+const $=id=>document.getElementById(id);
+const PRODUCTS=[
+  {code:'seraphy_9000',name:'セラフィー',price:9000},
+  {code:'seraphy_15000',name:'セラフィー',price:15000},
+  {code:'impact_6000',name:'インパクト',price:6000}
+];
+let bookings=[],salesByBooking=new Map(),itemsBySale=new Map(),currentBooking=null,currentSale=null;
+const yen=n=>'¥'+Math.round(Number(n)||0).toLocaleString('ja-JP');
+function todayJapan(){const p=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),g=t=>p.find(x=>x.type===t)?.value;return `${g('year')}-${g('month')}-${g('day')}`}
+function esc(v){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;')}
+function renderProducts(){
+  $('products').innerHTML=PRODUCTS.map(p=>`<div class="productRow" data-code="${p.code}" data-name="${p.name}" data-price="${p.price}"><div><div class="productName">${p.name}</div><div class="productPrice">${yen(p.price)}</div></div><input class="qty" type="number" inputmode="numeric" min="0" step="1" value="0" aria-label="${p.name} 数量"><div class="lineAmount">¥0</div></div>`).join('');
+  $('products').querySelectorAll('.qty').forEach(x=>x.addEventListener('input',recalc));
+}
+function recalc(){
+  const treatment=Math.max(0,Number($('treatmentAmount').value)||0),adjustment=Number($('adjustment').value)||0;
+  let itemTotal=0;
+  $('products').querySelectorAll('.productRow').forEach(r=>{const q=Math.max(0,Number(r.querySelector('.qty').value)||0),amount=q*Number(r.dataset.price);r.querySelector('.lineAmount').textContent=yen(amount);itemTotal+=amount});
+  $('total').textContent=yen(treatment+itemTotal+adjustment);
+}
+async function loadDay(){
+  const date=$('date').value;if(!date)return;$('list').innerHTML='<div class="loading">読み込んでいます…</div>';$('listMsg').textContent='';
+  const {data:bs,error:be}=await supabase.from('nakano_bookings').select('id,booking_date,start_time,minutes,menu_name,price,customer_name,status').eq('booking_date',date).eq('status','confirmed').order('start_time');
+  if(be){$('list').innerHTML='';$('listMsg').textContent='予約を読み込めませんでした。';return}
+  bookings=bs||[];salesByBooking=new Map();itemsBySale=new Map();
+  if(bookings.length){
+    const ids=bookings.map(b=>b.id);
+    const {data:ss,error:se}=await supabase.from('nakano_sales').select('*').in('booking_id',ids);
+    if(se){$('listMsg').textContent='会計状況を読み込めませんでした。';return}
+    for(const s of ss||[])salesByBooking.set(String(s.booking_id),s);
+    const saleIds=(ss||[]).map(s=>s.id);
+    if(saleIds.length){const {data:ii}=await supabase.from('nakano_sale_items').select('*').in('sale_id',saleIds);for(const i of ii||[]){const a=itemsBySale.get(String(i.sale_id))||[];a.push(i);itemsBySale.set(String(i.sale_id),a)}}
+  }
+  $('list').innerHTML=bookings.length?bookings.map(b=>{const s=salesByBooking.get(String(b.id));return `<div class="bookingRow" data-id="${b.id}"><div class="bookingTop"><div><div class="bookingTime">${esc(String(b.start_time).slice(0,5))}　${esc(b.customer_name||'')}</div><div class="bookingName">${esc(b.menu_name||'')}</div><div class="bookingMeta">予約料金 ${yen(b.price)}・${Number(b.minutes)||0}分</div></div><span class="badge ${s?'done':'open'}">${s?`会計済 ${yen(s.total_amount)}`:'未会計'}</span></div></div>`}).join(''):'<div class="loading">この日の確定予約はありません。</div>';
+  $('list').querySelectorAll('.bookingRow').forEach(r=>r.addEventListener('click',()=>openEditor(r.dataset.id)));
+}
+function openEditor(id){
+  const b=bookings.find(x=>String(x.id)===String(id));if(!b)return;currentBooking=b;currentSale=salesByBooking.get(String(id))||null;
+  $('bookingSummary').textContent=`${b.booking_date} ${String(b.start_time).slice(0,5)}　${b.customer_name||''}`;
+  $('treatmentName').textContent=b.menu_name||'施術';
+  $('treatmentAmount').value=String(currentSale?.treatment_amount ?? b.price ?? 0);
+  $('adjustment').value=String(currentSale?.adjustment_amount ?? 0);
+  $('memo').value=currentSale?.memo||'';
+  $('products').querySelectorAll('.qty').forEach(x=>x.value='0');
+  if(currentSale){
+    for(const i of itemsBySale.get(String(currentSale.id))||[]){const row=[...$('products').querySelectorAll('.productRow')].find(r=>r.dataset.code===i.item_code);if(row){row.querySelector('.qty').value=String(i.quantity||0)}}
+  }
+  $('deleteSale').classList.toggle('hidden',!currentSale);
+  $('save').textContent=currentSale?'会計を修正して保存':'会計を保存';
+  $('saveMsg').textContent='';$('editor').classList.remove('hidden');recalc();$('editor').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function buildItems(){return [...$('products').querySelectorAll('.productRow')].map(r=>({code:r.dataset.code,name:r.dataset.name,unit_price:Number(r.dataset.price),quantity:Math.max(0,Number(r.querySelector('.qty').value)||0)})).filter(x=>x.quantity>0)}
+async function save(){
+  if(!currentBooking)return;$('save').disabled=true;$('saveMsg').textContent='保存しています…';
+  const payload={p_booking_id:currentBooking.id,p_treatment_amount:Math.max(0,Number($('treatmentAmount').value)||0),p_adjustment_amount:Number($('adjustment').value)||0,p_memo:$('memo').value.trim()||null,p_items:buildItems()};
+  const {error}=await supabase.rpc('nakano_admin_save_checkout',payload);
+  if(error){console.error(error);$('saveMsg').textContent='会計を保存できませんでした。';$('save').disabled=false;return}
+  $('saveMsg').textContent='保存しました。';$('save').disabled=false;await loadDay();openEditor(currentBooking.id);
+}
+async function deleteSale(){if(!currentSale||!confirm('この会計データを削除しますか？予約自体は削除されません。'))return;$('deleteSale').disabled=true;const {error}=await supabase.from('nakano_sales').delete().eq('id',currentSale.id);$('deleteSale').disabled=false;if(error){$('saveMsg').textContent='削除できませんでした。';return}$('editor').classList.add('hidden');currentSale=null;await loadDay()}
+async function syncAuth(){const {data:{session}}=await supabase.auth.getSession();$('authCard').classList.toggle('hidden',!!session);$('area').classList.toggle('hidden',!session);if(session){if(!$('date').value)$('date').value=todayJapan();await loadDay()}}
+renderProducts();$('treatmentAmount').addEventListener('input',recalc);$('adjustment').addEventListener('input',recalc);$('date').addEventListener('change',()=>{$('editor').classList.add('hidden');loadDay()});$('close').onclick=()=>$('editor').classList.add('hidden');$('save').onclick=save;$('deleteSale').onclick=deleteSale;$('login').onclick=async()=>{const {error}=await supabase.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});$('loginMsg').textContent=error?'ログインできませんでした。':'';if(!error)syncAuth()};supabase.auth.onAuthStateChange(()=>syncAuth());syncAuth();
+</script>
+</body>
+</html>

@@ -16,6 +16,7 @@
   const isStandalone=()=>window.matchMedia?.('(display-mode: standalone)').matches===true||window.navigator.standalone===true;
   const ua=navigator.userAgent||'';
   const isIOS=/iPad|iPhone|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const openedForInstall=new URL(location.href).searchParams.get('install')==='1';
 
   function addStyles(){
     if(document.getElementById('nakanoInstallStyle'))return;
@@ -35,7 +36,6 @@
   }
 
   function removeInstallCard(){installCard?.remove();installCard=null}
-
   function closeGuide(){guide?.classList.add('hidden')}
 
   function showGuide(){
@@ -60,7 +60,24 @@
     guide.classList.remove('hidden');
   }
 
+  function openSafariForInstall(){
+    const url=new URL(location.href);
+    url.searchParams.set('install','1');
+    const a=document.createElement('a');
+    a.href=url.toString();
+    a.target='_blank';
+    a.rel='noopener external';
+    a.style.display='none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>a.remove(),300);
+  }
+
   async function handleInstall(){
+    if(isStandalone()){
+      openSafariForInstall();
+      return;
+    }
     if(installPrompt){
       const p=installPrompt;
       installPrompt=null;
@@ -78,17 +95,30 @@
   }
 
   function createInstallCard(){
-    if(!isCustomerPage||isStandalone()||installCard)return;
+    if(!isCustomerPage||installCard)return;
     const anchor=document.querySelector('.header')||document.querySelector('main');
     if(!anchor)return;
     addStyles();
+    const standalone=isStandalone();
     const card=document.createElement('div');
     card.className='nakanoInstallCard';
     card.id='nakanoInstallCard';
-    card.innerHTML=`<div class="nakanoInstallCopy"><div class="nakanoInstallTitle">次回からすぐ予約</div><div class="nakanoInstallSub">ホーム画面に追加すると、アプリのように1タップで開けます</div></div><button type="button" class="nakanoInstallBtn">ホーム画面に追加</button>`;
+    card.innerHTML=standalone
+      ?`<div class="nakanoInstallCopy"><div class="nakanoInstallTitle">別のホーム画面にも追加できます</div><div class="nakanoInstallSub">Safariで開いて、追加したいホーム画面に登録できます</div></div><button type="button" class="nakanoInstallBtn">Safariで開いて追加</button>`
+      :`<div class="nakanoInstallCopy"><div class="nakanoInstallTitle">次回からすぐ予約</div><div class="nakanoInstallSub">ホーム画面に追加すると、アプリのように1タップで開けます</div></div><button type="button" class="nakanoInstallBtn">ホーム画面に追加</button>`;
     card.querySelector('.nakanoInstallBtn')?.addEventListener('click',handleInstall);
     if(anchor.classList?.contains('header'))anchor.insertAdjacentElement('afterend',card);else anchor.prepend(card);
     installCard=card;
+  }
+
+  function maybeShowInstallGuideAfterSafariOpen(){
+    if(!openedForInstall||isStandalone())return;
+    try{
+      const url=new URL(location.href);
+      url.searchParams.delete('install');
+      history.replaceState(null,'',url.pathname+url.search+url.hash);
+    }catch{}
+    setTimeout(showGuide,180);
   }
 
   window.addEventListener('beforeinstallprompt',event=>{
@@ -99,10 +129,16 @@
 
   window.addEventListener('appinstalled',()=>{
     installPrompt=null;
-    removeInstallCard();
+    if(!isStandalone())removeInstallCard();
     closeGuide();
   });
 
-  window.addEventListener('DOMContentLoaded',createInstallCard,{once:true});
-  if(document.readyState!=='loading')createInstallCard();
+  window.addEventListener('DOMContentLoaded',()=>{
+    createInstallCard();
+    maybeShowInstallGuideAfterSafariOpen();
+  },{once:true});
+  if(document.readyState!=='loading'){
+    createInstallCard();
+    maybeShowInstallGuideAfterSafariOpen();
+  }
 })();

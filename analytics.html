@@ -74,5 +74,6 @@ async function loadAnalytics(){const month=$('month').value;if(!/^\d{4}-\d{2}$/.
 async function syncAuth(){const{data:{session}}=await supabase.auth.getSession();$('authCard').classList.toggle('hidden',!!session);$('analyticsArea').classList.toggle('hidden',!session);if(session){if(!$('month').value)$('month').value=currentJapanMonth();await loadAnalytics()}}
 $('login').onclick=async()=>{$('loginMsg').textContent='';const{error}=await supabase.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error){$('loginMsg').textContent='ログインできませんでした。';return}await syncAuth()};$('month').onchange=loadAnalytics;$('prevMonth').onclick=()=>shiftMonth(-1);$('nextMonth').onclick=()=>shiftMonth(1);supabase.auth.onAuthStateChange(()=>syncAuth());syncAuth();
 </script>
+<script type="module" src="./accounting-analytics.js?v=20260908-1"></script>
 </body>
 </html>

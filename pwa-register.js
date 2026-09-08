@@ -2,6 +2,7 @@
   const CUSTOMER_PAGES=['/','/index.html','/nakano_index_complete.html'];
   const path=location.pathname;
   const isCustomerPage=CUSTOMER_PAGES.some(p=>path.endsWith(p));
+  const BROWSER_BRIDGE='https://scjzofjyxmchfjsngqtb.supabase.co/functions/v1/open-booking-in-browser';
 
   if('serviceWorker' in navigator){
     window.addEventListener('load',()=>{
@@ -61,16 +62,15 @@
   }
 
   function openSafariForInstall(){
-    const url=new URL(location.href);
-    url.searchParams.set('install','1');
+    const bridge=`${BROWSER_BRIDGE}?t=${Date.now()}`;
     const a=document.createElement('a');
-    a.href=url.toString();
+    a.href=bridge;
     a.target='_blank';
     a.rel='noopener external';
     a.style.display='none';
     document.body.appendChild(a);
     a.click();
-    setTimeout(()=>a.remove(),300);
+    setTimeout(()=>a.remove(),500);
   }
 
   async function handleInstall(){

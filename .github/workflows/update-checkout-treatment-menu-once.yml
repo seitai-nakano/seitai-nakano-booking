@@ -1,0 +1,27 @@
+name: update checkout treatment menu once
+on:
+  push:
+    paths:
+      - '.github/workflows/update-checkout-treatment-menu-once.yml'
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply patch
+        run: python .github/scripts/update-checkout-treatment-menu.py
+      - name: Verify
+        run: |
+          grep -q 'id="treatmentMenu"' checkout.html
+          grep -q 'p_treatment_menu_id' checkout.html
+          grep -q '予約時：' checkout.html
+      - name: Commit patch and cleanup
+        run: |
+          rm -f .github/scripts/update-checkout-treatment-menu.py .github/workflows/update-checkout-treatment-menu-once.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add checkout.html .github/scripts/update-checkout-treatment-menu.py .github/workflows/update-checkout-treatment-menu-once.yml
+          git commit -m 'Allow selecting actual treatment at checkout [skip ci]'
+          git push

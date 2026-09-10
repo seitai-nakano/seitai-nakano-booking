@@ -1,0 +1,34 @@
+name: add manual checkout once
+on:
+  push:
+    paths:
+      - '.github/workflows/add-manual-checkout-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('checkout.html')
+          s=p.read_text()
+          tag='<script type="module" src="./manual-checkout.js?v=20260910-1"></script>'
+          if tag not in s:
+              s=s.replace('</body>',tag+'\n</body>')
+          p.write_text(s)
+          PY
+      - name: Verify
+        run: |
+          grep -q 'manual-checkout.js' checkout.html
+      - name: Commit patch and cleanup
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add checkout.html
+          git rm .github/workflows/add-manual-checkout-once.yml
+          git commit -m 'Enable manual checkout sales [skip ci]'
+          git push

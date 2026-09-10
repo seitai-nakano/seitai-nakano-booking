@@ -1,0 +1,27 @@
+name: add customer merge once
+on:
+  push:
+    paths:
+      - '.github/workflows/add-customer-merge-once.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply patch
+        run: python .github/scripts/add_customer_merge_once.py
+      - name: Verify
+        run: |
+          grep -q 'id="mergeCustomerSection"' customers.html
+          grep -q 'nakano_admin_merge_customers' customers.html
+          grep -q 'どちらのお客様を残すか' customers.html
+      - name: Commit patch and cleanup
+        run: |
+          rm -f .github/scripts/add_customer_merge_once.py .github/workflows/add-customer-merge-once.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Add safe customer merge UI [skip ci]'
+          git push

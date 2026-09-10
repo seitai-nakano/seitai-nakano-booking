@@ -1,0 +1,32 @@
+name: inspect admin booking handlers once
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-admin-booking-two-once.yml'
+permissions:
+  contents: write
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show ranges
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          lines=Path('admin.html').read_text().splitlines()
+          for a,b in [(2138,2215),(2240,2315)]:
+              print(f'--- RANGE {a}-{b} ---')
+              for j in range(a-1,min(b,len(lines))): print(f'{j+1}: {lines[j]}')
+          print('--- editingBooking occurrences ---')
+          for i,line in enumerate(lines):
+              if 'editingBooking' in line:
+                  for j in range(max(0,i-4),min(len(lines),i+12)): print(f'{j+1}: {lines[j]}')
+          PY
+      - name: Cleanup
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/inspect-admin-booking-two-once.yml
+          git commit -m 'Remove admin booking handler inspector [skip ci]'
+          git push

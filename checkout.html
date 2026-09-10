@@ -144,5 +144,6 @@ async function syncAuth(){const {data:{session}}=await supabase.auth.getSession(
 renderProducts();$('treatmentMenu').addEventListener('change',()=>{const m=treatmentMenus.find(x=>String(x.id)===String($('treatmentMenu').value));if(m){$('treatmentName').textContent=m.name;$('treatmentAmount').value=String(m.price);recalc()}});$('treatmentAmount').addEventListener('input',recalc);$('adjustment').addEventListener('input',recalc);$('date').addEventListener('change',()=>{$('editor').classList.add('hidden');loadDay()});$('close').onclick=()=>$('editor').classList.add('hidden');$('save').onclick=save;$('deleteSale').onclick=deleteSale;$('login').onclick=async()=>{const {error}=await supabase.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});$('loginMsg').textContent=error?'ログインできませんでした。':'';if(!error)syncAuth()};supabase.auth.onAuthStateChange(()=>syncAuth());syncAuth();
 </script>
 <script type="module" src="./past-booking-checkout.js?v=20260910-1"></script>
+<script type="module" src="./checkout-deeplink.js?v=20260910-1"></script>
 </body>
 </html>

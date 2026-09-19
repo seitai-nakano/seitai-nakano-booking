@@ -1125,6 +1125,7 @@ let currentBlocked=[];
 let currentSlots=[];
 
 let editingBooking=null;
+let editingBlocked=null;
 let timelineQuickMinutes=null;
 let timelinePreferredTime=null;
 
@@ -1756,11 +1757,253 @@ window.addEventListener('nakano-admin-prefill-booking',async event=>{
 
   timelinePreferredTime=`${hhmm}:00`;
   $('adminBookingDate').value=date;
+  if($('adminTimeManual'))$('adminTimeManual').value=hhmm;
   $('addMsg').textContent=`${hhmm} を選択しました。メニューとお客様を入力してください。`;
   closeTimelineQuickAdd();
   await loadAdminTimes();
   $('adminBookingDate').closest('.card')?.scrollIntoView({behavior:'smooth',block:'start'});
 });
+
+
+function closeBlockedEditor(){
+  const overlay=$('blockedEditorOverlay');
+  if(overlay)overlay.classList.add('hidden');
+  editingBlocked=null;
+}
+
+
+function ensureBlockedEditor(){
+  let overlay=$('blockedEditorOverlay');
+  if(overlay)return overlay;
+
+  overlay=document.createElement('div');
+  overlay.id='blockedEditorOverlay';
+  overlay.className='hidden';
+  Object.assign(overlay.style,{
+    position:'fixed',
+    inset:'0',
+    zIndex:'10050',
+    background:'rgba(0,0,0,.30)',
+    display:'flex',
+    alignItems:'flex-end',
+    justifyContent:'center',
+    padding:'14px'
+  });
+
+  const sheet=document.createElement('div');
+  Object.assign(sheet.style,{
+    width:'100%',
+    maxWidth:'520px',
+    maxHeight:'88vh',
+    overflowY:'auto',
+    background:'#fff',
+    borderRadius:'18px',
+    padding:'16px',
+    boxShadow:'0 16px 40px rgba(0,0,0,.20)'
+  });
+
+  sheet.innerHTML=`
+    <div style="font-size:12px;color:#77716a">予定を編集</div>
+    <div id="blockedEditorTitle" style="font-size:19px;font-weight:800;margin:4px 0 12px"></div>
+
+    <label>日付</label>
+    <input type="date" id="blockedEditorDate">
+
+    <div class="row">
+      <div>
+        <label>開始時間</label>
+        <input type="time" id="blockedEditorStart" step="900">
+      </div>
+      <div>
+        <label>終了時間</label>
+        <input type="time" id="blockedEditorEnd" step="900">
+      </div>
+    </div>
+
+    <label>メモ</label>
+    <input id="blockedEditorMemo" placeholder="例：外出・私用・店休日">
+
+    <button class="primary" id="blockedEditorSave" type="button">予定の変更を保存</button>
+    <button class="secondary" id="blockedEditorBook" type="button">この時間から新規予約</button>
+    <button class="danger" id="blockedEditorDelete" type="button">この予定を削除</button>
+    <button class="secondary" id="blockedEditorClose" type="button">閉じる</button>
+    <div id="blockedEditorMsg" class="msg"></div>
+  `;
+
+  overlay.appendChild(sheet);
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener('click',event=>{
+    if(event.target===overlay)closeBlockedEditor();
+  });
+
+  $('blockedEditorClose').onclick=closeBlockedEditor;
+
+  $('blockedEditorSave').onclick=async()=>{
+    if(!editingBlocked)return;
+
+    const date=$('blockedEditorDate').value;
+    const start=$('blockedEditorStart').value;
+    const end=$('blockedEditorEnd').value;
+    const memo=$('blockedEditorMemo').value.trim();
+    const msg=$('blockedEditorMsg');
+
+    if(!date||!start||!end){
+      msg.textContent='日付・開始時間・終了時間を確認してください。';
+      return;
+    }
+
+    const startMin=timeToMinutes(`${start}:00`);
+    const endMin=end==='23:59'?23*60+59:timeToMinutes(`${end}:00`);
+
+    if(!Number.isFinite(startMin)||!Number.isFinite(endMin)||endMin<=startMin){
+      msg.textContent='終了時間は開始時間より後にしてください。';
+      return;
+    }
+
+    $('blockedEditorSave').disabled=true;
+    msg.textContent='確認しています…';
+
+    const [bookingCheck,blockedCheck]=await Promise.all([
+      supabase
+        .from('nakano_bookings')
+        .select('id,start_time,minutes,status')
+        .eq('booking_date',date)
+        .eq('status','confirmed'),
+      supabase
+        .from('nakano_blocked_times')
+        .select('id,start_time,end_time')
+        .eq('blocked_date',date)
+    ]);
+
+    if(bookingCheck.error||blockedCheck.error){
+      console.error(bookingCheck.error,blockedCheck.error);
+      $('blockedEditorSave').disabled=false;
+      msg.textContent='予定を確認できませんでした。';
+      return;
+    }
+
+    const overlaps=(aStart,aEnd,bStart,bEnd)=>aStart<bEnd&&aEnd>bStart;
+
+    const bookingConflict=(bookingCheck.data||[]).some(row=>{
+      const bStart=timeToMinutes(row.start_time);
+      const bEnd=bStart+Number(row.minutes||0);
+      return overlaps(startMin,endMin,bStart,bEnd);
+    });
+
+    const blockedConflict=(blockedCheck.data||[]).some(row=>{
+      if(String(row.id)===String(editingBlocked.id))return false;
+      const bStart=timeToMinutes(row.start_time);
+      const bEnd=String(row.end_time).startsWith('23:59')
+        ?24*60
+        :timeToMinutes(row.end_time);
+      return overlaps(startMin,endMin,bStart,bEnd);
+    });
+
+    if(bookingConflict){
+      $('blockedEditorSave').disabled=false;
+      msg.textContent='その時間には予約が入っています。別の時間に変更してください。';
+      return;
+    }
+
+    if(blockedConflict){
+      $('blockedEditorSave').disabled=false;
+      msg.textContent='別の予定と時間が重なっています。';
+      return;
+    }
+
+    const {error}=await supabase
+      .from('nakano_blocked_times')
+      .update({
+        blocked_date:date,
+        start_time:`${start}:00`,
+        end_time:end==='23:59'?'23:59:00':`${end}:00`,
+        memo:memo||null
+      })
+      .eq('id',editingBlocked.id);
+
+    $('blockedEditorSave').disabled=false;
+
+    if(error){
+      console.error(error);
+      msg.textContent='予定を変更できませんでした。';
+      return;
+    }
+
+    $('date').value=date;
+    $('blockedMonth').value=monthFromDate(date);
+    closeBlockedEditor();
+    await loadDay();
+    await loadMonthBlockedTimes();
+    await loadAdminTimes();
+    $('scheduleMsg').textContent='予定を変更しました。';
+  };
+
+  $('blockedEditorDelete').onclick=async()=>{
+    if(!editingBlocked)return;
+    if(!confirm('この予定を削除しますか？'))return;
+
+    const id=editingBlocked.id;
+    $('blockedEditorDelete').disabled=true;
+
+    const {error}=await supabase
+      .from('nakano_blocked_times')
+      .delete()
+      .eq('id',id);
+
+    $('blockedEditorDelete').disabled=false;
+
+    if(error){
+      console.error(error);
+      $('blockedEditorMsg').textContent='予定を削除できませんでした。';
+      return;
+    }
+
+    closeBlockedEditor();
+    await loadDay();
+    await loadMonthBlockedTimes();
+    await loadAdminTimes();
+    $('scheduleMsg').textContent='予定を削除しました。';
+  };
+
+  $('blockedEditorBook').onclick=async()=>{
+    if(!editingBlocked)return;
+
+    const date=$('blockedEditorDate').value||String(editingBlocked.blocked_date||$('date').value||'');
+    const rawStart=$('blockedEditorStart').value||String(editingBlocked.start_time||'08:00').slice(0,5);
+    let minutes=timeToMinutes(`${rawStart}:00`);
+    minutes=Math.max(DAY_START,Math.min(DAY_END-15,minutes));
+    const hhmm=timelineHHMM(minutes);
+
+    timelinePreferredTime=`${hhmm}:00`;
+    $('adminBookingDate').value=date;
+    if($('adminTimeManual'))$('adminTimeManual').value=hhmm;
+    $('addMsg').textContent=`${hhmm} を選択しました。この予定は残したまま管理者予約を追加できます。`;
+
+    closeBlockedEditor();
+    await loadAdminTimes();
+    $('adminBookingDate').closest('.card')?.scrollIntoView({behavior:'smooth',block:'start'});
+  };
+
+  return overlay;
+}
+
+
+function openBlockedEditor(item){
+  editingBlocked=item;
+  const overlay=ensureBlockedEditor();
+  const date=String(item.blocked_date||$('date').value||'');
+  const start=String(item.start_time||'').slice(0,5);
+  const end=String(item.end_time||'').slice(0,5);
+
+  $('blockedEditorDate').value=date;
+  $('blockedEditorStart').value=start;
+  $('blockedEditorEnd').value=end;
+  $('blockedEditorMemo').value=item.memo||'';
+  $('blockedEditorTitle').textContent=`${date}　${start}〜${end}`;
+  $('blockedEditorMsg').textContent='';
+  overlay.classList.remove('hidden');
+}
 
 
 /* ==========================
@@ -2109,7 +2352,13 @@ function renderTimeline(){
 `;
 
       block.style.cursor='pointer';
-      block.title='タップで予定を変更・削除／↔で移動（指を追跡して横スクロール）';
+      block.title='タップで予定を変更・削除／横にドラッグで時間移動';
+
+      block.onclick=
+      event=>{
+        event.stopPropagation();
+        openBlockedEditor(item);
+      };
 
       lane.appendChild(
         block

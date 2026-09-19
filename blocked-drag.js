@@ -9,16 +9,13 @@ const DAY_START=8*60;
 const DAY_END=22*60;
 const PX_PER_MINUTE=2;
 const SNAP_MINUTES=15;
-const LONG_PRESS_MS=450;
-const MOVE_THRESHOLD=12;
+const MOVE_THRESHOLD=7;
 const EDGE_ZONE=96;
 const EDGE_MAX_SPEED=18;
 
 let gesture=null;
-let pressTimer=null;
 let autoFrame=null;
 let suppressClickUntil=0;
-let ignorePointerUntil=0;
 let commitInFlight=false;
 
 const $=id=>document.getElementById(id);
@@ -31,24 +28,20 @@ function timeFromMinutes(n){
 }
 function snapMinutes(n){return Math.round(n/SNAP_MINUTES)*SNAP_MINUTES}
 function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
-function findTouch(list,id){
-  for(let i=0;i<list.length;i++)if(list[i].identifier===id)return list[i];
-  return null;
-}
 
 function addStyles(){
-  if($('nakanoBlockedDragStyleV2'))return;
+  if($('nakanoBlockedDragStyleV3'))return;
+  $('nakanoBlockedDragStyleV2')?.remove();
   const style=document.createElement('style');
-  style.id='nakanoBlockedDragStyleV2';
+  style.id='nakanoBlockedDragStyleV3';
   style.textContent=`
 ${blockedSelector}{
   -webkit-touch-callout:none!important;
   -webkit-user-select:none!important;
   user-select:none!important;
-  touch-action:none!important;
+  touch-action:pan-y!important;
   cursor:grab!important;
   transform:none!important;
-  box-shadow:none!important;
   opacity:1!important;
   filter:none!important;
   transition:transform .10s ease,box-shadow .10s ease,opacity .10s ease!important;
@@ -61,6 +54,7 @@ ${blockedSelector}.blockedDragging{
   transition:none!important;
   will-change:left,transform!important;
   cursor:grabbing!important;
+  touch-action:none!important;
 }
 `;
   document.head.appendChild(style);
@@ -81,15 +75,13 @@ function destination(text,show=true){
   if(time)time.textContent=text;
   slot.classList.toggle('show',show);
 }
-function hideDestination(){
-  $('dragDestinationSlot')?.classList.remove('show');
-}
+function hideDestination(){$('dragDestinationSlot')?.classList.remove('show')}
 
 function stopAuto(){
   if(autoFrame){cancelAnimationFrame(autoFrame);autoFrame=null}
 }
 
-function stateFromElement(el,x,y,inputType,extra={}){
+function stateFromElement(el,e){
   const id=el.dataset.blockedId;
   const scroll=el.closest('.timelineScroll,.scheduleScroll');
   if(!id||!scroll)return null;
@@ -98,7 +90,6 @@ function stateFromElement(el,x,y,inputType,extra={}){
   const width=Math.max(30,parseFloat(el.style.width)||30);
   const start=DAY_START+left/PX_PER_MINUTE;
   const duration=Math.max(SNAP_MINUTES,snapMinutes(width/PX_PER_MINUTE));
-  const timelineEnd=DAY_END;
 
   if(start<DAY_START||duration<=0||duration>DAY_END-DAY_START)return null;
 
@@ -106,39 +97,28 @@ function stateFromElement(el,x,y,inputType,extra={}){
     el,
     id:String(id),
     scroll,
-    inputType,
-    ...extra,
+    pointerId:e.pointerId,
+    pointerType:e.pointerType,
     mode:'pending',
-    startX:x,
-    startY:y,
-    currentX:x,
-    currentY:y,
+    startX:e.clientX,
+    startY:e.clientY,
+    currentX:e.clientX,
+    currentY:e.clientY,
     startScrollLeft:scroll.scrollLeft,
     originalLeft:left,
     originalStart:start,
     duration,
-    timelineEnd,
     visualStart:start,
     newStart:snapMinutes(start)
   };
 }
 
-function clearPress(){
-  if(pressTimer){clearTimeout(pressTimer);pressTimer=null}
-}
-
 function beginDrag(s){
   if(gesture!==s||s.mode!=='pending')return;
   s.mode='drag';
-  s.startX=s.currentX;
-  s.startY=s.currentY;
-  s.startScrollLeft=s.scroll.scrollLeft;
-  s.originalStart=DAY_START+s.originalLeft/PX_PER_MINUTE;
-  s.visualStart=s.originalStart;
-  s.newStart=snapMinutes(s.originalStart);
   s.el.classList.add('blockedDragging');
   document.body.classList.add('bookingDragging');
-  try{navigator.vibrate?.(25)}catch{}
+  try{navigator.vibrate?.(18)}catch{}
   const st=timeFromMinutes(s.newStart).slice(0,5);
   const en=timeFromMinutes(s.newStart+s.duration).slice(0,5);
   destination(`${st}–${en}`);
@@ -191,7 +171,6 @@ function autoScrollLoop(){
 }
 
 function cleanup(s){
-  clearPress();
   stopAuto();
   s?.el?.classList.remove('blockedDragging');
   document.body.classList.remove('bookingDragging');
@@ -209,7 +188,6 @@ async function commitDrag(s){
   const snapped=clamp(snapMinutes(s.newStart),DAY_START,DAY_END-s.duration);
   s.el.style.left=`${(snapped-DAY_START)*PX_PER_MINUTE}px`;
   cleanup(s);
-  suppressClickUntil=Date.now()+900;
 
   const original=snapMinutes(s.originalStart);
   if(snapped===original){
@@ -217,6 +195,8 @@ async function commitDrag(s){
     commitInFlight=false;
     return;
   }
+
+  suppressClickUntil=Date.now()+900;
 
   const oldLabel=timeFromMinutes(original).slice(0,5);
   const newLabel=timeFromMinutes(snapped).slice(0,5);
@@ -244,144 +224,76 @@ async function commitDrag(s){
   setTimeout(()=>location.reload(),120);
 }
 
-function startTouch(e,el){
-  ignorePointerUntil=Date.now()+2200;
-  if(gesture||e.touches.length!==1)return;
-  const t=e.changedTouches[0];
-  const s=stateFromElement(el,t.clientX,t.clientY,'touch',{touchId:t.identifier});
+function startPointer(e,el){
+  if(gesture||!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;
+  const s=stateFromElement(el,e);
   if(!s)return;
   gesture=s;
-  clearPress();
-  pressTimer=setTimeout(()=>beginDrag(s),LONG_PRESS_MS);
+  try{el.setPointerCapture?.(e.pointerId)}catch{}
 }
 
-function moveTouch(e){
+function movePointer(e){
   const s=gesture;
-  if(!s||s.inputType!=='touch')return;
-  const t=findTouch(e.touches,s.touchId)||findTouch(e.changedTouches,s.touchId);
-  if(!t)return;
+  if(!s||s.pointerId!==e.pointerId)return;
 
-  s.currentX=t.clientX;
-  s.currentY=t.clientY;
+  s.currentX=e.clientX;
+  s.currentY=e.clientY;
   const dx=s.currentX-s.startX;
   const dy=s.currentY-s.startY;
 
   if(s.mode==='pending'){
-    if(Math.abs(dx)>=MOVE_THRESHOLD&&Math.abs(dx)>=Math.abs(dy)){
-      clearPress();
-      s.mode='scroll';
-    }else if(Math.abs(dy)>=MOVE_THRESHOLD&&Math.abs(dy)>Math.abs(dx)){
-      clearPress();
-      s.mode='cancelled';
-      return;
+    if(Math.hypot(dx,dy)<MOVE_THRESHOLD)return;
+
+    if(Math.abs(dx)>=Math.abs(dy)){
+      beginDrag(s);
     }else{
+      s.mode='cancelled';
       return;
     }
   }
 
-  if(s.mode==='scroll'){
-    e.preventDefault();
-    e.stopPropagation();
-    const maxScroll=Math.max(0,s.scroll.scrollWidth-s.scroll.clientWidth);
-    // Requested direction: moving the finger to the right moves the viewport to later/right times.
-    s.scroll.scrollLeft=clamp(s.startScrollLeft+dx,0,maxScroll);
-    return;
-  }
-
   if(s.mode==='drag'){
-    e.preventDefault();
+    if(e.cancelable)e.preventDefault();
     e.stopPropagation();
     updateDragVisual(s);
   }
 }
 
-async function endTouch(e){
-  ignorePointerUntil=Date.now()+2200;
+async function endPointer(e){
   const s=gesture;
-  if(!s||s.inputType!=='touch')return;
-  const t=findTouch(e.changedTouches,s.touchId);
-  if(!t)return;
-
-  clearPress();
+  if(!s||s.pointerId!==e.pointerId)return;
   gesture=null;
 
+  try{s.el.releasePointerCapture?.(s.pointerId)}catch{}
+
   if(s.mode==='drag'){
-    e.preventDefault();
+    if(e.cancelable)e.preventDefault();
+    e.stopPropagation();
     await commitDrag(s);
     return;
   }
 
-  if(s.mode==='scroll'){
-    e.preventDefault();
-    suppressClickUntil=Date.now()+500;
-  }
-}
-
-function cancelTouch(e){
-  ignorePointerUntil=Date.now()+2200;
-  const s=gesture;
-  if(!s||s.inputType!=='touch')return;
-  const t=findTouch(e.changedTouches,s.touchId);
-  if(!t)return;
-  gesture=null;
-  clearPress();
-  if(s.mode==='drag')restore(s);
   cleanup(s);
 }
 
-function startPointer(e,el){
-  if(Date.now()<ignorePointerUntil||e.pointerType==='touch'||gesture||(e.pointerType==='mouse'&&e.button!==0))return;
-  const s=stateFromElement(el,e.clientX,e.clientY,'pointer',{pointerId:e.pointerId});
+function cancelGesture(e){
+  const s=gesture;
   if(!s)return;
-  s.mode='drag';
-  gesture=s;
-  try{el.setPointerCapture?.(e.pointerId)}catch{}
-  s.el.classList.add('blockedDragging');
-  document.body.classList.add('bookingDragging');
-  autoFrame=requestAnimationFrame(autoScrollLoop);
-}
-
-function movePointer(e){
-  const s=gesture;
-  if(!s||s.inputType!=='pointer'||s.pointerId!==e.pointerId)return;
-  s.currentX=e.clientX;
-  s.currentY=e.clientY;
-  e.preventDefault();
-  updateDragVisual(s);
-}
-
-async function endPointer(e){
-  const s=gesture;
-  if(!s||s.inputType!=='pointer'||s.pointerId!==e.pointerId)return;
+  if(e?.pointerId!=null&&s.pointerId!==e.pointerId)return;
   gesture=null;
   try{s.el.releasePointerCapture?.(s.pointerId)}catch{}
-  await commitDrag(s);
-}
-
-function cancelGesture(){
-  const s=gesture;
-  gesture=null;
-  clearPress();
-  if(s?.mode==='drag')restore(s);
+  if(s.mode==='drag')restore(s);
   cleanup(s);
 }
 
 if(supportedPage()){
   addStyles();
 
-  document.addEventListener('touchstart',e=>{
-    const el=e.target.closest?.(blockedSelector);
-    if(el)startTouch(e,el);
-  },{passive:true,capture:true});
-
-  document.addEventListener('touchmove',moveTouch,{passive:false,capture:true});
-  document.addEventListener('touchend',endTouch,{passive:false,capture:true});
-  document.addEventListener('touchcancel',cancelTouch,{passive:false,capture:true});
-
   document.addEventListener('pointerdown',e=>{
     const el=e.target.closest?.(blockedSelector);
     if(el)startPointer(e,el);
   },true);
+
   window.addEventListener('pointermove',movePointer,{passive:false});
   window.addEventListener('pointerup',endPointer,{passive:false});
   window.addEventListener('pointercancel',cancelGesture,{passive:false});
@@ -398,6 +310,6 @@ if(supportedPage()){
     if(e.target.closest?.(blockedSelector))e.preventDefault();
   },true);
 
-  window.addEventListener('blur',cancelGesture);
+  window.addEventListener('blur',()=>cancelGesture());
   document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelGesture()});
 }

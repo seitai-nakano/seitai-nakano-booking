@@ -73,7 +73,7 @@ const PRODUCTS=[
   {code:'seraphy_15000',name:'セラフィー',price:15000},
   {code:'impact_6000',name:'インパクト',price:6000}
 ];
-let bookings=[],salesByBooking=new Map(),itemsBySale=new Map(),currentBooking=null,currentSale=null,treatmentMenus=[];
+let bookings=[],salesByBooking=new Map(),itemsBySale=new Map(),addonsByBooking=new Map(),currentBooking=null,currentSale=null,treatmentMenus=[];
 const yen=n=>'¥'+Math.round(Number(n)||0).toLocaleString('ja-JP');
 function todayJapan(){const p=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),g=t=>p.find(x=>x.type===t)?.value;return `${g('year')}-${g('month')}-${g('day')}`}
 function esc(v){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;')}
@@ -105,10 +105,16 @@ async function loadDay(){
   const date=$('date').value;if(!date)return;$('list').innerHTML='<div class="loading">読み込んでいます…</div>';$('listMsg').textContent='';
   const {data:bs,error:be}=await supabase.from('nakano_bookings').select('id,booking_date,start_time,minutes,menu_id,menu_name,price,customer_name,status').eq('booking_date',date).eq('status','confirmed').order('start_time');
   if(be){$('list').innerHTML='';$('listMsg').textContent='予約を読み込めませんでした。';return}
-  bookings=bs||[];salesByBooking=new Map();itemsBySale=new Map();$('dayPaymentSummary').classList.add('hidden');$('dayPaymentUnknown').textContent='';
+  bookings=bs||[];salesByBooking=new Map();itemsBySale=new Map();addonsByBooking=new Map();$('dayPaymentSummary').classList.add('hidden');$('dayPaymentUnknown').textContent='';
   if(bookings.length){
     const ids=bookings.map(b=>b.id);
-    const {data:ss,error:se}=await supabase.from('nakano_sales').select('*').in('booking_id',ids);
+    const [{data:ss,error:se},{data:aa,error:ae}]=await Promise.all([
+      supabase.from('nakano_sales').select('*').in('booking_id',ids),
+      supabase.from('nakano_booking_addons').select('booking_id,item_code,item_name,unit_price,quantity').in('booking_id',ids)
+    ]);
+    if(ae){console.error(ae);$('listMsg').textContent='事前追加メニューを読み込めませんでした。';return}
+    for(const a of aa||[]){const rows=addonsByBooking.get(String(a.booking_id))||[];rows.push(a);addonsByBooking.set(String(a.booking_id),rows)}
+
     if(se){$('listMsg').textContent='会計状況を読み込めませんでした。';return}
     for(const s of ss||[])salesByBooking.set(String(s.booking_id),s);
     const cashTotal=(ss||[]).filter(s=>s.payment_method==='cash').reduce((sum,s)=>sum+(Number(s.total_amount)||0),0);
@@ -124,7 +130,8 @@ async function loadDay(){
 function openEditor(id){
   const b=bookings.find(x=>String(x.id)===String(id));if(!b)return;currentBooking=b;currentSale=salesByBooking.get(String(id))||null;
   $('bookingSummary').textContent=`${b.booking_date} ${String(b.start_time).slice(0,5)}　${b.customer_name||''}`;
-  $('reservedMenuNote').textContent=`予約時：${b.menu_name||'施術'} ${yen(b.price)}`;
+  const plannedAddons=addonsByBooking.get(String(b.id))||[];
+  $('reservedMenuNote').textContent=`予約時：${b.menu_name||'施術'} ${yen(b.price)}`+(plannedAddons.length?` ／ 事前追加：${plannedAddons.map(x=>`${x.item_name}×${x.quantity}`).join('、')}`:'');
   const selectedMenuId=String(currentSale?.treatment_menu_id ?? b.menu_id ?? '');
   const selectedMenuName=currentSale?.treatment_menu_name ?? b.menu_name ?? '施術';
   renderTreatmentMenuOptions(selectedMenuId,selectedMenuName);
@@ -135,9 +142,8 @@ function openEditor(id){
   $('memo').value=currentSale?.memo||'';
   document.querySelectorAll('input[name="paymentMethod"]').forEach(x=>x.checked=(x.value===String(currentSale?.payment_method||'')));
   $('products').querySelectorAll('.qty').forEach(x=>x.value='0');
-  if(currentSale){
-    for(const i of itemsBySale.get(String(currentSale.id))||[]){const row=[...$('products').querySelectorAll('.productRow')].find(r=>r.dataset.code===i.item_code);if(row){row.querySelector('.qty').value=String(i.quantity||0)}}
-  }
+  const addonSource=currentSale?(itemsBySale.get(String(currentSale.id))||[]):plannedAddons;
+  for(const i of addonSource){const row=[...$('products').querySelectorAll('.productRow')].find(r=>r.dataset.code===i.item_code);if(row){row.querySelector('.qty').value=String(i.quantity||0)}}
   $('deleteSale').classList.toggle('hidden',!currentSale);
   $('save').textContent=currentSale?'会計を修正して保存':'会計を保存';
   $('saveMsg').textContent='';$('editor').classList.remove('hidden');recalc();$('editor').scrollIntoView({behavior:'smooth',block:'start'});

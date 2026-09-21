@@ -971,6 +971,27 @@ CLOSE
 <label>症状・メモ</label>
 <textarea id="editMemo"></textarea>
 
+<div style="margin-top:14px;padding:13px;border:1px solid #ddd5cc;border-radius:13px;background:#faf8f5">
+  <label style="margin-top:0">事前追加メニュー</label>
+  <div class="muted" style="margin-bottom:8px">会計前の予約に追加できます。ここで追加・変更しても、お客様へのLINEや予約変更通知は送信されません。</div>
+  <div id="editAddonRows">
+    <div style="display:grid;grid-template-columns:1fr 82px;gap:9px;align-items:center;padding:8px 0;border-bottom:1px solid #eee7df">
+      <div><strong>インパクト</strong><div class="muted">¥6,000</div></div>
+      <input class="editAddonQty" data-code="impact_6000" data-name="インパクト" data-price="6000" type="number" min="0" step="1" inputmode="numeric" value="0" aria-label="インパクト 数量">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 82px;gap:9px;align-items:center;padding:8px 0;border-bottom:1px solid #eee7df">
+      <div><strong>セラフィー</strong><div class="muted">¥9,000</div></div>
+      <input class="editAddonQty" data-code="seraphy_9000" data-name="セラフィー" data-price="9000" type="number" min="0" step="1" inputmode="numeric" value="0" aria-label="セラフィー9000 数量">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 82px;gap:9px;align-items:center;padding:8px 0">
+      <div><strong>セラフィー</strong><div class="muted">¥15,000</div></div>
+      <input class="editAddonQty" data-code="seraphy_15000" data-name="セラフィー" data-price="15000" type="number" min="0" step="1" inputmode="numeric" value="0" aria-label="セラフィー15000 数量">
+    </div>
+  </div>
+  <button class="secondary" id="saveEditAddons" type="button" style="margin-top:10px">追加メニューだけ保存（通知なし）</button>
+  <div id="editAddonMsg" class="msg"></div>
+</div>
+
 <button class="primary" id="saveEdit">
 変更を保存
 </button>
@@ -1126,6 +1147,12 @@ let currentSlots=[];
 
 let editingBooking=null;
 let editingBlocked=null;
+
+const ADMIN_BOOKING_ADDONS=[
+  {code:'impact_6000',name:'インパクト',price:6000},
+  {code:'seraphy_9000',name:'セラフィー',price:9000},
+  {code:'seraphy_15000',name:'セラフィー',price:15000}
+];
 let timelineQuickMinutes=null;
 let timelinePreferredTime=null;
 
@@ -3806,6 +3833,9 @@ function openEdit(booking){
 
 
   $('editMsg').textContent='';
+  $('editAddonMsg').textContent='';
+  document.querySelectorAll('.editAddonQty').forEach(input=>input.value='0');
+  void loadEditAddons(booking.id);
 
 
   loadEditTimes();
@@ -3842,6 +3872,72 @@ loadEditTimes;
 
 $('editMenu').onchange=
 loadEditTimes;
+
+
+async function loadEditAddons(bookingId){
+
+  document.querySelectorAll('.editAddonQty').forEach(input=>input.value='0');
+
+  const {data,error}=
+    await supabase
+      .from('nakano_booking_addons')
+      .select('item_code,quantity')
+      .eq('booking_id',bookingId);
+
+  if(error){
+    console.error(error);
+    $('editAddonMsg').textContent='追加メニューを読み込めませんでした。';
+    return;
+  }
+
+  for(const item of data||[]){
+    const input=[...document.querySelectorAll('.editAddonQty')]
+      .find(x=>x.dataset.code===String(item.item_code));
+    if(input)input.value=String(item.quantity||0);
+  }
+}
+
+
+function buildEditAddons(){
+
+  return [...document.querySelectorAll('.editAddonQty')]
+    .map(input=>({
+      code:input.dataset.code,
+      name:input.dataset.name,
+      unit_price:Number(input.dataset.price)||0,
+      quantity:Math.max(0,Number(input.value)||0)
+    }))
+    .filter(item=>item.quantity>0);
+}
+
+
+$('saveEditAddons').onclick=
+async()=>{
+
+  if(!editingBooking)return;
+
+  $('saveEditAddons').disabled=true;
+  $('editAddonMsg').textContent='保存しています…';
+
+  const {error}=
+    await supabase.rpc(
+      'nakano_admin_set_booking_addons',
+      {
+        p_booking_id:editingBooking.id,
+        p_items:buildEditAddons()
+      }
+    );
+
+  $('saveEditAddons').disabled=false;
+
+  if(error){
+    console.error(error);
+    $('editAddonMsg').textContent='追加メニューを保存できませんでした。';
+    return;
+  }
+
+  $('editAddonMsg').textContent='保存しました。お客様への通知は送信されません。';
+};
 
 
 async function loadEditTimes(){

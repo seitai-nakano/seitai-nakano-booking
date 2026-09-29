@@ -82,7 +82,7 @@ function cleanupInteraction(s){s.element.classList.remove('dragging','resizing')
 function restoreCard(s){s.element.style.left=`${s.originalLeft}px`;s.element.style.width=`${Math.max(44,s.originalDuration*PX_PER_MINUTE)}px`;const t=s.element.querySelector('.bookingTime');if(t)t.textContent=s.originalTime}
 async function saveNewTime(b,n){const nt=minutesToTime(n),ol=String(b.start_time).slice(0,5),nl=nt.slice(0,5);if(ol===nl)return'same';if(!confirm(`${ol} → ${nl} に予約開始時間を変更しますか？`))return false;const{error}=await supabase.rpc('nakano_admin_move_booking',{p_booking_id:b.id,p_start_time:nt});if(error){console.error(error);alert('その時間には移動できません。OPEN/CLOSE・予約不可時間・他の予約を確認してください。');return false}return true}
 async function saveNewDuration(b,n){const old=Number(b.minutes)||30;if(old===n)return'same';const start=String(b.start_time).slice(0,5),end=minutesToTime(timeToMinutes(start)+n).slice(0,5);if(!confirm(`施術時間を ${old}分 → ${n}分（${start}〜${end}）に変更しますか？`))return false;const{error}=await supabase.rpc('nakano_admin_resize_booking',{p_booking_id:b.id,p_minutes:n});if(error){console.error(error);alert('その長さには変更できません。延長先のOPEN/CLOSE・予約不可時間・他の予約を確認してください。');return false}return true}
-async function pointerUp(e){if(!active||active.pointerId!==e.pointerId)return;const s=active;active=null;if(!s.interacting)return;suppressClickUntil=Date.now()+900;cleanupInteraction(s);const changed=s.mode==='resize'?s.newDuration!==s.originalDuration:s.newMinutes!==s.originalMinutes;if(!changed){restoreCard(s);return}try{const b=await fetchBookingById(s.bookingId,true),r=s.mode==='resize'?await saveNewDuration(b,s.newDuration):await saveNewTime(b,s.newMinutes);if(r===true){setTimeout(()=>location.reload(),160);return}}catch(err){console.error(err);alert('予約情報を確認できませんでした。画面を更新してもう一度お試しください。')}restoreCard(s)}
+async function pointerUp(e){if(!active||active.pointerId!==e.pointerId)return;const s=active;active=null;if(!s.interacting)return;suppressClickUntil=Date.now()+900;cleanupInteraction(s);const changed=s.mode==='resize'?s.newDuration!==s.originalDuration:s.newMinutes!==s.originalMinutes;if(!changed){restoreCard(s);return}try{const b=await fetchBookingById(s.bookingId,true),r=s.mode==='resize'?await saveNewDuration(b,s.newDuration):await saveNewTime(b,s.newMinutes);if(r===true){setTimeout(requestAdminSoftRefresh,160);return}}catch(err){console.error(err);alert('予約情報を確認できませんでした。画面を更新してもう一度お試しください。')}restoreCard(s)}
 function pointerCancel(){if(!active)return;const s=active;active=null;if(s.interacting)restoreCard(s);cleanupInteraction(s)}
 document.addEventListener('click',e=>{if(Date.now()<suppressClickUntil&&e.target.closest('.bookingBlock')){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation()}},true);
 
@@ -147,7 +147,7 @@ async function saveBlockedEditor(){
   $('blockedInlineSave').disabled=true;msg.textContent='保存しています…';
   const{error}=await supabase.from('nakano_blocked_times').update({start_time:`${start}:00`,end_time:end==='23:59'?'23:59:00':`${end}:00`,memo:memo||null}).eq('id',id);
   if(error){console.error(error);msg.textContent='変更できませんでした。';$('blockedInlineSave').disabled=false;return}
-  msg.textContent='変更しました。';setTimeout(()=>location.reload(),180);
+  msg.textContent='変更しました。';setTimeout(requestAdminSoftRefresh,180);
 }
 function bookBlockedAsBooking(){
   const ed=$('blockedInlineEditor'),id=ed?.dataset.blockedId;
@@ -162,7 +162,7 @@ function bookBlockedAsBooking(){
 
 async function deleteBlockedEditor(){
   const ed=$('blockedInlineEditor'),id=ed?.dataset.blockedId;if(!id)return;if(!confirm('この予約不可／予定を削除しますか？'))return;
-  $('blockedInlineDelete').disabled=true;const{error}=await supabase.from('nakano_blocked_times').delete().eq('id',id);if(error){console.error(error);$('blockedInlineMsg').textContent='削除できませんでした。';$('blockedInlineDelete').disabled=false;return}setTimeout(()=>location.reload(),150);
+  $('blockedInlineDelete').disabled=true;const{error}=await supabase.from('nakano_blocked_times').delete().eq('id',id);if(error){console.error(error);$('blockedInlineMsg').textContent='削除できませんでした。';$('blockedInlineDelete').disabled=false;return}setTimeout(requestAdminSoftRefresh,150);
 }
 function inferBlockedFromElement(el,rows){
   const left=parseFloat(el.style.left)||0,width=parseFloat(el.style.width)||0,start=Math.round(DAY_START+left/PX_PER_MINUTE),duration=Math.max(15,Math.round((width/PX_PER_MINUTE)/15)*15);
@@ -176,8 +176,15 @@ async function hydrateBlockedBlocks(force=false){
 
 function scrollToCurrentTime(force=false){const scroll=getScheduleScroll(),date=selectedDate();if(!scroll||!date)return;if(date!==todayJapan()){if(force||lastAutoDate!==date){scroll.scrollLeft=0;lastAutoDate=date}return}if(!force&&lastAutoDate===date)return;scroll.scrollLeft=Math.max(0,(currentJapanMinutes()-DAY_START)*PX_PER_MINUTE-scroll.clientWidth/2);lastAutoDate=date}
 function setupDateWatch(){const d=$('date');if(!d)return;d.addEventListener('change',()=>{lastAutoDate=null;blockedRowsDate='';closeBlockedEditor();setTimeout(()=>{scrollToCurrentTime(true);addQuarterGuides();refreshQuarterUI();loadMonthlyBookings();hydrateBlockedBlocks(true)},240)})}
-function setupRealtime(){try{realtimeChannel=supabase.channel(`nakano-management-${Date.now()}`);const reload=()=>{if(Date.now()<suppressRealtimeUntil)return;clearTimeout(realtimeTimer);realtimeTimer=setTimeout(()=>{if(!active?.interacting&&!$('blockedInlineEditor')?.classList.contains('open'))location.reload()},650)};const refreshSlots=()=>{if(Date.now()<suppressRealtimeUntil)return;clearTimeout(realtimeTimer);realtimeTimer=setTimeout(()=>{if(!active?.interacting&&!$('blockedInlineEditor')?.classList.contains('open'))refreshOpenCloseUI()},220)};for(const table of['nakano_bookings','nakano_blocked_times'])realtimeChannel.on('postgres_changes',{event:'*',schema:'public',table},reload);realtimeChannel.on('postgres_changes',{event:'*',schema:'public',table:'nakano_open_slots'},refreshSlots);realtimeChannel.subscribe(status=>{const b=$('bookingRefreshStatus');if(!b)return;if(status==='SUBSCRIBED')b.textContent='自動更新 ON';else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')b.textContent='自動更新 再接続待ち'})}catch(e){console.error('Realtime設定エラー',e)}}
-function refreshAfterResume(){if(!active?.interacting&&!$('blockedInlineEditor')?.classList.contains('open'))location.reload()}
+function setupRealtime(){try{realtimeChannel=supabase.channel(`nakano-management-${Date.now()}`);const reload=()=>{if(Date.now()<suppressRealtimeUntil)return;clearTimeout(realtimeTimer);realtimeTimer=setTimeout(()=>{if(!active?.interacting&&!$('blockedInlineEditor')?.classList.contains('open'))requestAdminSoftRefresh()},650)};const refreshSlots=()=>{if(Date.now()<suppressRealtimeUntil)return;clearTimeout(realtimeTimer);realtimeTimer=setTimeout(()=>{if(!active?.interacting&&!$('blockedInlineEditor')?.classList.contains('open'))refreshOpenCloseUI()},220)};for(const table of['nakano_bookings','nakano_blocked_times'])realtimeChannel.on('postgres_changes',{event:'*',schema:'public',table},reload);realtimeChannel.on('postgres_changes',{event:'*',schema:'public',table:'nakano_open_slots'},refreshSlots);realtimeChannel.subscribe(status=>{const b=$('bookingRefreshStatus');if(!b)return;if(status==='SUBSCRIBED')b.textContent='自動更新 ON';else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT')b.textContent='自動更新 再接続待ち'})}catch(e){console.error('Realtime設定エラー',e)}}
+function requestAdminSoftRefresh(){
+  if(typeof window.nakanoAdminSoftRefresh==='function'){
+    void window.nakanoAdminSoftRefresh();
+    return;
+  }
+  location.reload();
+}
+function refreshAfterResume(){if(!active?.interacting&&!$('blockedInlineEditor')?.classList.contains('open'))requestAdminSoftRefresh()}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){hiddenAt=Date.now();return}if(document.visibilityState==='visible'&&hiddenAt&&Date.now()-hiddenAt>1000)refreshAfterResume()});window.addEventListener('pageshow',e=>{if(e.persisted)refreshAfterResume()});window.addEventListener('focus',()=>{if(hiddenAt&&Date.now()-hiddenAt>1500)refreshAfterResume()});
 
 function improveAdminLayout(){if(!isAdmin())return;const admin=$('adminArea');if(!admin)return;const cards=[...admin.querySelectorAll(':scope > section.card')],addCard=cards.find(c=>c.querySelector('#addBooking')),blockCard=cards.find(c=>c.querySelector('#blockedList')),openCard=cards.find(c=>c.querySelector('#slots'));if(addCard&&openCard&&addCard.previousElementSibling!==openCard)openCard.insertAdjacentElement('afterend',addCard);if(blockCard)ensureBlockedFold(blockCard);ensureMonthlyBookingFold()}

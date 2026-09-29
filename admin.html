@@ -953,11 +953,13 @@ CLOSE
 
 <label>時間</label>
 
-<select id="editTime">
+<select id="editTime" class="adminTimeSelect" aria-label="変更後の予約時間">
 <option value="">
 時間を選択
 </option>
 </select>
+<div id="editTimeButtons" class="adminTimeButtons" aria-label="変更後の時間一覧"></div>
+<div class="muted adminTimeHelp">15分単位。時間をタップすると確定します。</div>
 
 <label>お客様名</label>
 <input id="editName">
@@ -1158,6 +1160,150 @@ let timelinePreferredTime=null;
 
 let selectedBlockedDates=
   new Set();
+
+const ADMIN_UI_STATE_KEY='nakano_admin_ui_state_v4';
+const ADMIN_UI_STATE_TTL=24*60*60*1000;
+let adminUiRestoreDone=false;
+let adminUiRestoreInProgress=false;
+let adminUiSaveTimer=null;
+let adminSoftRefreshRunning=false;
+
+function readAdminUiState(){
+  try{
+    const state=JSON.parse(localStorage.getItem(ADMIN_UI_STATE_KEY)||'null');
+    if(!state||!state.savedAt||Date.now()-Number(state.savedAt)>ADMIN_UI_STATE_TTL)return null;
+    return state;
+  }catch(_){
+    return null;
+  }
+}
+
+function captureAdminUiState(){
+  const editAddons={};
+  document.querySelectorAll('.editAddonQty').forEach(input=>{
+    editAddons[input.dataset.code]=String(input.value||'0');
+  });
+  return {
+    savedAt:Date.now(),
+    date:$('date')?.value||'',
+    month:$('month')?.value||'',
+    blockedMonth:$('blockedMonth')?.value||'',
+    selectedBlockedDates:[...selectedBlockedDates],
+    blockedStart:$('blockedStart')?.value||'',
+    blockedEnd:$('blockedEnd')?.value||'',
+    blockedMemo:$('blockedMemo')?.value||'',
+    adminBookingDate:$('adminBookingDate')?.value||'',
+    menu:$('menu')?.value||'',
+    adminTimeManual:$('adminTimeManual')?.value||'',
+    adminTime:$('adminTime')?.value||'',
+    customerSelect:$('customerSelect')?.value||'',
+    customerName:$('customerName')?.value||'',
+    phone:$('phone')?.value||'',
+    memo:$('memo')?.value||'',
+    editOpen:!!editingBooking&&!$('editCard')?.classList.contains('hidden'),
+    editingBookingId:editingBooking?.id||null,
+    editDate:$('editDate')?.value||'',
+    editMenu:$('editMenu')?.value||'',
+    editTime:$('editTime')?.value||'',
+    editName:$('editName')?.value||'',
+    editPhone:$('editPhone')?.value||'',
+    editMemo:$('editMemo')?.value||'',
+    editAddons,
+    scrollY:window.scrollY||0,
+    scheduleScrollLeft:$('scheduleScroll')?.scrollLeft||0
+  };
+}
+
+function saveAdminUiStateNow(){
+  if(adminUiRestoreInProgress)return;
+  try{localStorage.setItem(ADMIN_UI_STATE_KEY,JSON.stringify(captureAdminUiState()))}catch(_){}
+}
+
+function scheduleAdminUiStateSave(){
+  if(adminUiRestoreInProgress)return;
+  clearTimeout(adminUiSaveTimer);
+  adminUiSaveTimer=setTimeout(saveAdminUiStateNow,120);
+}
+
+function applySavedBaseState(state){
+  if(!state)return;
+  if(state.date)$('date').value=state.date;
+  if(state.month)$('month').value=state.month;
+  if(state.blockedMonth)$('blockedMonth').value=state.blockedMonth;
+  if(state.adminBookingDate)$('adminBookingDate').value=state.adminBookingDate;
+  if(Array.isArray(state.selectedBlockedDates))selectedBlockedDates=new Set(state.selectedBlockedDates);
+}
+
+function applySavedFormState(state){
+  if(!state)return;
+  const values={
+    blockedStart:state.blockedStart,
+    blockedEnd:state.blockedEnd,
+    blockedMemo:state.blockedMemo,
+    adminBookingDate:state.adminBookingDate,
+    menu:state.menu,
+    adminTimeManual:state.adminTimeManual,
+    customerSelect:state.customerSelect,
+    customerName:state.customerName,
+    phone:state.phone,
+    memo:state.memo
+  };
+  for(const [id,value] of Object.entries(values)){
+    if(value!=null&&$(id))$(id).value=String(value);
+  }
+}
+
+async function restoreAdminEditorState(state){
+  if(!state?.editOpen||!state.editingBookingId)return;
+  let booking=currentBookings.find(x=>String(x.id)===String(state.editingBookingId));
+  if(!booking){
+    const {data}=await supabase.from('nakano_bookings').select('*').eq('id',state.editingBookingId).maybeSingle();
+    booking=data||null;
+  }
+  if(!booking||booking.status!=='confirmed')return;
+
+  editingBooking=booking;
+  $('editCard').classList.remove('hidden');
+  $('editCurrent').textContent=`${String(booking.start_time).slice(0,5)}　${booking.customer_name}　${booking.menu_name}`;
+  $('editDate').value=state.editDate||booking.booking_date;
+  $('editMenu').value=state.editMenu||booking.menu_id;
+  $('editName').value=state.editName??booking.customer_name??'';
+  $('editPhone').value=state.editPhone??booking.phone??'';
+  $('editMemo').value=state.editMemo??booking.memo??'';
+  $('editMsg').textContent='';
+  $('editAddonMsg').textContent='';
+
+  $('editTime').dataset.preferred=state.editTime||String(booking.start_time);
+  await Promise.all([loadEditTimes(),loadEditAddons(booking.id)]);
+
+  if(state.editAddons&&typeof state.editAddons==='object'){
+    document.querySelectorAll('.editAddonQty').forEach(input=>{
+      if(Object.prototype.hasOwnProperty.call(state.editAddons,input.dataset.code)){
+        input.value=String(state.editAddons[input.dataset.code]);
+      }
+    });
+  }
+}
+
+async function restoreAdminUiStateAfterLoad(state){
+  if(!state)return;
+  adminUiRestoreInProgress=true;
+  try{
+    applySavedFormState(state);
+    await loadAdminTimes();
+    if(state.adminTime){
+      const candidate=String(state.adminTime);
+      if([...$('adminTime').options].some(o=>o.value===candidate))$('adminTime').value=candidate;
+    }
+    await restoreAdminEditorState(state);
+    requestAnimationFrame(()=>{
+      if($('scheduleScroll'))$('scheduleScroll').scrollLeft=Number(state.scheduleScrollLeft)||0;
+      window.scrollTo({top:Number(state.scrollY)||0,left:0,behavior:'auto'});
+    });
+  }finally{
+    setTimeout(()=>{adminUiRestoreInProgress=false},0);
+  }
+}
 
 
 function esc(value){
@@ -1364,6 +1510,8 @@ async function syncAuth(){
     return;
   }
 
+  const savedState=!adminUiRestoreDone?readAdminUiState():null;
+  if(savedState)applySavedBaseState(savedState);
 
   if(
     !$('date').value
@@ -1409,6 +1557,8 @@ async function syncAuth(){
 
   await loadCustomers();
 
+  if(savedState)applySavedFormState(savedState);
+
   renderDaySelector();
 
   await loadDay();
@@ -1418,6 +1568,11 @@ async function syncAuth(){
   await loadNotifications();
 
   await resumePendingLineLink();
+
+  if(!adminUiRestoreDone){
+    adminUiRestoreDone=true;
+    await restoreAdminUiStateAfterLoad(savedState);
+  }
 }
 
 
@@ -3831,6 +3986,8 @@ function openEdit(booking){
   $('editMemo').value=
     booking.memo||'';
 
+  $('editTime').dataset.preferred=String(booking.start_time||'');
+
 
   $('editMsg').textContent='';
   $('editAddonMsg').textContent='';
@@ -3839,6 +3996,7 @@ function openEdit(booking){
 
 
   loadEditTimes();
+  scheduleAdminUiStateSave();
 
 
   $('editCard')
@@ -3859,6 +4017,8 @@ function closeEdit(){
     .add(
       'hidden'
     );
+
+  scheduleAdminUiStateSave();
 }
 
 
@@ -3946,103 +4106,64 @@ async function loadEditTimes(){
     return;
   }
 
+  const date=$('editDate').value;
+  const menuId=$('editMenu').value;
+  const box=$('editTime');
+  const buttonBox=$('editTimeButtons');
+  const preferred=String(box.dataset.preferred||box.value||'');
+  box.dataset.preferred='';
 
-  const date=
-    $('editDate').value;
+  box.innerHTML='<option value="">時間を選択</option>';
+  if(buttonBox)buttonBox.innerHTML='<div class="adminTimeEmpty">時間を読み込んでいます…</div>';
 
-
-  const menuId=
-    $('editMenu').value;
-
-
-  const box=
-    $('editTime');
-
-
-  box.innerHTML=
-    '<option value="">時間を選択</option>';
-
-
-  const data=
-    await getAvailableTimes(
-      menuId,
-      date
-    );
-
-
-  const current=
-    String(
-      editingBooking.start_time
-    );
-
+  const data=await getAvailableTimes(menuId,date);
+  const current=String(editingBooking.start_time);
 
   if(
     date===editingBooking.booking_date
     &&
     String(menuId)===String(editingBooking.menu_id)
     &&
-    !data.some(
-      item=>
-        String(item.start_time)
-        ===
-        current
-    )
+    !data.some(item=>String(item.start_time)===current)
   ){
-
-    data.push({
-      start_time:
-        current
-    });
+    data.push({start_time:current});
   }
 
+  data.sort((a,b)=>String(a.start_time).localeCompare(String(b.start_time)));
 
-  data.sort(
-    (a,b)=>
-      String(a.start_time)
-        .localeCompare(
-          String(b.start_time)
-        )
-  );
+  data.forEach(slot=>{
+    const option=document.createElement('option');
+    option.value=slot.start_time;
+    option.textContent=String(slot.start_time).slice(0,5);
+    box.appendChild(option);
+  });
 
+  const preferredMatch=data.find(slot=>String(slot.start_time)===preferred);
+  const currentMatch=data.find(slot=>String(slot.start_time)===current);
+  const selected=String(preferredMatch?.start_time||currentMatch?.start_time||'');
+  if(selected)box.value=selected;
 
-  data.forEach(
-    slot=>{
+  if(!buttonBox)return;
+  buttonBox.innerHTML='';
 
-      const option=
-        document.createElement(
-          'option'
-        );
+  if(!data.length){
+    buttonBox.innerHTML='<div class="adminTimeEmpty">選択できる時間がありません。</div>';
+    return;
+  }
 
-
-      option.value=
-        slot.start_time;
-
-
-      option.textContent=
-        String(
-          slot.start_time
-        )
-        .slice(
-          0,
-          5
-        );
-
-
-      if(
-        date===editingBooking.booking_date
-        &&
-        String(slot.start_time)===current
-      ){
-
-        option.selected=true;
-      }
-
-
-      box.appendChild(
-        option
-      );
-    }
-  );
+  data.forEach(slot=>{
+    const value=String(slot.start_time);
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='adminTimeButton'+(box.value===value?' selected':'');
+    button.textContent=value.slice(0,5);
+    button.onclick=()=>{
+      box.value=value;
+      buttonBox.querySelectorAll('.adminTimeButton').forEach(x=>x.classList.toggle('selected',x===button));
+      scheduleAdminUiStateSave();
+    };
+    buttonBox.appendChild(button);
+  });
 }
 
 
@@ -4150,6 +4271,7 @@ async()=>{
   await loadMonthBlockedTimes();
 
   await loadCustomers();
+  saveAdminUiStateNow();
 };
 
 
@@ -4585,6 +4707,50 @@ async()=>{
 
   await loadNotifications();
 }
+
+
+/* ==========================
+   状態保持・ソフト更新
+========================== */
+
+window.nakanoAdminSoftRefresh=async()=>{
+  if(adminSoftRefreshRunning)return;
+  adminSoftRefreshRunning=true;
+
+  const y=window.scrollY||0;
+  const x=$('scheduleScroll')?.scrollLeft||0;
+  saveAdminUiStateNow();
+
+  try{
+    await loadDay();
+    await loadMonthBlockedTimes();
+    if(typeof window.refreshMonthlyBookings==='function')await window.refreshMonthlyBookings();
+    if(typeof window.refreshAdminBookingCalendar==='function')await window.refreshAdminBookingCalendar($('date').value);
+  }catch(error){
+    console.error('管理画面の更新に失敗しました',error);
+  }finally{
+    requestAnimationFrame(()=>{
+      if($('scheduleScroll'))$('scheduleScroll').scrollLeft=x;
+      window.scrollTo({top:y,left:0,behavior:'auto'});
+    });
+    adminSoftRefreshRunning=false;
+  }
+};
+
+document.addEventListener('input',event=>{
+  if(event.target?.closest?.('#adminArea'))scheduleAdminUiStateSave();
+},true);
+
+document.addEventListener('change',event=>{
+  if(event.target?.closest?.('#adminArea'))scheduleAdminUiStateSave();
+},true);
+
+window.addEventListener('scroll',scheduleAdminUiStateSave,{passive:true});
+$('scheduleScroll')?.addEventListener('scroll',scheduleAdminUiStateSave,{passive:true});
+window.addEventListener('pagehide',saveAdminUiStateNow);
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden')saveAdminUiStateNow();
+});
 
 
 /* ==========================

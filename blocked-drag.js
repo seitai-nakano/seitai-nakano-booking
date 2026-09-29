@@ -221,7 +221,10 @@ async function commitDrag(s){
     return;
   }
 
-  setTimeout(()=>location.reload(),120);
+  setTimeout(()=>{
+    if(typeof window.nakanoAdminSoftRefresh==='function')void window.nakanoAdminSoftRefresh();
+    else location.reload();
+  },120);
 }
 
 function startPointer(e,el){

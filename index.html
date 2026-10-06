@@ -369,8 +369,131 @@ textarea{min-height:6.5rem}
   .bookingWizardCard,.bookingGuideMascotBtn,.bookingGuideMascot{animation:none!important}
   *{scroll-behavior:auto!important}
 }
+
+/* compact brand header + large first-view visual */
+.header{margin-bottom:.75rem!important}
+.brandTopBar{
+  display:flex;
+  align-items:center;
+  gap:.55rem;
+  min-height:2.4rem;
+  margin:0 .15rem .5rem;
+  color:#4d4540;
+}
+.brandTopLogo{
+  width:2.25rem;
+  height:2.25rem;
+  object-fit:contain;
+  flex:0 0 auto;
+}
+.brandTopText{min-width:0;line-height:1.15}
+.brandTopName{font-size:.86rem;font-weight:850;letter-spacing:.02em}
+.brandTopMode{margin-top:.13rem;font-size:.58rem;font-weight:800;letter-spacing:.12em;color:#867a72}
+.bookingHero{
+  display:flex!important;
+  flex-direction:column;
+  justify-content:center;
+  min-height:clamp(14.5rem,67vw,20.5rem);
+  padding:clamp(1rem,5vw,1.5rem)!important;
+  margin-bottom:.7rem!important;
+  border-radius:1.5rem!important;
+  background:
+    radial-gradient(circle at 78% 18%,rgba(255,255,255,.82),transparent 35%),
+    linear-gradient(145deg,#eadfd7 0%,#dccbc0 58%,#d2bbb0 100%)!important;
+  border-color:#c9b7ac!important;
+  box-shadow:0 12px 30px rgba(70,45,36,.11)!important;
+}
+.bookingHero:after{display:none!important}
+.bookingHeroVisual{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex:1;
+  min-height:8rem;
+}
+.bookingHeroLogo{
+  display:block;
+  width:min(82%,22rem);
+  max-height:13.5rem;
+  object-fit:contain;
+  filter:drop-shadow(0 8px 16px rgba(70,45,36,.08));
+}
+.bookingHeroCopy{
+  text-align:center;
+  padding:.25rem .35rem 0;
+}
+.bookingHeroTitle{
+  margin:.15rem 0 0!important;
+  font-size:clamp(1.35rem,6vw,1.85rem)!important;
+  line-height:1.25!important;
+}
+.bookingHeroLead{
+  margin:.4rem 0 0!important;
+  font-size:.875rem!important;
+  line-height:1.65!important;
+  color:#655b54!important;
+}
+.header>.lineBox{
+  margin:.55rem 0 .75rem!important;
+  padding:.65rem .8rem!important;
+  font-size:.8rem!important;
+  line-height:1.55!important;
+  border-radius:.8rem!important;
+  background:#f1e9e3!important;
+  box-shadow:none!important;
+}
+
+/* referral-only mascot */
+.bookingGuideText{
+  font-size:.86rem!important;
+  line-height:1.55!important;
+  font-weight:800!important;
+}
+.bookingGuideShare{
+  margin-top:.55rem!important;
+  padding:.7rem .75rem!important;
+  border:1px solid #b9978f!important;
+  border-radius:.75rem!important;
+  background:#5d1511!important;
+  color:#fff!important;
+  text-align:center!important;
+  line-height:1.4!important;
+}
+.bookingGuideLink{border-top:0!important}
+.bookingGuideAlways{
+  max-width:10.5rem!important;
+  color:#5d1511!important;
+  font-size:.74rem!important;
+  font-weight:850!important;
+  text-align:center!important;
+}
+.bookingGuideMascotBtn{position:relative!important}
+.bookingGuideBadge{
+  position:absolute;
+  right:-.35rem;
+  bottom:-.18rem;
+  z-index:4;
+  min-width:2.25rem;
+  padding:.22rem .42rem;
+  border:2px solid #f5efea;
+  border-radius:999px;
+  background:#5d1511;
+  color:#fff;
+  font-size:.67rem;
+  line-height:1.1;
+  font-weight:900;
+  letter-spacing:.02em;
+  box-shadow:0 3px 9px rgba(70,45,36,.2);
+  pointer-events:none;
+}
+@media(max-width:380px){
+  .bookingHero{min-height:13.5rem}
+  .bookingHeroLogo{width:min(86%,18rem);max-height:11rem}
+  .brandTopName{font-size:.82rem}
+  .bookingGuideAlways{max-width:8.7rem!important}
+}
 </style>
-<script src="./customer-brand.js?v=png-20260816-2" defer></script>
+<script src="./customer-brand.js?v=20261006-1" defer></script>
 <link rel="manifest" href="./manifest.webmanifest?v=20260816-1">
 <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=20260816-1">
 <meta name="mobile-web-app-capable" content="yes">
@@ -448,12 +571,12 @@ textarea{min-height:6.5rem}
 <section id="manageArea" class="hidden"><section class="card"><h2>今後のご予約一覧</h2><div id="manageLoading" class="muted">ご予約内容を確認しています…</div><div id="manageList"></div><div id="manageResultMsg" class="okmsg hidden"></div><div id="manageError" class="msg"></div></section><section id="manageEditCard" class="card hidden"><h2>予約を変更</h2><div id="editingBookingSummary" class="notice"></div><label>メニュー<select id="manageMenu"></select></label><label>日付<input type="date" id="manageDate"></label><label>時間<select id="manageTime"><option value="">時間を選択</option></select></label><button class="primary" id="saveManageEdit">この内容に変更する</button><button class="secondary" id="closeManageEdit">変更をやめる</button><div id="manageEditMsg" class="msg"></div></section><a href="./"><button class="secondary" type="button">新しく予約する</button></a></section>
 <div class="bookingGuide" id="bookingGuide" aria-live="polite">
   <div class="bookingGuideBubble" id="bookingGuideBubble">
-    <div class="bookingGuideText" id="bookingGuideText">メニュー選びから予約までご案内します。</div>
-    <a class="bookingGuideLink" href="./body-check.html">どれがいいかわからない → お体チェック</a>
-    <button class="bookingGuideLink bookingGuideShare" id="bookingGuideShare" type="button">整体なかのを誰かに紹介する</button>
+    <div class="bookingGuideText" id="bookingGuideText">お友だちに整体なかのを紹介できます。</div>
+    <button class="bookingGuideLink bookingGuideShare" id="bookingGuideShare" type="button">お友だちに紹介する</button>
   </div>
-  <div class="bookingGuideAlways" id="bookingGuideAlways">予約のお手伝い</div>
-  <button class="bookingGuideMascotBtn" id="bookingGuideMascotBtn" type="button" aria-label="予約ナビを開く">
+  <div class="bookingGuideAlways" id="bookingGuideAlways">お友だちに紹介</div>
+  <button class="bookingGuideMascotBtn" id="bookingGuideMascotBtn" type="button" aria-label="整体なかのをお友だちに紹介する">
+    <span class="bookingGuideBadge" aria-hidden="true">紹介</span>
     <svg class="bookingGuideMascot" viewBox="0 0 80 105" aria-hidden="true">
       <path d="M23 96V51c0-9 7-16 16-16h5c10 0 17-7 17-16C61 10 54 3 45 3H31C18 3 10 12 10 23c0 8 6 14 14 14 6 0 10-3 14-8 4-4 7-6 12-6 11 0 19 8 19 19v54Z" fill="#fff" stroke="#7b1e1b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
       <ellipse class="bookingGuideCheek" cx="34" cy="75" rx="6" ry="2.6" fill="#f6cfe5"/>
@@ -519,6 +642,7 @@ function showBookingConfirm(){
   requestAnimationFrame(()=>$('confirmCard').scrollIntoView({behavior:'smooth',block:'start'}));
 }
 const params=new URLSearchParams(location.search),manageToken=params.get('manage');
+const BOOKING_GUIDE_SHARE_TEXT='お友だちに整体なかのを紹介できます。';
 let bookingGuideTimer=null;
 function bookingGuideSay(text,mode='talk',hideAfter=4400){
   const guide=$('bookingGuide'),textEl=$('bookingGuideText');
@@ -529,7 +653,7 @@ function bookingGuideSay(text,mode='talk',hideAfter=4400){
   if(mode==='thinking')guide.classList.add('thinking');
   if(mode==='done')guide.classList.add('done');
   guide.classList.add('open');
-  if(hideAfter>0)bookingGuideTimer=setTimeout(()=>guide.classList.remove('open','thinking','done'),hideAfter);
+  if(hideAfter>0)bookingGuideTimer=setTimeout(()=>{guide.classList.remove('open','thinking','done');textEl.textContent=BOOKING_GUIDE_SHARE_TEXT},hideAfter);
 }
 function bookingMenuGuideText(menu){
   const id=String(menu?.id||''),name=String(menu?.name||'');
@@ -594,7 +718,7 @@ function bookingGuideInit(){
     guide.classList.toggle('open',willOpen);
     guide.classList.remove('thinking','done');
   };
-  setTimeout(()=>bookingGuideSay('メニュー選びから予約までお手伝いします。迷ったらお体チェックも使えます。','talk',5200),700);
+  const textEl=$('bookingGuideText');if(textEl)textEl.textContent=BOOKING_GUIDE_SHARE_TEXT;
 }
 
 function esc(v){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;")}
@@ -662,7 +786,6 @@ async function loadMenus(){
         selectedTime=null;
         $('confirmCard').classList.add('hidden');
         if($('date').value)loadSlots();
-        bookingGuideSay(bookingMenuGuideText(menu),'talk',4200);
         showBookingStep(2);
       };
       $('menus').appendChild(button);
@@ -716,7 +839,6 @@ async function loadSlots(){
         button.classList.add('active');
         selectedTime=slot.start_time;
         $('confirmCard').classList.add('hidden');
-        bookingGuideSay('時間を選びました。あとはお客様情報を入力すれば予約できます。','done',4200);
         showBookingStep(4);
       };
       choices.appendChild(button);
@@ -943,7 +1065,6 @@ function selectRecommendedMenuFromQuery(){
 $('menuKnown').onclick=()=>{
   $('bodyCheck').classList.add('hidden');
   $('menus').classList.remove('hidden');
-  bookingGuideSay('受けたいメニューを選んでください。','talk',3200);
 };
 
 $('menuUnknown').onclick=()=>{
@@ -964,7 +1085,7 @@ document.querySelectorAll('.wizardProgressItem').forEach(button=>{
 showBookingStep(1,{scroll:false});
 selectRecommendedMenuFromQuery();
 
-$('date').min=todayJapan();$('manageDate').min=todayJapan();$('date').onchange=async()=>{selectedTime=null;bookingGuideSay('日付を選びました。空いている時間を確認しています…','thinking',3600);showBookingStep(3);await loadSlots()};
+$('date').min=todayJapan();$('manageDate').min=todayJapan();$('date').onchange=async()=>{selectedTime=null;showBookingStep(3);await loadSlots()};
 $('confirmBooking').onclick=()=>{
   const name=$('name').value.trim(),tel=$('tel').value.trim(),memo=$('memo').value.trim();
   $('msg').textContent='';
@@ -1089,7 +1210,6 @@ $('book').onclick=async()=>{
     $('manageLink').classList.add('hidden');
     $('bookingArea').classList.add('hidden');
     $('successArea').classList.remove('hidden');
-    bookingGuideSay('予約できました◎ ご予約ありがとうございます。','done',0);
     $('successArea').scrollIntoView({behavior:'smooth',block:'start'});
 
     void finishBookingSetup({bookingId,bookingDate,bookingTime,bookingMenu,name,tel,memo});
@@ -1125,7 +1245,7 @@ async function loadManageTimes(){if(!manageBooking)return;const menuId=$('manage
 $('manageMenu').onchange=loadManageTimes;$('manageDate').onchange=loadManageTimes;$('closeManageEdit').onclick=()=>{$('manageEditCard').classList.add('hidden');manageBooking=null};
 $('saveManageEdit').onclick=async()=>{if(!manageBooking)return;const menuId=$('manageMenu').value,date=$('manageDate').value,time=$('manageTime').value;$('manageEditMsg').textContent='';if(!menuId||!date||!time){$('manageEditMsg').textContent='メニュー・日付・時間を選択してください。';return}if(!confirm('この内容に予約を変更しますか？'))return;const token=manageBooking.manage_token;if(!token){$('manageEditMsg').textContent='この予約を変更できませんでした。店舗までご連絡ください。';return}$('saveManageEdit').disabled=true;$('closeManageEdit').disabled=true;$('saveManageEdit').textContent='変更しています…';try{const{error}=await supabase.rpc('nakano_customer_change_booking',{p_token:token,p_date:date,p_start_time:time,p_menu_id:menuId});if(error){$('manageEditMsg').textContent='変更できませんでした。別の日時をお選びください。';await loadManageTimes();return}await invokeNotification({action:'booking_changed',token,source:'customer'});$('manageEditCard').classList.add('hidden');manageBooking=null;$('manageResultMsg').textContent='ご予約内容を変更しました。';$('manageResultMsg').classList.remove('hidden');await loadManageBooking();scrollTo({top:0,behavior:'smooth'})}finally{$('saveManageEdit').disabled=false;$('closeManageEdit').disabled=false;$('saveManageEdit').textContent='この内容に変更する'}};
 async function cancelBooking(b){const time=String(b.start_time).slice(0,5);if(!confirm(`${formatDate(b.booking_date)} ${time}の予約をキャンセルしますか？`))return;const token=b.manage_token;if(!token){$('manageError').textContent='この予約をキャンセルできませんでした。店舗までご連絡ください。';return}const{error}=await supabase.rpc('nakano_customer_cancel_booking',{p_token:token});if(error){$('manageError').textContent='キャンセルできませんでした。店舗までご連絡ください。';return}await invokeNotification({action:'booking_cancelled',token});$('manageResultMsg').textContent='ご予約をキャンセルしました。';$('manageResultMsg').classList.remove('hidden');$('manageEditCard').classList.add('hidden');manageBooking=null;await loadManageBooking();scrollTo({top:0,behavior:'smooth'})}
-const BOOKING_GUIDE_DEFAULT_HINT='予約のお手伝い';
+const BOOKING_GUIDE_DEFAULT_HINT='お友だちに紹介';
 let bookingGuideHintTimer=null;
 
 function bookingGuideHint(text=BOOKING_GUIDE_DEFAULT_HINT,ms=0){
@@ -1183,12 +1303,12 @@ function bookingGuideInstallDrag(){
 
   const savePosition=()=>{
     const r=g.getBoundingClientRect();
-    try{localStorage.setItem('nakano_booking_guide_drag_pos_v3',JSON.stringify({left:r.left,top:r.top}))}catch(_){}
+    try{localStorage.setItem('nakano_booking_guide_drag_pos_v4',JSON.stringify({left:r.left,top:r.top}))}catch(_){}
   };
 
   const restorePosition=()=>{
     let saved=null;
-    try{saved=JSON.parse(localStorage.getItem('nakano_booking_guide_drag_pos_v3')||'null')}catch(_){}
+    try{saved=JSON.parse(localStorage.getItem('nakano_booking_guide_drag_pos_v4')||'null')}catch(_){}
     if(!saved||!Number.isFinite(saved.left)||!Number.isFinite(saved.top)){
       bookingGuideSides();
       return;

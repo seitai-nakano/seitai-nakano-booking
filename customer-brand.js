@@ -2,7 +2,7 @@
   const splash=document.getElementById('bookingSplash');
   if(!splash)return;
   const p=new URLSearchParams(location.search);
-  const skip=p.get('fromcheck')==='1'||p.has('manage');
+  const skip=p.get('fromcheck')==='1'||p.has('manage')||p.get('install')==='1';
   const finish=()=>{
     document.body.classList.remove('bookingSplashActive','bookingSplashReveal');
     splash.remove();

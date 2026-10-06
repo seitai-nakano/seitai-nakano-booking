@@ -226,6 +226,54 @@ import {createClient} from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2
 const supabase=createClient('https://scjzofjyxmchfjsngqtb.supabase.co','sb_publishable_EGlr-6w0xh4gD8OImboE_Q_V-COJ7t9');
 const LIFF_ID='2011071292-KT8sSyCN',BASE_URL='https://seitai-nakano.github.io/seitai-nakano-booking/',$=id=>document.getElementById(id);
 let menus=[],selectedMenu=null,selectedTime=null,lineUser=null,bookingInProgress=false,manageBooking=null,manageBookings=[];
+let bookingWizardStep=1;
+
+function updateWizardSummaries(){
+  const menuText=selectedMenu?(selectedMenu.name+'　'+yen(selectedMenu.price)):'';
+  const dateText=$('date')?.value?formatDate($('date').value):'';
+  const timeText=selectedTime?String(selectedTime).slice(0,5):'';
+  if($('wizardMenuSummary'))$('wizardMenuSummary').textContent=menuText?('選択中：'+menuText):'';
+  if($('wizardDateSummary'))$('wizardDateSummary').textContent=dateText?('選択中：'+menuText+' ／ '+dateText):'';
+  if($('wizardTimeSummary'))$('wizardTimeSummary').textContent=timeText?('選択中：'+menuText+' ／ '+dateText+' '+timeText):'';
+}
+
+function canOpenBookingStep(step){
+  if(step<=1)return true;
+  if(step===2)return !!selectedMenu;
+  if(step===3)return !!selectedMenu&&!!$('date')?.value;
+  if(step===4)return !!selectedMenu&&!!$('date')?.value&&!!selectedTime;
+  return false;
+}
+
+function showBookingStep(step,options={}){
+  if(manageToken)return;
+  const scroll=options.scroll!==false;
+  const next=Math.max(1,Math.min(4,Number(step)||1));
+  if(!canOpenBookingStep(next))return;
+  bookingWizardStep=next;
+  document.querySelectorAll('.bookingWizardCard').forEach(card=>{
+    card.classList.toggle('hidden',Number(card.dataset.bookingStep)!==next);
+  });
+  $('confirmCard')?.classList.add('hidden');
+  document.querySelectorAll('.wizardProgressItem').forEach(item=>{
+    const n=Number(item.dataset.wizardStep);
+    item.classList.toggle('active',n===next);
+    item.classList.toggle('done',n<next);
+    item.setAttribute('aria-current',n===next?'step':'false');
+  });
+  if(next===1&&selectedMenu)$('menus')?.classList.remove('hidden');
+  updateWizardSummaries();
+  if(scroll){
+    const target=document.querySelector('.bookingWizardCard[data-booking-step="'+next+'"]');
+    if(target)requestAnimationFrame(()=>target.scrollIntoView({behavior:'smooth',block:'start'}));
+  }
+}
+
+function showBookingConfirm(){
+  document.querySelectorAll('.bookingWizardCard').forEach(card=>card.classList.add('hidden'));
+  $('confirmCard').classList.remove('hidden');
+  requestAnimationFrame(()=>$('confirmCard').scrollIntoView({behavior:'smooth',block:'start'}));
+}
 const params=new URLSearchParams(location.search),manageToken=params.get('manage');
 let bookingGuideTimer=null;
 function bookingGuideSay(text,mode='talk',hideAfter=4400){
@@ -351,10 +399,89 @@ function loadLatestManage(){if(manageToken)return;const t=localStorage.getItem('
 async function invokeNotification(body){try{const{error}=await supabase.functions.invoke('nakano-booking-notify',{body});if(error){console.error(error);return false}return true}catch(e){console.error(e);return false}}
 async function initLine(){if(manageToken){$('lineStatus').textContent='ご予約内容の確認・変更ができます。';return null}try{if(!window.liff)throw Error('LIFF SDK not loaded');await liff.init({liffId:LIFF_ID});if(!liff.isLoggedIn()){ $('lineStatus').textContent='LINE連携のためログイン画面へ移動します…';liff.login({redirectUri:BASE_URL});return null}const p=await liff.getProfile();lineUser={userId:p.userId,displayName:p.displayName||''};$('lineStatus').textContent='LINEで予約完了のお知らせを受け取れます。';const filled=await fillCustomerProfileFromLine(lineUser.userId);if(!filled)loadSavedCustomerProfile();return lineUser}catch(e){console.error(e);$('lineStatus').textContent='オンライン予約をご利用いただけます。';loadSavedCustomerProfile();return null}}
 const lineReadyPromise=initLine();
-async function loadMenus(){const{data,error}=await supabase.from('nakano_menus').select('*').eq('is_active',true).order('display_order');if(error){$('menus').innerHTML='<span class="muted">メニューを読み込めませんでした。</span>';return}menus=data||[];if(!manageToken){$('menus').innerHTML='';menus.forEach(menu=>{const b=document.createElement('button');b.className='menu';b.dataset.menuId=String(menu.id);b.innerHTML=`<div><div class="menuName">${esc(menu.name)}</div>${menu.minutes?`<div class="menuSub">${Number(menu.minutes)}分</div>`:''}</div><div class="menuPrice">${yen(menu.price)}</div>`;b.onclick=()=>{if(bookingInProgress)return;document.querySelectorAll('.menu').forEach(x=>x.classList.remove('active'));b.classList.add('active');selectedMenu=menu;selectedTime=null;$('confirmCard').classList.add('hidden');loadSlots();bookingGuideSay(bookingMenuGuideText(menu),'talk',5200);setTimeout(()=>{const dateCard=$('date').closest('.card');if(dateCard){const top=dateCard.getBoundingClientRect().top+window.scrollY-18;window.scrollTo({top,behavior:'smooth'})}},120)};$('menus').appendChild(b)})}$('manageMenu').innerHTML='<option value="">メニューを選択</option>'+menus.map(m=>`<option value="${esc(m.id)}">${esc(m.name)}　${yen(m.price)}</option>`).join('')}
+async function loadMenus(){
+  const{data,error}=await supabase.from('nakano_menus').select('*').eq('is_active',true).order('display_order');
+  if(error){$('menus').innerHTML='<span class="muted">メニューを読み込めませんでした。</span>';return}
+  menus=data||[];
+  if(!manageToken){
+    $('menus').innerHTML='';
+    menus.forEach(menu=>{
+      const button=document.createElement('button');
+      button.className='menu';
+      button.dataset.menuId=String(menu.id);
+      button.innerHTML='<div><div class="menuName">'+esc(menu.name)+'</div>'+(menu.minutes?'<div class="menuSub">'+Number(menu.minutes)+'分</div>':'')+'</div><div class="menuPrice">'+yen(menu.price)+'</div>';
+      button.onclick=()=>{
+        if(bookingInProgress)return;
+        document.querySelectorAll('.menu').forEach(x=>x.classList.remove('active'));
+        button.classList.add('active');
+        selectedMenu=menu;
+        selectedTime=null;
+        $('confirmCard').classList.add('hidden');
+        if($('date').value)loadSlots();
+        bookingGuideSay(bookingMenuGuideText(menu),'talk',4200);
+        showBookingStep(2);
+      };
+      $('menus').appendChild(button);
+    });
+  }
+  $('manageMenu').innerHTML='<option value="">メニューを選択</option>'+menus.map(m=>'<option value="'+esc(m.id)+'">'+esc(m.name)+'　'+yen(m.price)+'</option>').join('');
+}
 function expandQuarterSlots(base,date){const sorted=(base||[]).filter(s=>!isPastSlot(date,s.start_time)).sort((a,b)=>String(a.start_time).localeCompare(String(b.start_time))),mins=new Set(sorted.map(s=>timeToMinutes(s.start_time))),all=new Map(sorted.map(s=>[timeToMinutes(s.start_time),{...s,isQuarter:false}]));for(const m of [...mins])if(mins.has(m+30)){const q=m+15;if(!isPastSlot(date,minutesToTime(q)))all.set(q,{start_time:minutesToTime(q),isQuarter:true})}return [...all.entries()].sort((a,b)=>a[0]-b[0]).map(x=>x[1])}
 async function getAvailableSlots(menuId,date){if(!menuId||!date)return[];const{data,error}=await supabase.rpc('nakano_available_slots',{p_date:date,p_menu_id:menuId});if(error){console.error(error);return[]}return expandQuarterSlots(data||[],date)}
-async function loadSlots(){const box=$('slots');box.innerHTML='';selectedTime=null;$('confirmCard').classList.add('hidden');if(!selectedMenu||!$('date').value){box.innerHTML='<span class="muted">メニューと日付を選択してください。</span>';return}box.innerHTML='<span class="muted">空き時間を確認しています…</span>';const slots=await getAvailableSlots(selectedMenu.id,$('date').value);box.innerHTML='';if(!slots.length){box.innerHTML='<span class="muted">この日は現在ご予約いただける時間がありません。</span>';return}const groups=new Map();slots.forEach(s=>{const hour=String(s.start_time).slice(0,2);if(!groups.has(hour))groups.set(hour,[]);groups.get(hour).push(s)});let first=true;for(const[hour,list]of groups){const group=document.createElement('div');group.className='hourGroup'+(first?' open':'');first=false;const summary=document.createElement('button');summary.type='button';summary.className='hourSummary';summary.innerHTML=`<span>${Number(hour)}時</span><span>${list.length}枠 空き</span>`;const choices=document.createElement('div');choices.className='hourChoices';list.forEach(s=>{const b=document.createElement('button');b.type='button';b.className='slot';const minute=String(s.start_time).slice(3,5);b.innerHTML=`<span class="slotMinute">${minute}</span><span class="slotFullTime">${String(s.start_time).slice(0,5)}</span>`;b.onclick=()=>{document.querySelectorAll('.slot').forEach(x=>x.classList.remove('active'));b.classList.add('active');selectedTime=s.start_time;$('confirmCard').classList.add('hidden');bookingGuideSay('時間を選びました。あとはお客様情報を入力すれば予約できます。','done',5000)};choices.appendChild(b)});summary.onclick=()=>group.classList.toggle('open');group.append(summary,choices);box.appendChild(group)}}
+async function loadSlots(){
+  const box=$('slots');
+  box.innerHTML='';
+  selectedTime=null;
+  $('confirmCard').classList.add('hidden');
+  if(!selectedMenu||!$('date').value){
+    box.innerHTML='<span class="muted">メニューと日付を選択してください。</span>';
+    return;
+  }
+  box.innerHTML='<span class="muted">空き時間を確認しています…</span>';
+  const slots=await getAvailableSlots(selectedMenu.id,$('date').value);
+  box.innerHTML='';
+  if(!slots.length){
+    box.innerHTML='<span class="muted">この日は現在ご予約いただける時間がありません。</span>';
+    return;
+  }
+  const groups=new Map();
+  slots.forEach(slot=>{
+    const hour=String(slot.start_time).slice(0,2);
+    if(!groups.has(hour))groups.set(hour,[]);
+    groups.get(hour).push(slot);
+  });
+  let first=true;
+  for(const[hour,list]of groups){
+    const group=document.createElement('div');
+    group.className='hourGroup'+(first?' open':'');
+    first=false;
+    const summary=document.createElement('button');
+    summary.type='button';
+    summary.className='hourSummary';
+    summary.innerHTML='<span>'+Number(hour)+'時</span><span>'+list.length+'枠 空き</span>';
+    const choices=document.createElement('div');
+    choices.className='hourChoices';
+    list.forEach(slot=>{
+      const button=document.createElement('button');
+      button.type='button';
+      button.className='slot';
+      const minute=String(slot.start_time).slice(3,5);
+      button.innerHTML='<span class="slotMinute">'+minute+'</span><span class="slotFullTime">'+String(slot.start_time).slice(0,5)+'</span>';
+      button.onclick=()=>{
+        document.querySelectorAll('.slot').forEach(x=>x.classList.remove('active'));
+        button.classList.add('active');
+        selectedTime=slot.start_time;
+        $('confirmCard').classList.add('hidden');
+        bookingGuideSay('時間を選びました。あとはお客様情報を入力すれば予約できます。','done',4200);
+        showBookingStep(4);
+      };
+      choices.appendChild(button);
+    });
+    summary.onclick=()=>group.classList.toggle('open');
+    group.append(summary,choices);
+    box.appendChild(group);
+  }
+}
 let bodyCheckConcern='',bodyCheckSeverity='',bodyCheckDepth='',bodyCheckStepIndex=0;
 const bodyCheckAnswers=[];
 const bodyCheckQuestions=[
@@ -554,25 +681,14 @@ function selectRecommendedMenuFromQuery(){
   if(!menuId)return;
   const menusRoot=$('menus');
   const select=()=>{
-    const button=Array.from(menusRoot.querySelectorAll('.menu')).find(b=>b.dataset.menuId===String(menuId));
+    const button=Array.from(menusRoot.querySelectorAll('.menu')).find(x=>x.dataset.menuId===String(menuId));
     if(!button)return false;
+    $('menus').classList.remove('hidden');
     button.click();
-    const fromCheck=url.searchParams.get('fromcheck')==='1';
     url.searchParams.delete('menu');
     url.searchParams.delete('fromcheck');
     history.replaceState(null,'',url.pathname+(url.search||''));
-    if(fromCheck){
-      const scrollToDateCard=()=>{
-        const dateCard=$('date').closest('.card');
-        const target=dateCard||$('date');
-        const top=target.getBoundingClientRect().top+window.scrollY-18;
-        window.scrollTo({top,behavior:'smooth'});
-      };
-      setTimeout(scrollToDateCard,320);
-      setTimeout(scrollToDateCard,820);
-    }else{
-      setTimeout(()=>button.scrollIntoView({behavior:'smooth',block:'center'}),160);
-    }
+    showBookingStep(2);
     return true;
   };
   if(select())return;
@@ -580,11 +696,50 @@ function selectRecommendedMenuFromQuery(){
   observer.observe(menusRoot,{childList:true,subtree:true});
   setTimeout(()=>observer.disconnect(),5000);
 }
+$('menuKnown').onclick=()=>{
+  $('bodyCheck').classList.add('hidden');
+  $('menus').classList.remove('hidden');
+  bookingGuideSay('受けたいメニューを選んでください。','talk',3200);
+};
+
+$('menuUnknown').onclick=()=>{
+  location.href='./body-check.html';
+};
+
+document.querySelectorAll('[data-wizard-back]').forEach(button=>{
+  button.onclick=()=>showBookingStep(Number(button.dataset.wizardBack));
+});
+
+document.querySelectorAll('.wizardProgressItem').forEach(button=>{
+  button.onclick=()=>{
+    const step=Number(button.dataset.wizardStep);
+    if(canOpenBookingStep(step))showBookingStep(step);
+  };
+});
+
+showBookingStep(1,{scroll:false});
 selectRecommendedMenuFromQuery();
 
-$('date').min=todayJapan();$('manageDate').min=todayJapan();$('date').onchange=()=>{selectedTime=null;bookingGuideSay('日付を選びました。空いている時間を確認しています…','thinking',3600);loadSlots()};
-$('confirmBooking').onclick=()=>{const name=$('name').value.trim(),tel=$('tel').value.trim(),memo=$('memo').value.trim();$('msg').textContent='';if(!selectedMenu)return $('msg').textContent='メニューを選択してください。';if(!$('date').value)return $('msg').textContent='日付を選択してください。';if(!selectedTime)return $('msg').textContent='時間を選択してください。';if(!name)return $('msg').textContent='お名前を入力してください。';if(!phoneIsValid(tel))return $('msg').textContent='電話番号を確認してください。';$('confirmSummary').innerHTML=summaryHtml([['メニュー',selectedMenu.name],['日時',`${formatDate($('date').value)} ${String(selectedTime).slice(0,5)}`],['料金',yen(selectedMenu.price)],['お名前',name],['電話番号',tel],['症状・部位',memo||'未入力']]);$('confirmCard').classList.remove('hidden');$('confirmCard').scrollIntoView({behavior:'smooth',block:'start'})};
-$('backToEdit').onclick=()=>{$('confirmCard').classList.add('hidden');$('bookingArea').scrollIntoView({behavior:'smooth',block:'start'})};
+$('date').min=todayJapan();$('manageDate').min=todayJapan();$('date').onchange=async()=>{selectedTime=null;bookingGuideSay('日付を選びました。空いている時間を確認しています…','thinking',3600);showBookingStep(3);await loadSlots()};
+$('confirmBooking').onclick=()=>{
+  const name=$('name').value.trim(),tel=$('tel').value.trim(),memo=$('memo').value.trim();
+  $('msg').textContent='';
+  if(!selectedMenu)return $('msg').textContent='メニューを選択してください。';
+  if(!$('date').value)return $('msg').textContent='日付を選択してください。';
+  if(!selectedTime)return $('msg').textContent='時間を選択してください。';
+  if(!name)return $('msg').textContent='お名前を入力してください。';
+  if(!phoneIsValid(tel))return $('msg').textContent='電話番号を確認してください。';
+  $('confirmSummary').innerHTML=summaryHtml([
+    ['メニュー',selectedMenu.name],
+    ['日時',formatDate($('date').value)+' '+String(selectedTime).slice(0,5)],
+    ['料金',yen(selectedMenu.price)],
+    ['お名前',name],
+    ['電話番号',tel],
+    ['症状・部位',memo||'未入力']
+  ]);
+  showBookingConfirm();
+};
+$('backToEdit').onclick=()=>{showBookingStep(4)};
 async function finishBookingSetup({bookingId,bookingDate,bookingTime,bookingMenu,name,tel,memo}){
   try{
     let currentLine=lineUser;
@@ -704,7 +859,21 @@ $('book').onclick=async()=>{
     $('book').textContent='この内容で予約する';
   }
 };
-$('newBooking').onclick=()=>{selectedMenu=null;selectedTime=null;$('memo').value='';$('date').value='';$('karteGuide').classList.add('hidden');document.querySelectorAll('.menu,.slot').forEach(x=>x.classList.remove('active'));$('slots').innerHTML='<span class="muted">メニューと日付を選択してください。</span>';$('confirmCard').classList.add('hidden');$('successArea').classList.add('hidden');$('bookingArea').classList.remove('hidden');scrollTo({top:0,behavior:'smooth'})};
+$('newBooking').onclick=()=>{
+  selectedMenu=null;
+  selectedTime=null;
+  $('memo').value='';
+  $('date').value='';
+  $('karteGuide').classList.add('hidden');
+  document.querySelectorAll('.menu,.slot').forEach(x=>x.classList.remove('active'));
+  $('menus').classList.add('hidden');
+  $('bodyCheck').classList.add('hidden');
+  $('slots').innerHTML='<span class="muted">メニューと日付を選択してください。</span>';
+  $('confirmCard').classList.add('hidden');
+  $('successArea').classList.add('hidden');
+  $('bookingArea').classList.remove('hidden');
+  showBookingStep(1);
+};
 async function loadManageBooking(){if(!manageToken)return;localStorage.setItem('nakano_latest_manage_token',manageToken);$('bookingArea').classList.add('hidden');$('successArea').classList.add('hidden');$('latestManage').classList.add('hidden');$('manageArea').classList.remove('hidden');$('manageLoading').classList.remove('hidden');$('manageError').textContent='';const{data,error}=await supabase.rpc('nakano_customer_get_upcoming_bookings',{p_token:manageToken});$('manageLoading').classList.add('hidden');if(error){$('manageError').textContent='ご予約を確認できませんでした。URLをご確認ください。';return}manageBookings=Array.isArray(data)?data:[];renderManageBookings()}
 function renderManageBookings(){const box=$('manageList');box.innerHTML='';if(!manageBookings.length){box.innerHTML='<div class="notice">現在、変更できる今後のご予約はありません。</div>';return}manageBookings.forEach(b=>{const item=document.createElement('div'),time=String(b.start_time||'').slice(0,5);item.className='manageBookingItem';item.innerHTML=`<div class="manageBookingDate">${esc(formatDate(b.booking_date))} ${esc(time)}</div><div class="manageBookingMenu">${esc(b.menu_name||'')}${b.price!=null?`　${esc(yen(b.price))}`:''}</div><div class="manageBookingMeta">${b.customer_name?`お名前：${esc(b.customer_name)}<br>`:''}${b.phone?`電話番号：${esc(b.phone)}`:''}</div><div class="actions"><button class="secondary" type="button" data-action="edit">予約を変更</button><button class="danger" type="button" data-action="cancel">キャンセル</button></div>`;item.querySelector('[data-action=edit]').onclick=()=>openBookingEdit(b);item.querySelector('[data-action=cancel]').onclick=()=>cancelBooking(b);box.appendChild(item)})}
 async function openBookingEdit(b){manageBooking=b;$('manageResultMsg').classList.add('hidden');$('manageError').textContent='';$('manageEditMsg').textContent='';$('manageMenu').value=b.menu_id;$('manageDate').value=b.booking_date;$('editingBookingSummary').innerHTML=`変更する予約：<strong>${esc(formatDate(b.booking_date))} ${esc(String(b.start_time).slice(0,5))}　${esc(b.menu_name||'')}</strong>`;await loadManageTimes();$('manageEditCard').classList.remove('hidden');$('manageEditCard').scrollIntoView({behavior:'smooth',block:'start'})}

@@ -1,8 +1,8 @@
 {
   "id": "/seitai-nakano-booking/",
-  "name": "整体なかの オンライン予約",
-  "short_name": "整体なかの",
-  "description": "整体なかののオンライン予約",
+  "name": "完全紹介制サロン整体なかの オンライン予約",
+  "short_name": "完全紹介制サロン整体なかの",
+  "description": "完全紹介制サロン整体なかののオンライン予約",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

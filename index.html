@@ -751,8 +751,60 @@ body.bookingSplashReveal main{
   font-weight:900;
   letter-spacing:.05em;
 }
+
+/* official-name splash + simplified post-splash header */
+.bookingSplashOfficial{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:.34rem;
+  margin-top:.1rem;
+}
+.bookingSplashPrefix{
+  color:#3f3430;
+  font-size:clamp(.78rem,3.6vw,.96rem);
+  line-height:1.3;
+  font-weight:900;
+  letter-spacing:.08em;
+  opacity:0;
+  transform:translateY(.3rem);
+  animation:bookingReservationReveal .46s ease .12s forwards;
+}
+.bookingSplashName{
+  margin-top:0!important;
+}
+.bookingSplashKicker{
+  display:block!important;
+  min-height:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:#74645d!important;
+  font-size:.67rem!important;
+  letter-spacing:.18em!important;
+  animation:bookingReservationReveal .42s ease 2.18s forwards!important;
+}
+.bookingSplash.textOut .bookingSplashOfficial,
+.bookingSplash.textOut .bookingSplashText{
+  opacity:0;
+  transform:translateY(.45rem);
+  transition:opacity .45s ease,transform .45s ease;
+}
+.brandTopBar{
+  gap:.55rem!important;
+  margin-bottom:.5rem!important;
+}
+.brandTopText{
+  display:flex!important;
+  align-items:center!important;
+  min-height:2rem;
+}
+.brandTopMode{display:none!important}
+.bookingIntroReferral{display:none!important}
 </style>
-<script src="./customer-brand.js?v=20261007-1" defer></script>
+<script src="./customer-brand.js?v=20261007-2" defer></script>
 <link rel="manifest" href="./manifest.webmanifest?v=20261007-1">
 <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=20260816-1">
 <meta name="mobile-web-app-capable" content="yes">
@@ -765,11 +817,14 @@ body.bookingSplashReveal main{
 <div class="bookingSplash" id="bookingSplash" aria-label="完全紹介制サロン整体なかの ONLINE RESERVATION">
   <div class="bookingSplashInner">
     <img class="bookingSplashLogo" src="./assets/nakano-logo.png?v=20260816-2" alt="完全紹介制サロン整体なかの">
-    <div class="bookingSplashName" aria-label="完全紹介制サロン整体なかの">
-      <span>整</span><span>体</span><span>な</span><span>か</span><span>の</span>
+    <div class="bookingSplashOfficial" aria-label="完全紹介制サロン整体なかの">
+      <div class="bookingSplashPrefix">完全紹介制サロン</div>
+      <div class="bookingSplashName" aria-hidden="true">
+        <span>整</span><span>体</span><span>な</span><span>か</span><span>の</span>
+      </div>
     </div>
     <div class="bookingSplashText">
-      <div class="bookingSplashKicker">完全紹介制サロン整体なかの</div>
+      <div class="bookingSplashKicker">SEITAI NAKANO</div>
       <div class="bookingSplashTitle">ONLINE RESERVATION</div>
       <div class="bookingSplashLead">オンライン予約</div>
     </div>
@@ -1742,6 +1797,6 @@ document.addEventListener('click',function(e){
   }catch{}
 },true);
 </script>
-<script src="./pwa-register.js?v=20261007-1" defer></script>
+<script src="./pwa-register.js?v=20261007-2" defer></script>
 
 </body></html>

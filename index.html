@@ -637,23 +637,35 @@ body.bookingSplashReveal main{
 .bookingSplashName span{
   display:inline-block;
   opacity:0;
-  transform:translateY(.8rem) rotate(4deg) scale(.92);
-  filter:blur(2px);
-  animation:bookingLetterIn .46s cubic-bezier(.2,.8,.25,1.15) forwards;
+  transform:translateY(.5rem) scale(.96);
+  filter:blur(1px);
+  animation:bookingLetterIn .72s cubic-bezier(.2,.78,.24,1.08) forwards;
 }
-.bookingSplashName span:nth-child(1){animation-delay:.26s}
-.bookingSplashName span:nth-child(2){animation-delay:.43s}
-.bookingSplashName span:nth-child(3){animation-delay:.60s}
-.bookingSplashName span:nth-child(4){animation-delay:.77s}
-.bookingSplashName span:nth-child(5){animation-delay:.94s}
+.bookingSplashName span:nth-child(1){animation-delay:.45s}
+.bookingSplashName span:nth-child(2){animation-delay:.78s}
+.bookingSplashName span:nth-child(3){animation-delay:1.11s}
+.bookingSplashName span:nth-child(4){animation-delay:1.44s}
+.bookingSplashName span:nth-child(5){animation-delay:1.77s}
 @keyframes bookingLetterIn{
-  0%{opacity:0;transform:translateY(.8rem) rotate(4deg) scale(.92);filter:blur(2px)}
-  70%{opacity:1;transform:translateY(-.08rem) rotate(-.5deg) scale(1.025);filter:blur(0)}
-  100%{opacity:1;transform:translateY(0) rotate(0) scale(1);filter:blur(0)}
+  0%{opacity:0;transform:translateY(.5rem) scale(.96);filter:blur(1px)}
+  72%{opacity:1;transform:translateY(-.03rem) scale(1.01);filter:blur(0)}
+  100%{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}
 }
 .bookingSplashKicker{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:2rem;
+  padding:.38rem .78rem;
+  border:1px solid rgba(85,19,15,.24);
+  border-radius:999px;
+  background:rgba(255,255,255,.46);
+  color:#55130f!important;
+  font-size:.78rem!important;
+  font-weight:900!important;
+  letter-spacing:.08em!important;
   opacity:0;
-  animation:bookingReservationReveal .4s ease 1.12s forwards;
+  animation:bookingReservationReveal .5s ease .12s forwards;
 }
 .bookingSplashTitle{
   margin-top:.3rem!important;
@@ -664,7 +676,7 @@ body.bookingSplashReveal main{
   color:#55130f!important;
   opacity:0;
   transform:translateY(.45rem);
-  animation:bookingReservationReveal .5s cubic-bezier(.2,.75,.25,1) 1.28s forwards;
+  animation:bookingReservationReveal .62s cubic-bezier(.2,.75,.25,1) 2.38s forwards;
 }
 .bookingSplashLead{
   margin-top:.5rem!important;
@@ -673,7 +685,7 @@ body.bookingSplashReveal main{
   letter-spacing:.08em;
   color:#74665f!important;
   opacity:0;
-  animation:bookingReservationReveal .42s ease 1.48s forwards;
+  animation:bookingReservationReveal .48s ease 2.72s forwards;
 }
 @keyframes bookingReservationReveal{
   from{opacity:0;transform:translateY(.45rem)}
@@ -723,8 +735,24 @@ body.bookingSplashReveal main{
     animation:none!important;
   }
 }
+
+.bookingIntroReferral{
+  display:inline-flex;
+  align-items:center;
+  min-height:1.8rem;
+  margin-bottom:.48rem;
+  padding:.3rem .62rem;
+  border:1px solid #ccb7ae;
+  border-radius:999px;
+  background:#eee3dc;
+  color:#55130f;
+  font-size:.74rem;
+  line-height:1.2;
+  font-weight:900;
+  letter-spacing:.05em;
+}
 </style>
-<script src="./customer-brand.js?v=20261006-3" defer></script>
+<script src="./customer-brand.js?v=20261006-4" defer></script>
 <link rel="manifest" href="./manifest.webmanifest?v=20260816-1">
 <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=20260816-1">
 <meta name="mobile-web-app-capable" content="yes">
@@ -741,7 +769,7 @@ body.bookingSplashReveal main{
       <span>整</span><span>体</span><span>な</span><span>か</span><span>の</span>
     </div>
     <div class="bookingSplashText">
-      <div class="bookingSplashKicker">SEITAI NAKANO</div>
+      <div class="bookingSplashKicker">完全紹介制サロン</div>
       <div class="bookingSplashTitle">ONLINE RESERVATION</div>
       <div class="bookingSplashLead">オンライン予約</div>
     </div>

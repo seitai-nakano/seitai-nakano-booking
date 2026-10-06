@@ -106,6 +106,25 @@ body{
 .menuPrice{
   color:#55130f!important
 }
+.bookingWizardProgress{display:flex;align-items:center;justify-content:space-between;gap:5px;margin:4px 0 14px;padding:10px 8px;border:1px solid #d3c5bc;border-radius:14px;background:#f4ece6}
+.bookingWizardProgress>i{flex:1;height:2px;background:#d4c8bf;border-radius:999px}
+.wizardProgressItem{display:flex;flex-direction:column;align-items:center;gap:3px;width:auto!important;margin:0!important;padding:0!important;border:0!important;background:transparent!important;color:#8a8179!important;font-weight:700}
+.wizardProgressItem span{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;border:1px solid #c9bbb1;background:#f8f4f0;font-size:13px}
+.wizardProgressItem small{font-size:9px;white-space:nowrap}
+.wizardProgressItem.active{color:#55130f!important}
+.wizardProgressItem.active span{border-color:#55130f;background:#55130f;color:#fff}
+.wizardProgressItem.done span{border-color:#8e756e;background:#e1d2ca;color:#4b2c28}
+.bookingWizardCard{animation:wizardFade .18s ease-out}
+@keyframes wizardFade{from{opacity:.35;transform:translateY(5px)}to{opacity:1;transform:none}}
+.menuDecision{padding:15px;border:1px solid #c8b8ae;border-radius:14px;background:#e8ddd5}
+.menuDecisionTitle{font-size:17px;font-weight:900;color:#2b2724}
+.menuDecisionSub{margin-top:5px;font-size:12px;line-height:1.65;color:#625b55}
+.menuDecisionButtons{display:grid;grid-template-columns:1fr;gap:9px;margin-top:13px}
+.menuDecisionButton{width:100%;margin:0!important;padding:13px 12px!important;border:1px solid #bdaea4!important;border-radius:12px!important;background:#f8f4f0!important;color:#3d3733!important;font-weight:800!important}
+.menuDecisionButton.accent{background:#5d1511!important;border-color:#5d1511!important;color:#fff!important}
+.wizardSelectedSummary{margin:0 0 13px;padding:10px 12px;border-radius:11px;background:#e8ddd5;color:#4f4741;font-size:12px;font-weight:700;line-height:1.55}
+.wizardBack{width:100%;margin-top:13px;padding:10px 12px;border:0;background:transparent;color:#6c655f;font-size:12px;font-weight:700;text-decoration:underline}
+@media(min-width:460px){.menuDecisionButtons{grid-template-columns:1fr 1fr}.wizardProgressItem small{font-size:10px}}
 </style>
 <script src="./customer-brand.js?v=png-20260816-2" defer></script>
 <link rel="manifest" href="./manifest.webmanifest?v=20260816-1">
@@ -120,11 +139,66 @@ body{
 <header class="header"><h1>整体なかの</h1><p class="subtitle">オンライン予約</p><div id="lineStatus" class="lineBox">LINEとの連携を確認しています…</div></header>
 <div id="latestManage" class="manageBanner hidden">予約済みの内容を確認・変更する場合は <a id="latestManageLink" href="#">こちら</a></div>
 <div id="bookingArea">
-<section class="card" id="menuCard"><h2><span class="step">1</span>メニューを選択</h2><div class="bodyCheck" id="bodyCheck"><div class="bodyCheckIntro"><div class="bodyCheckTitle">メニューに迷ったら お体チェック</div><div class="bodyCheckSub">2つの質問から、今のお悩みに合いそうなコースをご案内します。</div><button class="bodyCheckStart" id="bodyCheckStart" type="button">お体チェックをする</button></div><div class="bodyCheckPanel hidden" id="bodyCheckPanel"><div class="bodyCheckQuestion">1. 今いちばん気になるのは？</div><div class="bodyCheckChoices" id="bodyCheckConcern"><button class="bodyCheckChoice" type="button" data-value="part">首・肩・腰など一部</button><button class="bodyCheckChoice" type="button" data-value="whole">全身の疲れ・だるさ</button><button class="bodyCheckChoice" type="button" data-value="head">頭・目・首肩</button><button class="bodyCheckChoice" type="button" data-value="unsure">複数ある・決めにくい</button></div><div class="bodyCheckStep"><div class="bodyCheckQuestion">2. どれくらいしっかり受けたい？</div><div class="bodyCheckChoices" id="bodyCheckDepth"><button class="bodyCheckChoice" type="button" data-value="short">短めに</button><button class="bodyCheckChoice" type="button" data-value="standard">全身を一通り</button><button class="bodyCheckChoice" type="button" data-value="deep">じっくり</button></div></div><div class="bodyCheckResult hidden" id="bodyCheckResult"><div class="bodyCheckResultLabel">今のお悩みに合いそうなメニュー</div><div class="bodyCheckResultList" id="bodyCheckResultList"></div><div class="bodyCheckNote">おすすめ順の目安です。気になるメニューを選んでそのまま予約できます。医療上の診断ではありません。</div></div></div></div><div id="menus"><span class="muted">メニューを読み込んでいます…</span></div></section>
-<section class="card"><h2><span class="step">2</span>日付を選択</h2><input type="date" id="date"></section>
-<section class="card"><h2><span class="step">3</span>時間を選択</h2><p class="muted">「○時」をタップすると、00・15・30・45分の予約可能な時間が表示されます。</p><div id="slots" class="slots"><span class="muted">メニューと日付を選択してください。</span></div></section>
-<section class="card"><h2><span class="step">4</span>お客様情報</h2><p class="muted">2回目以降は、前回のお名前・電話番号を自動で表示します。</p><label>お名前<span class="required">必須</span><input id="name" autocomplete="name" placeholder="例：中野 太郎"></label><label>電話番号<span class="required">必須</span><input id="tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="例：09012345678"></label><label>気になる症状・部位<span class="optional">任意</span><textarea id="memo" placeholder="例：首・肩のこり、腰の重さなど"></textarea></label><div class="notice">ご入力いただいた情報は、ご予約管理およびご連絡のために使用します。</div><button class="primary" id="confirmBooking">予約内容を確認する</button><div id="msg" class="msg"></div></section>
-<section id="confirmCard" class="card hidden"><h2>予約内容の確認</h2><p class="muted">内容をご確認のうえ、予約を確定してください。</p><div id="confirmSummary" class="summary"></div><button class="primary" id="book">この内容で予約する</button><button class="secondary" id="backToEdit">内容を修正する</button><div id="confirmMsg" class="msg"></div></section>
+<nav class="bookingWizardProgress" id="bookingWizardProgress" aria-label="予約の進み具合">
+  <button type="button" class="wizardProgressItem active" data-wizard-step="1"><span>1</span><small>メニュー</small></button>
+  <i></i>
+  <button type="button" class="wizardProgressItem" data-wizard-step="2"><span>2</span><small>日付</small></button>
+  <i></i>
+  <button type="button" class="wizardProgressItem" data-wizard-step="3"><span>3</span><small>時間</small></button>
+  <i></i>
+  <button type="button" class="wizardProgressItem" data-wizard-step="4"><span>4</span><small>お客様情報</small></button>
+</nav>
+
+<section class="card bookingWizardCard" id="menuCard" data-booking-step="1">
+  <h2><span class="step">1</span>メニューを選択</h2>
+  <div class="menuDecision" id="menuDecision">
+    <div class="menuDecisionTitle">受けたいメニューは決まっていますか？</div>
+    <div class="menuDecisionSub">決まっていない場合は、お体の状態からおすすめをご案内します。</div>
+    <div class="menuDecisionButtons">
+      <button class="menuDecisionButton" id="menuKnown" type="button">メニューは決まっている</button>
+      <button class="menuDecisionButton accent" id="menuUnknown" type="button">どれが合うかわからない</button>
+    </div>
+  </div>
+  <div class="bodyCheck hidden" id="bodyCheck"></div>
+  <div id="menus" class="hidden"><span class="muted">メニューを読み込んでいます…</span></div>
+</section>
+
+<section class="card bookingWizardCard hidden" id="bookingStep2" data-booking-step="2">
+  <h2><span class="step">2</span>日付を選択</h2>
+  <div class="wizardSelectedSummary" id="wizardMenuSummary"></div>
+  <input type="date" id="date">
+  <button class="wizardBack" type="button" data-wizard-back="1">← メニュー選択に戻る</button>
+</section>
+
+<section class="card bookingWizardCard hidden" id="bookingStep3" data-booking-step="3">
+  <h2><span class="step">3</span>時間を選択</h2>
+  <div class="wizardSelectedSummary" id="wizardDateSummary"></div>
+  <p class="muted">「○時」をタップすると、00・15・30・45分の予約可能な時間が表示されます。</p>
+  <div id="slots" class="slots"><span class="muted">メニューと日付を選択してください。</span></div>
+  <button class="wizardBack" type="button" data-wizard-back="2">← 日付選択に戻る</button>
+</section>
+
+<section class="card bookingWizardCard hidden" id="bookingStep4" data-booking-step="4">
+  <h2><span class="step">4</span>お客様情報</h2>
+  <div class="wizardSelectedSummary" id="wizardTimeSummary"></div>
+  <p class="muted">2回目以降は、前回のお名前・電話番号を自動で表示します。</p>
+  <label>お名前<span class="required">必須</span><input id="name" autocomplete="name" placeholder="例：中野 太郎"></label>
+  <label>電話番号<span class="required">必須</span><input id="tel" type="tel" inputmode="tel" autocomplete="tel" placeholder="例：09012345678"></label>
+  <label>気になる症状・部位<span class="optional">任意</span><textarea id="memo" placeholder="例：首・肩のこり、腰の重さなど"></textarea></label>
+  <div class="notice">ご入力いただいた情報は、ご予約管理およびご連絡のために使用します。</div>
+  <button class="primary" id="confirmBooking">予約内容を確認する</button>
+  <button class="wizardBack" type="button" data-wizard-back="3">← 時間選択に戻る</button>
+  <div id="msg" class="msg"></div>
+</section>
+
+<section id="confirmCard" class="card hidden">
+  <h2>予約内容の確認</h2>
+  <p class="muted">内容をご確認のうえ、予約を確定してください。</p>
+  <div id="confirmSummary" class="summary"></div>
+  <button class="primary" id="book">この内容で予約する</button>
+  <button class="secondary" id="backToEdit">内容を修正する</button>
+  <div id="confirmMsg" class="msg"></div>
+</section>
 </div>
 <section id="successArea" class="success hidden"><div class="successTitle">ご予約が確定しました</div><div id="successDetail" class="summary"></div><div id="successLineText" class="successNote">予約内容をLINEでお送りします。</div><div id="karteGuide" class="karteGuide hidden"><div class="karteGuideTitle">初めてご来店の方へ</div>ご来店前に初回カルテをご入力ください。<br>一度ご入力いただければ、次回以降は原則ご記入いただく必要はありません。<a id="karteLink" href="#"><button class="primary" type="button">初回カルテを入力する</button></a></div><a id="manageLink" href="#"><button class="secondary" type="button">予約内容の確認・変更・キャンセル</button></a><button id="newBooking" class="secondary" type="button">別の予約をする</button></section>
 <section id="manageArea" class="hidden"><section class="card"><h2>今後のご予約一覧</h2><div id="manageLoading" class="muted">ご予約内容を確認しています…</div><div id="manageList"></div><div id="manageResultMsg" class="okmsg hidden"></div><div id="manageError" class="msg"></div></section><section id="manageEditCard" class="card hidden"><h2>予約を変更</h2><div id="editingBookingSummary" class="notice"></div><label>メニュー<select id="manageMenu"></select></label><label>日付<input type="date" id="manageDate"></label><label>時間<select id="manageTime"><option value="">時間を選択</option></select></label><button class="primary" id="saveManageEdit">この内容に変更する</button><button class="secondary" id="closeManageEdit">変更をやめる</button><div id="manageEditMsg" class="msg"></div></section><a href="./"><button class="secondary" type="button">新しく予約する</button></a></section>

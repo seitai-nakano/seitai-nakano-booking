@@ -17,6 +17,8 @@
   const isStandalone=()=>window.matchMedia?.('(display-mode: standalone)').matches===true||window.navigator.standalone===true;
   const ua=navigator.userAgent||'';
   const isIOS=/iPad|iPhone|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const isLineWebView=/\bLine\/[\d.]+/i.test(ua);
+  const isIOSSafari=isIOS&&/Safari/i.test(ua)&&!/(CriOS|FxiOS|EdgiOS|OPiOS|Line\/)/i.test(ua);
   const openedForInstall=new URL(location.href).searchParams.get('install')==='1';
 
   function addStyles(){
@@ -46,9 +48,9 @@
       guide.innerHTML=`
         <div class="nakanoInstallSheet" role="dialog" aria-modal="true" aria-label="ホーム画面に追加する方法">
           <div class="nakanoInstallSheetTitle">ホーム画面に追加</div>
-          <div class="nakanoInstallSheetSub">一度追加すると、次回からアイコンを1回タップするだけで予約画面を開けます。</div>
+          <div class="nakanoInstallSheetSub">完全紹介制サロン整体なかのを追加すると、次回からアイコンを1回タップするだけで予約画面を開けます。</div>
           <div class="nakanoInstallSteps">
-            <div class="nakanoInstallStep"><span class="nakanoInstallNo">1</span><div>${isIOS?'<span class="nakanoInstallShare">□↑</span> 画面下の「共有」ボタンをタップ':'ブラウザ右上のメニューを開く'}</div></div>
+            <div class="nakanoInstallStep"><span class="nakanoInstallNo">1</span><div>${isIOS?'<span class="nakanoInstallShare">□↑</span> Safariの「共有」ボタンをタップ':'ブラウザ右上のメニューを開く'}</div></div>
             <div class="nakanoInstallStep"><span class="nakanoInstallNo">2</span><div>「ホーム画面に追加」${isIOS?'を選ぶ':'または「アプリをインストール」を選ぶ'}</div></div>
             <div class="nakanoInstallStep"><span class="nakanoInstallNo">3</span><div>「追加」をタップして完了</div></div>
           </div>
@@ -63,6 +65,14 @@
 
   function openSafariForInstall(){
     const bridge=`${BROWSER_BRIDGE}?t=${Date.now()}`;
+    try{
+      if(window.liff?.isInClient?.()){
+        window.liff.openWindow({url:bridge,external:true});
+        return;
+      }
+    }catch(err){
+      console.warn('LIFF external browser open failed',err);
+    }
     const a=document.createElement('a');
     a.href=bridge;
     a.target='_blank';
@@ -74,7 +84,7 @@
   }
 
   async function handleInstall(){
-    if(isStandalone()){
+    if(isStandalone()||(isIOS&&isLineWebView)){
       openSafariForInstall();
       return;
     }
@@ -100,12 +110,15 @@
     if(!anchor)return;
     addStyles();
     const standalone=isStandalone();
+    const needsExternalIOS=isIOS&&(standalone||isLineWebView)&&!isIOSSafari;
     const card=document.createElement('div');
     card.className='nakanoInstallCard';
     card.id='nakanoInstallCard';
-    card.innerHTML=standalone
-      ?`<div class="nakanoInstallCopy"><div class="nakanoInstallTitle">別のホーム画面にも追加できます</div><div class="nakanoInstallSub">Safariで開いて、追加したいホーム画面に登録できます</div></div><button type="button" class="nakanoInstallBtn">Safariで開いて追加</button>`
-      :`<div class="nakanoInstallCopy"><div class="nakanoInstallTitle">次回からすぐ予約</div><div class="nakanoInstallSub">ホーム画面に追加すると、アプリのように1タップで開けます</div></div><button type="button" class="nakanoInstallBtn">ホーム画面に追加</button>`;
+    card.innerHTML=needsExternalIOS
+      ?`<div class="nakanoInstallCopy"><div class="nakanoInstallTitle">ホーム画面に追加する</div><div class="nakanoInstallSub">外部ブラウザで開いてから、iPhoneの共有メニューで「ホーム画面に追加」を選びます</div></div><button type="button" class="nakanoInstallBtn">Safariで開く</button>`
+      :standalone
+        ?`<div class="nakanoInstallCopy"><div class="nakanoInstallTitle">別のホーム画面にも追加できます</div><div class="nakanoInstallSub">外部ブラウザで開いて、追加したいホーム画面に登録できます</div></div><button type="button" class="nakanoInstallBtn">外部ブラウザで開く</button>`
+        :`<div class="nakanoInstallCopy"><div class="nakanoInstallTitle">次回からすぐ予約</div><div class="nakanoInstallSub">完全紹介制サロン整体なかのをホーム画面に追加すると、1タップで予約画面を開けます</div></div><button type="button" class="nakanoInstallBtn">ホーム画面に追加</button>`;
     card.querySelector('.nakanoInstallBtn')?.addEventListener('click',handleInstall);
     if(anchor.classList?.contains('header'))anchor.insertAdjacentElement('afterend',card);else anchor.prepend(card);
     installCard=card;

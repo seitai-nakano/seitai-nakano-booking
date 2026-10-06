@@ -1027,7 +1027,7 @@ async function shareSeitaiNakano(){
   const shareData={
     title:'完全紹介制サロン整体なかの',
     text:'完全紹介制で、普段は一般の新規予約を受けていない整体なんだけど、知り合いなら紹介で案内してもらえるみたい。\n「つらくなってから行く場所」というより、体のことを相談できる場所って感じ。\nもし合いそうなら、ここから見てみて。',
-    url:BASE_URL
+    url:BASE_URL+'?openExternalBrowser=1'
   };
   try{
     if(navigator.share){
@@ -1814,6 +1814,6 @@ document.addEventListener('click',function(e){
   }catch{}
 },true);
 </script>
-<script src="./pwa-register.js?v=20261007-3" defer></script>
+<script src="./pwa-register.js?v=20261007-4" defer></script>
 
 </body></html>

@@ -492,8 +492,135 @@ textarea{min-height:6.5rem}
   .brandTopName{font-size:.82rem}
   .bookingGuideAlways{max-width:8.7rem!important}
 }
+
+/* opening splash -> compact booking header */
+body.bookingSplashActive{overflow:hidden}
+body.bookingSplashActive main{
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+}
+body.bookingSplashReveal main{
+  opacity:1;
+  visibility:visible;
+  transition:opacity .42s ease .06s;
+}
+.bookingSplash{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  display:grid;
+  place-items:center;
+  min-height:100vh;
+  min-height:100dvh;
+  padding:clamp(1.2rem,5vw,2rem);
+  background:
+    radial-gradient(circle at 78% 18%,rgba(255,255,255,.9),transparent 34%),
+    linear-gradient(145deg,#eee4dd 0%,#dfcec3 55%,#d2bbb0 100%);
+  opacity:1;
+  transition:opacity .46s ease,visibility .46s ease;
+}
+.bookingSplashInner{
+  width:min(100%,34rem);
+  text-align:center;
+  transform:translateY(-2vh);
+}
+.bookingSplashLogo{
+  display:block;
+  width:min(86vw,28rem);
+  max-height:52vh;
+  margin:0 auto;
+  object-fit:contain;
+  filter:drop-shadow(0 12px 22px rgba(70,45,36,.09));
+  transform:scale(1);
+  transition:transform .62s cubic-bezier(.22,.8,.24,1),opacity .42s ease;
+}
+.bookingSplashText{
+  margin-top:.5rem;
+  opacity:1;
+  transform:translateY(0);
+  transition:opacity .48s ease,transform .48s ease;
+}
+.bookingSplashKicker{
+  font-size:.68rem;
+  font-weight:900;
+  letter-spacing:.18em;
+  color:#6f3a35;
+}
+.bookingSplashTitle{
+  margin-top:.4rem;
+  font-size:clamp(1.45rem,7vw,2rem);
+  font-weight:900;
+  line-height:1.25;
+  color:#2d2825;
+}
+.bookingSplashLead{
+  margin-top:.45rem;
+  font-size:.9rem;
+  line-height:1.65;
+  color:#675e58;
+}
+.bookingSplash.textOut .bookingSplashText{
+  opacity:0;
+  transform:translateY(.55rem);
+}
+.bookingSplash.textOut .bookingSplashLogo{
+  transform:scale(1.035);
+}
+.bookingSplash.exit{
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+}
+.bookingSplash.exit .bookingSplashLogo{
+  transform:scale(.96);
+}
+.brandTopBar{
+  margin:0 .1rem .35rem!important;
+}
+.brandTopLogo{
+  width:2rem!important;
+  height:2rem!important;
+}
+.brandTopName{
+  font-size:.82rem!important;
+}
+.brandTopMode{
+  font-size:.55rem!important;
+}
+.bookingIntro{
+  margin:.25rem 0 .65rem;
+  padding:.15rem .15rem 0;
+}
+.bookingIntroTitle{
+  margin:0!important;
+  font-size:clamp(1.3rem,5.5vw,1.65rem)!important;
+  line-height:1.28!important;
+  color:#211e1c!important;
+}
+.bookingIntroLead{
+  margin:.3rem 0 0!important;
+  font-size:.875rem!important;
+  line-height:1.6!important;
+  color:#625a54!important;
+}
+.bookingHero{display:none!important}
+.header>.lineBox{
+  margin:.45rem 0 .65rem!important;
+}
+.bookingWizardProgress{
+  margin-top:.15rem!important;
+}
+@media(max-width:380px){
+  .bookingSplashLogo{width:min(88vw,23rem);max-height:48vh}
+  .bookingSplashLead{font-size:.84rem}
+  .bookingIntroLead{font-size:.84rem!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .bookingSplash,.bookingSplashLogo,.bookingSplashText,body.bookingSplashReveal main{transition:none!important}
+}
 </style>
-<script src="./customer-brand.js?v=20261006-1" defer></script>
+<script src="./customer-brand.js?v=20261006-2" defer></script>
 <link rel="manifest" href="./manifest.webmanifest?v=20260816-1">
 <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=20260816-1">
 <meta name="mobile-web-app-capable" content="yes">
@@ -502,7 +629,18 @@ textarea{min-height:6.5rem}
 <meta name="apple-mobile-web-app-title" content="整体なかの">
 <meta name="theme-color" content="#55130f">
 </head>
-<body><main>
+<body class="bookingSplashActive">
+<div class="bookingSplash" id="bookingSplash" aria-label="整体なかの オンライン予約">
+  <div class="bookingSplashInner">
+    <img class="bookingSplashLogo" src="./assets/nakano-logo.png?v=20260816-2" alt="整体なかの">
+    <div class="bookingSplashText">
+      <div class="bookingSplashKicker">SEITAI NAKANO</div>
+      <div class="bookingSplashTitle">オンライン予約</div>
+      <div class="bookingSplashLead">ご希望のメニューと日時をお選びください。</div>
+    </div>
+  </div>
+</div>
+<main>
 <header class="header"><h1>整体なかの</h1><p class="subtitle">オンライン予約</p><div id="lineStatus" class="lineBox">LINEとの連携を確認しています…</div></header>
 <div id="latestManage" class="manageBanner hidden">予約済みの内容を確認・変更する場合は <a id="latestManageLink" href="#">こちら</a></div>
 <div id="bookingArea">

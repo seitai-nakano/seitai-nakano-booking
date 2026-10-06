@@ -536,7 +536,7 @@ body.bookingSplashReveal main{
   transition:transform .62s cubic-bezier(.22,.8,.24,1),opacity .42s ease;
 }
 .bookingSplashText{
-  margin-top:.5rem;
+  margin-top:.65rem;
   opacity:1;
   transform:translateY(0);
   transition:opacity .48s ease,transform .48s ease;
@@ -619,8 +619,112 @@ body.bookingSplashReveal main{
 @media(prefers-reduced-motion:reduce){
   .bookingSplash,.bookingSplashLogo,.bookingSplashText,body.bookingSplashReveal main{transition:none!important}
 }
+
+/* animated brand lettering + stronger English reservation identity */
+.bookingSplashName{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:.08em;
+  margin-top:.1rem;
+  min-height:2.45rem;
+  color:#3c2724;
+  font-size:clamp(1.35rem,6.8vw,2rem);
+  line-height:1;
+  font-weight:900;
+  letter-spacing:.04em;
+}
+.bookingSplashName span{
+  display:inline-block;
+  opacity:0;
+  transform:translateY(.8rem) rotate(4deg) scale(.92);
+  filter:blur(2px);
+  animation:bookingLetterIn .46s cubic-bezier(.2,.8,.25,1.15) forwards;
+}
+.bookingSplashName span:nth-child(1){animation-delay:.26s}
+.bookingSplashName span:nth-child(2){animation-delay:.43s}
+.bookingSplashName span:nth-child(3){animation-delay:.60s}
+.bookingSplashName span:nth-child(4){animation-delay:.77s}
+.bookingSplashName span:nth-child(5){animation-delay:.94s}
+@keyframes bookingLetterIn{
+  0%{opacity:0;transform:translateY(.8rem) rotate(4deg) scale(.92);filter:blur(2px)}
+  70%{opacity:1;transform:translateY(-.08rem) rotate(-.5deg) scale(1.025);filter:blur(0)}
+  100%{opacity:1;transform:translateY(0) rotate(0) scale(1);filter:blur(0)}
+}
+.bookingSplashKicker{
+  opacity:0;
+  animation:bookingReservationReveal .4s ease 1.12s forwards;
+}
+.bookingSplashTitle{
+  margin-top:.3rem!important;
+  font-size:clamp(1.28rem,6.2vw,1.82rem)!important;
+  font-weight:900!important;
+  letter-spacing:.105em!important;
+  line-height:1.18!important;
+  color:#55130f!important;
+  opacity:0;
+  transform:translateY(.45rem);
+  animation:bookingReservationReveal .5s cubic-bezier(.2,.75,.25,1) 1.28s forwards;
+}
+.bookingSplashLead{
+  margin-top:.5rem!important;
+  font-size:.8rem!important;
+  font-weight:750;
+  letter-spacing:.08em;
+  color:#74665f!important;
+  opacity:0;
+  animation:bookingReservationReveal .42s ease 1.48s forwards;
+}
+@keyframes bookingReservationReveal{
+  from{opacity:0;transform:translateY(.45rem)}
+  to{opacity:1;transform:translateY(0)}
+}
+.bookingSplash.textOut .bookingSplashName,
+.bookingSplash.textOut .bookingSplashText{
+  opacity:0;
+  transform:translateY(.45rem);
+  transition:opacity .45s ease,transform .45s ease;
+}
+.bookingIntro{
+  position:relative;
+  margin:.18rem 0 .68rem!important;
+  padding:.55rem .7rem .62rem!important;
+  border-left:3px solid #55130f;
+}
+.bookingIntroEyebrow{
+  color:#55130f;
+  font-size:clamp(.73rem,3.3vw,.84rem);
+  line-height:1.3;
+  font-weight:900;
+  letter-spacing:.16em;
+}
+.bookingIntroTitle{
+  margin:.22rem 0 0!important;
+  font-size:clamp(1.16rem,5vw,1.42rem)!important;
+  line-height:1.25!important;
+  color:#2a2522!important;
+  font-weight:850!important;
+}
+.bookingIntroLead{
+  margin:.32rem 0 0!important;
+  font-size:.86rem!important;
+  line-height:1.65!important;
+  color:#665c56!important;
+}
+@media(max-width:380px){
+  .bookingSplashName{font-size:1.45rem}
+  .bookingSplashTitle{letter-spacing:.075em!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .bookingSplashName span,.bookingSplashKicker,.bookingSplashTitle,.bookingSplashLead{
+    opacity:1!important;
+    transform:none!important;
+    filter:none!important;
+    animation:none!important;
+  }
+}
 </style>
-<script src="./customer-brand.js?v=20261006-2" defer></script>
+<script src="./customer-brand.js?v=20261006-3" defer></script>
 <link rel="manifest" href="./manifest.webmanifest?v=20260816-1">
 <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png?v=20260816-1">
 <meta name="mobile-web-app-capable" content="yes">
@@ -630,13 +734,16 @@ body.bookingSplashReveal main{
 <meta name="theme-color" content="#55130f">
 </head>
 <body class="bookingSplashActive">
-<div class="bookingSplash" id="bookingSplash" aria-label="整体なかの オンライン予約">
+<div class="bookingSplash" id="bookingSplash" aria-label="整体なかの ONLINE RESERVATION">
   <div class="bookingSplashInner">
     <img class="bookingSplashLogo" src="./assets/nakano-logo.png?v=20260816-2" alt="整体なかの">
+    <div class="bookingSplashName" aria-label="整体なかの">
+      <span>整</span><span>体</span><span>な</span><span>か</span><span>の</span>
+    </div>
     <div class="bookingSplashText">
       <div class="bookingSplashKicker">SEITAI NAKANO</div>
-      <div class="bookingSplashTitle">オンライン予約</div>
-      <div class="bookingSplashLead">ご希望のメニューと日時をお選びください。</div>
+      <div class="bookingSplashTitle">ONLINE RESERVATION</div>
+      <div class="bookingSplashLead">オンライン予約</div>
     </div>
   </div>
 </div>

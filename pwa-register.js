@@ -84,15 +84,50 @@
   }
 
   function openExternalBrowserForInstall(){
+    const target='https://seitai-nakano.github.io/seitai-nakano-booking/?install=1';
     const bridge=`${BROWSER_BRIDGE}?t=${Date.now()}`;
+
+    // LINE's own supported external-browser handoff is the first choice.
     try{
       if(window.liff?.isInClient?.()){
-        window.liff.openWindow({url:bridge,external:true});
+        window.liff.openWindow({url:target,external:true});
         return;
       }
     }catch(err){
       console.warn('LIFF external browser open failed',err);
     }
+
+    // iPhone/iPad: leave standalone/in-app mode and hand directly to Safari.
+    if(isIOS){
+      const safariUrl='x-safari-https://seitai-nakano.github.io/seitai-nakano-booking/?install=1';
+      location.href=safariUrl;
+      setTimeout(()=>{
+        if(document.visibilityState==='visible')showGuide();
+      },1400);
+      return;
+    }
+
+    // Android: hand the https URL to a browsable external browser activity.
+    if(isAndroid){
+      const fallback=encodeURIComponent(target);
+      const intent='intent://seitai-nakano.github.io/seitai-nakano-booking/?install=1#Intent;scheme=https;action=android.intent.action.VIEW;S.browser_fallback_url='+fallback+';end';
+      location.href=intent;
+      setTimeout(()=>{
+        if(document.visibilityState==='visible'){
+          const a=document.createElement('a');
+          a.href=bridge;
+          a.target='_blank';
+          a.rel='noopener external';
+          a.style.display='none';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(()=>a.remove(),500);
+        }
+      },1400);
+      return;
+    }
+
+    // Desktop/other fallback.
     const a=document.createElement('a');
     a.href=bridge;
     a.target='_blank';
@@ -139,8 +174,12 @@
       card.innerHTML=`<div class="nakanoInstallCopy"><div class="nakanoInstallTitle">ホーム画面に追加する</div><div class="nakanoInstallSub">Safariで開いて、共有メニューから「ホーム画面に追加」を選びます</div></div><button type="button" class="nakanoInstallBtn">Safariで開く</button>`;
     }else if(isLineWebView&&isAndroid){
       card.innerHTML=`<div class="nakanoInstallCopy"><div class="nakanoInstallTitle">ホーム画面に追加する</div><div class="nakanoInstallSub">Chromeなどの外部ブラウザで開いて、メニューから「ホーム画面に追加」を選びます</div></div><button type="button" class="nakanoInstallBtn">外部ブラウザで開く</button>`;
+    }else if(standalone&&isIOS){
+      card.innerHTML=`<div class="nakanoInstallCopy"><div class="nakanoInstallTitle">Safariで開く</div><div class="nakanoInstallSub">Safari本体で開いて、共有メニューから「ホーム画面に追加」を選びます</div></div><button type="button" class="nakanoInstallBtn">Safariで開く</button>`;
+    }else if(standalone&&isAndroid){
+      card.innerHTML=`<div class="nakanoInstallCopy"><div class="nakanoInstallTitle">ブラウザで開く</div><div class="nakanoInstallSub">Chromeなどのブラウザで開いて、メニューから「ホーム画面に追加」を選びます</div></div><button type="button" class="nakanoInstallBtn">ブラウザで開く</button>`;
     }else if(standalone){
-      card.innerHTML=`<div class="nakanoInstallCopy"><div class="nakanoInstallTitle">別のホーム画面にも追加できます</div><div class="nakanoInstallSub">外部ブラウザで開いて、追加したいホーム画面に登録できます</div></div><button type="button" class="nakanoInstallBtn">外部ブラウザで開く</button>`;
+      card.innerHTML=`<div class="nakanoInstallCopy"><div class="nakanoInstallTitle">ブラウザで開く</div><div class="nakanoInstallSub">外部ブラウザで開いて、追加したいホーム画面に登録できます</div></div><button type="button" class="nakanoInstallBtn">外部ブラウザで開く</button>`;
     }else{
       const sub=isIOS
         ?'Safariの共有メニューからホーム画面に追加できます'

@@ -3048,7 +3048,9 @@ async function setMonth(open){
 
   if(
     !confirm(
-      `${month} を全部${label}にしますか？`
+      open
+      ? `${month} を一括設定しますか？\n10:00〜20:00をOPEN、8:00〜9:45と20:15以降をCLOSEにします。`
+      : `${month} を全部CLOSEにしますか？`
     )
   ){
     return;
@@ -3081,6 +3083,14 @@ async function setMonth(open){
             time,
           is_open:
             open
+            ?
+            (
+              timeToMinutes(time)>=10*60
+              &&
+              timeToMinutes(time)<20*60+15
+            )
+            :
+            false
         });
       }
     }
@@ -3116,7 +3126,9 @@ async function setMonth(open){
 
 
     $('monthMsg').textContent=
-      `${month} を全部${label}にしました。`;
+      open
+      ? `${month} を設定しました。10:00〜20:00はOPEN、8:00〜9:45と20:15以降はCLOSEです。`
+      : `${month} を全部CLOSEにしました。`;
 
 
     if(

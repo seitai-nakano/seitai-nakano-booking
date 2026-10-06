@@ -17,8 +17,10 @@
   const isStandalone=()=>window.matchMedia?.('(display-mode: standalone)').matches===true||window.navigator.standalone===true;
   const ua=navigator.userAgent||'';
   const isIOS=/iPad|iPhone|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const isAndroid=/Android/i.test(ua);
   const isLineWebView=/\bLine\/[\d.]+/i.test(ua);
   const isIOSSafari=isIOS&&/Safari/i.test(ua)&&!/(CriOS|FxiOS|EdgiOS|OPiOS|Line\/)/i.test(ua);
+  const isAndroidChrome=isAndroid&&/(Chrome|CriOS)/i.test(ua)&&!/EdgA|OPR|SamsungBrowser|Line\//i.test(ua);
   const openedForInstall=new URL(location.href).searchParams.get('install')==='1';
 
   function addStyles(){
@@ -45,13 +47,31 @@
     if(!guide){
       guide=document.createElement('div');
       guide.className='nakanoInstallGuide hidden';
+
+      let step1='';
+      let step2='';
+      let sub='';
+      if(isIOS){
+        sub='iPhoneではSafariの共有メニューからホーム画面に追加できます。';
+        step1='<span class="nakanoInstallShare">□↑</span> Safariの「共有」ボタンをタップ';
+        step2='「ホーム画面に追加」を選ぶ';
+      }else if(isAndroid){
+        sub='AndroidではChromeなどのブラウザからホーム画面に追加できます。';
+        step1=isAndroidChrome?'右上の「︙」メニューを開く':'ブラウザのメニューを開く';
+        step2='「ホーム画面に追加」または「アプリをインストール」を選ぶ';
+      }else{
+        sub='ブラウザのメニューからホーム画面に追加できます。';
+        step1='ブラウザのメニューを開く';
+        step2='「ホーム画面に追加」または「アプリをインストール」を選ぶ';
+      }
+
       guide.innerHTML=`
         <div class="nakanoInstallSheet" role="dialog" aria-modal="true" aria-label="ホーム画面に追加する方法">
           <div class="nakanoInstallSheetTitle">ホーム画面に追加</div>
-          <div class="nakanoInstallSheetSub">完全紹介制サロン整体なかのを追加すると、次回からアイコンを1回タップするだけで予約画面を開けます。</div>
+          <div class="nakanoInstallSheetSub">完全紹介制サロン整体なかのを追加すると、次回から1タップで予約画面を開けます。<br>${sub}</div>
           <div class="nakanoInstallSteps">
-            <div class="nakanoInstallStep"><span class="nakanoInstallNo">1</span><div>${isIOS?'<span class="nakanoInstallShare">□↑</span> Safariの「共有」ボタンをタップ':'ブラウザ右上のメニューを開く'}</div></div>
-            <div class="nakanoInstallStep"><span class="nakanoInstallNo">2</span><div>「ホーム画面に追加」${isIOS?'を選ぶ':'または「アプリをインストール」を選ぶ'}</div></div>
+            <div class="nakanoInstallStep"><span class="nakanoInstallNo">1</span><div>${step1}</div></div>
+            <div class="nakanoInstallStep"><span class="nakanoInstallNo">2</span><div>${step2}</div></div>
             <div class="nakanoInstallStep"><span class="nakanoInstallNo">3</span><div>「追加」をタップして完了</div></div>
           </div>
           <button type="button" class="nakanoInstallClose">閉じる</button>
@@ -63,7 +83,7 @@
     guide.classList.remove('hidden');
   }
 
-  function openSafariForInstall(){
+  function openExternalBrowserForInstall(){
     const bridge=`${BROWSER_BRIDGE}?t=${Date.now()}`;
     try{
       if(window.liff?.isInClient?.()){
@@ -84,8 +104,8 @@
   }
 
   async function handleInstall(){
-    if(isStandalone()||(isIOS&&isLineWebView)){
-      openSafariForInstall();
+    if(isLineWebView||isStandalone()){
+      openExternalBrowserForInstall();
       return;
     }
     if(installPrompt){
@@ -109,22 +129,33 @@
     const anchor=document.querySelector('.header')||document.querySelector('main');
     if(!anchor)return;
     addStyles();
+
     const standalone=isStandalone();
-    const needsExternalIOS=isIOS&&(standalone||isLineWebView)&&!isIOSSafari;
     const card=document.createElement('div');
     card.className='nakanoInstallCard';
     card.id='nakanoInstallCard';
-    card.innerHTML=needsExternalIOS
-      ?`<div class="nakanoInstallCopy"><div class="nakanoInstallTitle">ホーム画面に追加する</div><div class="nakanoInstallSub">外部ブラウザで開いてから、iPhoneの共有メニューで「ホーム画面に追加」を選びます</div></div><button type="button" class="nakanoInstallBtn">Safariで開く</button>`
-      :standalone
-        ?`<div class="nakanoInstallCopy"><div class="nakanoInstallTitle">別のホーム画面にも追加できます</div><div class="nakanoInstallSub">外部ブラウザで開いて、追加したいホーム画面に登録できます</div></div><button type="button" class="nakanoInstallBtn">外部ブラウザで開く</button>`
-        :`<div class="nakanoInstallCopy"><div class="nakanoInstallTitle">次回からすぐ予約</div><div class="nakanoInstallSub">完全紹介制サロン整体なかのをホーム画面に追加すると、1タップで予約画面を開けます</div></div><button type="button" class="nakanoInstallBtn">ホーム画面に追加</button>`;
+
+    if(isLineWebView&&isIOS){
+      card.innerHTML=`<div class="nakanoInstallCopy"><div class="nakanoInstallTitle">ホーム画面に追加する</div><div class="nakanoInstallSub">Safariで開いて、共有メニューから「ホーム画面に追加」を選びます</div></div><button type="button" class="nakanoInstallBtn">Safariで開く</button>`;
+    }else if(isLineWebView&&isAndroid){
+      card.innerHTML=`<div class="nakanoInstallCopy"><div class="nakanoInstallTitle">ホーム画面に追加する</div><div class="nakanoInstallSub">Chromeなどの外部ブラウザで開いて、メニューから「ホーム画面に追加」を選びます</div></div><button type="button" class="nakanoInstallBtn">外部ブラウザで開く</button>`;
+    }else if(standalone){
+      card.innerHTML=`<div class="nakanoInstallCopy"><div class="nakanoInstallTitle">別のホーム画面にも追加できます</div><div class="nakanoInstallSub">外部ブラウザで開いて、追加したいホーム画面に登録できます</div></div><button type="button" class="nakanoInstallBtn">外部ブラウザで開く</button>`;
+    }else{
+      const sub=isIOS
+        ?'Safariの共有メニューからホーム画面に追加できます'
+        :isAndroid
+          ?'Chromeなどのブラウザからホーム画面に追加できます'
+          :'ホーム画面に追加すると、1タップで予約画面を開けます';
+      card.innerHTML=`<div class="nakanoInstallCopy"><div class="nakanoInstallTitle">次回からすぐ予約</div><div class="nakanoInstallSub">${sub}</div></div><button type="button" class="nakanoInstallBtn">ホーム画面に追加</button>`;
+    }
+
     card.querySelector('.nakanoInstallBtn')?.addEventListener('click',handleInstall);
     if(anchor.classList?.contains('header'))anchor.insertAdjacentElement('afterend',card);else anchor.prepend(card);
     installCard=card;
   }
 
-  function maybeShowInstallGuideAfterSafariOpen(){
+  function maybeShowInstallGuideAfterExternalOpen(){
     if(!openedForInstall||isStandalone())return;
     try{
       const url=new URL(location.href);
@@ -148,10 +179,10 @@
 
   window.addEventListener('DOMContentLoaded',()=>{
     createInstallCard();
-    maybeShowInstallGuideAfterSafariOpen();
+    maybeShowInstallGuideAfterExternalOpen();
   },{once:true});
   if(document.readyState!=='loading'){
     createInstallCard();
-    maybeShowInstallGuideAfterSafariOpen();
+    maybeShowInstallGuideAfterExternalOpen();
   }
 })();

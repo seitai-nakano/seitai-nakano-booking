@@ -185,6 +185,35 @@ button:disabled{
   gap:10px
 }
 
+.scheduleTodayButton{
+  width:auto!important;
+  min-width:112px;
+  margin:0!important;
+  padding:9px 12px!important;
+  white-space:nowrap;
+}
+.todayFloatingButton{
+  position:fixed;
+  right:max(12px,env(safe-area-inset-right));
+  bottom:max(12px,calc(env(safe-area-inset-bottom) + 10px));
+  z-index:1800;
+  width:auto;
+  min-height:44px;
+  padding:10px 13px;
+  border:1px solid #61574d;
+  border-radius:999px;
+  background:#61574d;
+  color:#fff;
+  font-size:13px;
+  font-weight:800;
+  box-shadow:0 7px 20px rgba(55,45,38,.22);
+}
+@media(max-width:420px){
+  .scheduleHeader{align-items:flex-start}
+  .scheduleTodayButton{min-width:0;padding:8px 10px!important;font-size:12px}
+  .todayFloatingButton{font-size:12px;padding:9px 12px}
+}
+
 .scheduleScroll{
   position:relative;
   overflow-x:auto;
@@ -609,6 +638,7 @@ details.settingsDetails summary::-webkit-details-marker{
 
 
 <div id="adminArea" class="hidden">
+<button class="todayFloatingButton" id="backToTodayFloating" type="button" aria-label="今日の予定に戻る">今日の予定へ</button>
 
 
 <section class="card">
@@ -660,6 +690,10 @@ details.settingsDetails summary::-webkit-details-marker{
 横にスライドして確認できます
 </p>
 </div>
+
+<button class="secondary scheduleTodayButton" id="backToToday" type="button">
+今日の予定へ
+</button>
 
 </div>
 
@@ -1345,6 +1379,22 @@ function todayJapan(){
 }
 
 
+function currentMinutesJapan(){
+  const parts=new Intl.DateTimeFormat(
+    'en-US',
+    {
+      timeZone:'Asia/Tokyo',
+      hour:'2-digit',
+      minute:'2-digit',
+      hourCycle:'h23'
+    }
+  ).formatToParts(new Date());
+
+  const get=type=>Number(parts.find(p=>p.type===type)?.value||0);
+  return get('hour')*60+get('minute');
+}
+
+
 function monthFromDate(date){
 
   return date
@@ -1825,6 +1875,52 @@ async()=>{
 
   await loadMonthBlockedTimes();
 };
+
+
+async function goBackToToday(){
+  const today=todayJapan();
+
+  closeTimelineQuickAdd();
+  closeBlockedEditor();
+  closeEdit();
+
+  $('date').value=today;
+  $('month').value=monthFromDate(today);
+  $('blockedMonth').value=monthFromDate(today);
+  $('adminBookingDate').value=today;
+
+  selectedBlockedDates=new Set();
+  renderDaySelector();
+
+  await loadDay();
+  await loadMonthBlockedTimes();
+
+  if(typeof window.refreshMonthlyBookings==='function'){
+    await window.refreshMonthlyBookings();
+  }
+  if(typeof window.refreshAdminBookingCalendar==='function'){
+    await window.refreshAdminBookingCalendar(today);
+  }
+
+  saveAdminUiStateNow();
+
+  requestAnimationFrame(()=>{
+    const scroll=$('scheduleScroll');
+    if(scroll){
+      const now=currentMinutesJapan();
+      const target=Math.max(
+        0,
+        (Math.max(DAY_START,Math.min(DAY_END,now))-DAY_START)*PX_PER_MINUTE
+        - scroll.clientWidth*.28
+      );
+      scroll.scrollTo({left:target,behavior:'smooth'});
+    }
+    $('date').closest('.card')?.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+}
+
+$('backToToday').onclick=goBackToToday;
+$('backToTodayFloating').onclick=goBackToToday;
 
 
 $('month').onchange=

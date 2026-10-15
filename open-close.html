@@ -118,7 +118,7 @@ main{max-width:720px;margin:auto;padding:12px 10px calc(24px + env(safe-area-ins
     <div class="undoCaption" id="undoCaption"></div>
   </div>
 
-  <div class="guide">OPEN / CLOSEを選んで、<strong class="openGuide">変更したい時間を指でなぞる</strong>だけ。1枠だけならタップでも変更できます。</div>
+  <div class="guide">OPEN / CLOSEを選んで、<strong class="openGuide">変更したい時間を指でなぞる</strong>だけ。1枠ならタップ。選択中のボタンをもう一度押すと調整を終了できます。</div>
 
   <div id="loading" class="loading">読み込んでいます…</div>
   <div id="hourGrid" class="hourGrid hidden"></div>
@@ -233,18 +233,23 @@ async function undoLastChange(){
   busy=true;
   $('undoBtn').disabled=true;
 
+  let restored=false;
   try{
     await restoreUndoRows(action.rows);
     stack.pop();
     writeUndoStack(stack);
-    showToast('1つ前の状態に戻しました');
-    await loadDay(false);
+    restored=true;
   }catch(error){
     console.error(error);
     showToast('戻せませんでした');
   }finally{
     busy=false;
     updateUndoButton();
+  }
+
+  if(restored){
+    await loadDay(false);
+    showToast('1つ前の状態に戻しました');
   }
 }
 

@@ -718,6 +718,12 @@ details.settingsDetails summary::-webkit-details-marker{
 </button>
 </a>
 
+<a class="wide" href="./open-close.html">
+<button class="secondary" type="button">
+OPEN / CLOSE設定
+</button>
+</a>
+
 </div>
 
 <button class="secondary" id="logout">
@@ -799,68 +805,37 @@ CLOSE
 </section>
 
 
-<section class="card openCloseCard">
-
-<div class="openCloseTitleRow">
-  <div>
-    <h2>OPEN / CLOSE</h2>
-    <p class="muted" style="margin:0">受付できる時間をタップで変更できます。</p>
-  </div>
-  <div class="openCloseDateLabel" id="openCloseDateLabel"></div>
-</div>
-
-<div class="openCloseDateNav">
-  <button class="secondary" id="openClosePrev" type="button">← 前日</button>
-  <button class="secondary" id="openCloseToday" type="button">今日</button>
-  <button class="secondary" id="openCloseNext" type="button">翌日 →</button>
-</div>
-
-<div class="openCloseSummary" id="openCloseSummary"></div>
-
-<button class="primary openClosePreset" id="normalHours" type="button">
-通常営業時間にする（10:00〜20:00）
-</button>
-
-<div class="openCloseRangeBox">
-  <div class="openCloseRangeTitle">時間帯をまとめて変更</div>
-  <div class="openCloseRangeInputs">
+<section class="card">
+  <div class="scheduleHeader">
     <div>
-      <label>開始</label>
-      <input type="time" id="openCloseStart" step="900" value="10:00">
-    </div>
-    <div>
-      <label>最終受付</label>
-      <input type="time" id="openCloseLastStart" step="900" value="20:00">
+      <h2>OPEN / CLOSE</h2>
+      <p class="muted" style="margin:0">受付時間の設定は専用画面で操作できます。</p>
     </div>
   </div>
-  <div class="row">
-    <button class="secondary openRangeButton" id="openRange" type="button">この時間帯をOPEN</button>
-    <button class="secondary closeRangeButton" id="closeRange" type="button">この時間帯をCLOSE</button>
-  </div>
-</div>
+  <a href="./open-close.html">
+    <button class="primary" type="button" style="margin-top:12px">OPEN / CLOSE設定を開く</button>
+  </a>
 
-<div class="openCloseWholeDay">
-  <button class="secondary" id="openAll" type="button">全時間OPEN</button>
-  <button class="secondary" id="closeAll" type="button">全時間CLOSE</button>
-</div>
-
-<div id="slots" class="slots openCloseSlots" style="margin-top:12px"></div>
-
-<details class="openCloseMonthDetails">
-  <summary>月単位の一括設定</summary>
-  <div class="openCloseMonthInner">
-    <p class="muted">「通常営業時間」は10:00〜20:00をOPEN、8:00〜9:45と20:15以降をCLOSEにします。</p>
+  <div class="hidden" aria-hidden="true">
+    <div id="openCloseDateLabel"></div>
+    <button id="openClosePrev" type="button"></button>
+    <button id="openCloseToday" type="button"></button>
+    <button id="openCloseNext" type="button"></button>
+    <div id="openCloseSummary"></div>
+    <button id="normalHours" type="button"></button>
+    <input type="time" id="openCloseStart" value="10:00">
+    <input type="time" id="openCloseLastStart" value="20:00">
+    <button id="openRange" type="button"></button>
+    <button id="closeRange" type="button"></button>
+    <button id="openAll" type="button"></button>
+    <button id="closeAll" type="button"></button>
+    <div id="slots"></div>
     <input type="month" id="month">
-    <div class="row">
-      <button class="secondary" id="openMonth" type="button">この月を通常営業時間で設定</button>
-      <button class="secondary" id="closeMonth" type="button">この月を全部CLOSE</button>
-    </div>
-    <div id="monthMsg" class="msg"></div>
+    <button id="openMonth" type="button"></button>
+    <button id="closeMonth" type="button"></button>
+    <div id="monthMsg"></div>
   </div>
-</details>
-
 </section>
-
 
 <section class="card">
 

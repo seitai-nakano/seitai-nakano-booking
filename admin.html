@@ -825,90 +825,20 @@ CLOSE
   <div id="monthMsg"></div>
 </div>
 
-<section class="card">
-
-<h2>休み・予約不可時間</h2>
-
-<p class="muted">
-複数の日付を選択して、同じ時間帯をまとめて予約不可にできます。
-</p>
-
-<label>予定を一括登録する月</label>
-<div class="row">
-<button class="secondary" id="blockedPrevMonth" type="button">← 前月</button>
-<button class="secondary" id="blockedNextMonth" type="button">翌月 →</button>
+<div class="hidden" aria-hidden="true">
+  <button id="blockedPrevMonth" type="button"></button>
+  <button id="blockedNextMonth" type="button"></button>
+  <input type="month" id="blockedMonth">
+  <div id="daySelector"></div>
+  <div id="selectedDatesBox"></div>
+  <input type="time" id="blockedStart" step="900">
+  <input type="time" id="blockedEnd" step="900">
+  <input id="blockedMemo">
+  <button id="addBlockedTime" type="button"></button>
+  <button id="addBlockedDay" type="button"></button>
+  <div id="blockedMsg"></div>
+  <div id="blockedList"></div>
 </div>
-<input type="month" id="blockedMonth">
-
-<div class="weekHeader">
-<div>日</div>
-<div>月</div>
-<div>火</div>
-<div>水</div>
-<div>木</div>
-<div>金</div>
-<div>土</div>
-</div>
-
-<div
-  id="daySelector"
-  class="daySelector"
-></div>
-
-<div
-  id="selectedDatesBox"
-  class="selectedDatesBox"
->
-日付を選択してください。
-</div>
-
-<div class="row">
-
-<div>
-<label>開始時間</label>
-<input
-  type="time"
-  id="blockedStart"
-  step="900"
->
-</div>
-
-<div>
-<label>終了時間</label>
-<input
-  type="time"
-  id="blockedEnd"
-  step="900"
->
-</div>
-
-</div>
-
-<label>メモ</label>
-
-<input
-  id="blockedMemo"
-  placeholder="例：外出・私用・店休日"
->
-
-<button class="primary" id="addBlockedTime">
-選択した日をこの時間帯で予約不可
-</button>
-
-<button class="secondary" id="addBlockedDay">
-選択した日を終日予約不可
-</button>
-
-<div id="blockedMsg" class="msg"></div>
-
-<hr style="border:0;border-top:1px solid #eee7df;margin:20px 0">
-
-<h3>この月の予約不可一覧</h3>
-
-<div id="blockedList"></div>
-
-</section>
-
 
 <section class="card">
 
@@ -2030,14 +1960,13 @@ function ensureTimelineQuickAdd(){
     if(!date||timelineQuickMinutes==null)return;
     const start=timelineQuickMinutes;
     const end=Math.min(DAY_END,start+30);
-    $('blockedMonth').value=monthFromDate(date);
-    selectedBlockedDates=new Set([date]);
-    renderDaySelector();
-    $('blockedStart').value=timelineHHMM(start);
-    $('blockedEnd').value=timelineHHMM(end);
-    $('blockedMsg').textContent=`${timelineHHMM(start)} からの予定を入力できます。`;
+    const params=new URLSearchParams({
+      date,
+      planStart:timelineHHMM(start),
+      planEnd:timelineHHMM(end)
+    });
     closeTimelineQuickAdd();
-    $('blockedStart').closest('.card')?.scrollIntoView({behavior:'smooth',block:'start'});
+    location.href='./open-close.html?'+params.toString();
   };
 
   return overlay;

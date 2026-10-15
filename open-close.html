@@ -37,29 +37,34 @@ main{max-width:720px;margin:auto;padding:12px 10px calc(24px + env(safe-area-ins
 .guide{margin:5px 0 8px;padding:7px 9px;border-radius:10px;background:#eee8e2;color:#6d625a;font-size:11px;line-height:1.5;text-align:center}
 .guide strong:first-child{color:#168047}
 .guide strong:last-child{color:#9b4138}
-.hourGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
-.hourCard{position:relative;min-width:0;height:72px;border:1px solid #ddd5cc;border-radius:13px;overflow:hidden;background:#fff;touch-action:pan-y;user-select:none;-webkit-user-select:none;box-shadow:0 2px 7px rgba(50,40,30,.04)}
-.hourCard:before,.hourCard:after{position:absolute;inset:0;display:flex;align-items:center;font-size:12px;font-weight:900;opacity:0;transition:opacity .12s}
-.hourCard:before{content:"→ OPEN";justify-content:flex-start;padding-left:10px;background:#dff0e4;color:#168047}
-.hourCard:after{content:"CLOSE ←";justify-content:flex-end;padding-right:10px;background:#f3dcd9;color:#9b4138}
-.hourCard.swipeOpen:before{opacity:1}
-.hourCard.swipeClose:after{opacity:1}
-.hourInner{position:absolute;inset:0;z-index:2;padding:8px 9px;background:#fff;transition:transform .16s ease,background .16s ease}
-.hourCard.allOpen .hourInner{background:#f1f8f2}
-.hourCard.allClosed .hourInner{background:#f3f2f0}
-.hourCard.mixed .hourInner{background:#faf6ee}
-.hourTop{display:flex;align-items:flex-start;justify-content:space-between;gap:5px}
-.hourLabel{font-size:17px;font-weight:900;line-height:1.05}
-.hourState{font-size:9px;font-weight:900;padding:3px 6px;border-radius:999px;white-space:nowrap}
-.allOpen .hourState{background:#dceddf;color:#168047}
-.allClosed .hourState{background:#e4e1de;color:#77716a}
-.mixed .hourState{background:#f3e7d3;color:#8a6534}
-.dots{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px}
-.dot{height:9px;border-radius:999px;border:1px solid #d8d0c8;background:#dedbd7}
-.dot.open{background:#78bb8b;border-color:#64a978}
-.dot.closed{background:#d7d3cf;border-color:#c9c4bf}
-.dot.busy{outline:2px solid #9b4138;outline-offset:-1px}
-.hourMeta{position:absolute;left:9px;right:9px;bottom:4px;font-size:9px;color:#8a8179;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hourGrid{display:block}
+.hourRow{margin:6px 0;border:1px solid #ddd5cc;border-radius:13px;background:#fff;overflow:hidden}
+.hourRowHead{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 8px;background:#f5f1ed;border-bottom:1px solid #ebe4dd}
+.hourRowLabel{font-size:12px;font-weight:900;color:#514a44}
+.hourRowState{font-size:9px;font-weight:900;color:#81766e}
+.quarterGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;padding:6px}
+.quarterCard{position:relative;min-width:0;height:54px;border:1px solid #ddd5cc;border-radius:10px;overflow:hidden;background:#fff;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.quarterCard:before,.quarterCard:after{position:absolute;inset:0;display:flex;align-items:center;font-size:9px;font-weight:900;opacity:0;transition:opacity .1s}
+.quarterCard:before{content:"→ OPEN";justify-content:flex-start;padding-left:5px;background:#dff0e4;color:#168047}
+.quarterCard:after{content:"CLOSE ←";justify-content:flex-end;padding-right:5px;background:#f3dcd9;color:#9b4138}
+.quarterCard.swipeOpen:before{opacity:1}
+.quarterCard.swipeClose:after{opacity:1}
+.quarterInner{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:#fff;transition:transform .14s ease,background .14s ease}
+.quarterCard.open .quarterInner{background:#edf7ef;color:#168047}
+.quarterCard.closed .quarterInner{background:#f1f0ee;color:#7d7771}
+.quarterTime{font-size:13px;font-weight:900;line-height:1}
+.quarterState{font-size:8px;font-weight:900;line-height:1}
+.quarterBusy{position:absolute;right:3px;top:3px;z-index:3;width:7px;height:7px;border-radius:50%;background:#9b4138;box-shadow:0 0 0 2px rgba(255,255,255,.9)}
+.quarterCard.busySlot{border-color:#d2aaa5}
+@media(max-width:340px){
+  .quarterGrid{gap:4px;padding:5px}
+  .quarterCard{height:51px}
+  .quarterTime{font-size:12px}
+}
+@media(min-width:600px){
+  .hourGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .hourRow{margin:0}
+}
 .toast{position:fixed;left:50%;bottom:max(18px,calc(env(safe-area-inset-bottom) + 12px));z-index:80;transform:translate(-50%,12px);opacity:0;pointer-events:none;padding:9px 13px;border-radius:999px;background:#403934;color:#fff;font-size:12px;font-weight:800;transition:.18s}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .month{margin-top:10px;border:1px solid #ddd5cc;border-radius:13px;background:#fff;overflow:hidden}
@@ -106,7 +111,7 @@ main{max-width:720px;margin:auto;padding:12px 10px calc(24px + env(safe-area-ins
     <div class="summary" id="summary"></div>
   </div>
 
-  <div class="guide"><strong>右スワイプ＝OPEN</strong>　／　<strong>左スワイプ＝CLOSE</strong>　（1時間単位）</div>
+  <div class="guide"><strong>右スワイプ＝OPEN</strong>　／　<strong>左スワイプ＝CLOSE</strong>　（15分単位）</div>
 
   <div id="loading" class="loading">読み込んでいます…</div>
   <div id="hourGrid" class="hourGrid hidden"></div>
@@ -246,36 +251,61 @@ function renderSummary(){
 function render(){
   const grid=$('hourGrid');
   grid.innerHTML='';
+  const map=slotMap();
 
   hours.forEach(hour=>{
-    const state=stateForHour(hour);
-    const info=busyAt(hour*60,(hour+1)*60);
+    const row=document.createElement('div');
+    row.className='hourRow';
 
-    const card=document.createElement('div');
-    card.className='hourCard '+state.type;
-    card.dataset.hour=String(hour);
+    const head=document.createElement('div');
+    head.className='hourRowHead';
 
-    const inner=document.createElement('div');
-    inner.className='hourInner';
+    const label=document.createElement('div');
+    label.className='hourRowLabel';
+    label.textContent=hour+'時';
 
-    const stateText=state.count===4?'OPEN':state.count===0?'CLOSE':state.count+'/4 OPEN';
-    let meta='';
-    if(info.bookingCount)meta+='予約 '+info.bookingCount+' ';
-    if(info.blockedCount)meta+='予定 '+info.blockedCount;
+    const openCount=[0,15,30,45].filter(minute=>!!map.get(hhmm(hour*60+minute))?.is_open).length;
+    const state=document.createElement('div');
+    state.className='hourRowState';
+    state.textContent=openCount===4?'全部OPEN':openCount===0?'全部CLOSE':openCount+'/4 OPEN';
 
-    inner.innerHTML=
-      '<div class="hourTop">'+
-        '<div class="hourLabel">'+hour+':00</div>'+
-        '<div class="hourState">'+stateText+'</div>'+
-      '</div>'+
-      '<div class="dots">'+
-        state.quarter.map(q=>'<span class="dot '+(q.open?'open':'closed')+(q.busy?' busy':'')+'"></span>').join('')+
-      '</div>'+
-      '<div class="hourMeta">'+(meta||'')+'</div>';
+    head.append(label,state);
 
-    card.appendChild(inner);
-    bindSwipe(card,inner,hour);
-    grid.appendChild(card);
+    const quarterGrid=document.createElement('div');
+    quarterGrid.className='quarterGrid';
+
+    [0,15,30,45].forEach(minute=>{
+      const total=hour*60+minute;
+      const time=hhmm(total);
+      const isOpen=!!map.get(time)?.is_open;
+      const busyInfo=busyAt(total,total+15);
+      const isBusy=busyInfo.bookingCount>0||busyInfo.blockedCount>0;
+
+      const card=document.createElement('div');
+      card.className='quarterCard '+(isOpen?'open':'closed')+(isBusy?' busySlot':'');
+      card.dataset.time=time;
+
+      const inner=document.createElement('div');
+      inner.className='quarterInner';
+      inner.innerHTML=
+        '<div class="quarterTime">'+String(minute).padStart(2,'0')+'</div>'+
+        '<div class="quarterState">'+(isOpen?'OPEN':'CLOSE')+'</div>';
+
+      card.appendChild(inner);
+
+      if(isBusy){
+        const busyDot=document.createElement('span');
+        busyDot.className='quarterBusy';
+        busyDot.title=busyInfo.bookingCount?'予約あり':'予定あり';
+        card.appendChild(busyDot);
+      }
+
+      bindQuarterSwipe(card,inner,time);
+      quarterGrid.appendChild(card);
+    });
+
+    row.append(head,quarterGrid);
+    grid.appendChild(row);
   });
 
   renderSummary();
@@ -283,7 +313,7 @@ function render(){
   grid.classList.remove('hidden');
 }
 
-function bindSwipe(card,inner,hour){
+function bindQuarterSwipe(card,inner,time){
   let pointerId=null;
   let startX=0,startY=0;
   let dx=0;
@@ -306,16 +336,16 @@ function bindSwipe(card,inner,hour){
     const moveY=e.clientY-startY;
 
     if(!horizontal){
-      if(Math.abs(moveY)>Math.abs(moveX)&&Math.abs(moveY)>8)return;
-      if(Math.abs(moveX)>10)horizontal=true;
+      if(Math.abs(moveY)>Math.abs(moveX)&&Math.abs(moveY)>7)return;
+      if(Math.abs(moveX)>8)horizontal=true;
     }
     if(!horizontal)return;
 
-    dx=Math.max(-74,Math.min(74,moveX));
+    dx=Math.max(-48,Math.min(48,moveX));
     inner.style.transition='none';
     inner.style.transform='translateX('+dx+'px)';
-    card.classList.toggle('swipeOpen',dx>8);
-    card.classList.toggle('swipeClose',dx<-8);
+    card.classList.toggle('swipeOpen',dx>6);
+    card.classList.toggle('swipeClose',dx<-6);
   });
 
   const finish=async e=>{
@@ -323,13 +353,13 @@ function bindSwipe(card,inner,hour){
     try{card.releasePointerCapture(pointerId)}catch(_){}
     pointerId=null;
 
-    inner.style.transition='transform .16s ease,background .16s ease';
+    inner.style.transition='transform .14s ease,background .14s ease';
     card.classList.remove('swipeOpen','swipeClose');
 
-    if(horizontal&&Math.abs(dx)>=44){
+    if(horizontal&&Math.abs(dx)>=28){
       const open=dx>0;
-      inner.style.transform='translateX('+(open?100:-100)+'px)';
-      await setHour(hour,open);
+      inner.style.transform='translateX('+(open?58:-58)+'px)';
+      await setQuarter(time,open);
     }else{
       inner.style.transform='translateX(0)';
     }
@@ -340,21 +370,23 @@ function bindSwipe(card,inner,hour){
     if(pointerId!==e.pointerId)return;
     pointerId=null;
     card.classList.remove('swipeOpen','swipeClose');
-    inner.style.transition='transform .16s ease,background .16s ease';
+    inner.style.transition='transform .14s ease,background .14s ease';
     inner.style.transform='translateX(0)';
   });
 }
 
-async function setHour(hour,open){
+async function setQuarter(time,open){
   if(busy)return;
   busy=true;
   const date=$('date').value;
-  const rows=[];
-  for(let m=0;m<60;m+=15){
-    rows.push({slot_date:date,start_time:hhmm(hour*60+m),is_open:open});
-  }
 
-  const {error}=await supabase.from('nakano_open_slots').upsert(rows,{onConflict:'slot_date,start_time'});
+  const {error}=await supabase
+    .from('nakano_open_slots')
+    .upsert(
+      {slot_date:date,start_time:time,is_open:open},
+      {onConflict:'slot_date,start_time'}
+    );
+
   busy=false;
 
   if(error){
@@ -364,7 +396,7 @@ async function setHour(hour,open){
     return;
   }
 
-  showToast(hour+'時を'+(open?'OPEN':'CLOSE'));
+  showToast(String(time).slice(0,5)+' を'+(open?'OPEN':'CLOSE'));
   await loadDay(false);
 }
 

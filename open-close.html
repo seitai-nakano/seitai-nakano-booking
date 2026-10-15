@@ -459,13 +459,14 @@ async function setMonth(normal){
     }
 
     $('monthMsg').textContent=normal?'通常営業時間で設定しました。':'全部CLOSEにしました。';
-    if($('date').value.startsWith(month))await loadDay(false);
   }catch(error){
     console.error(error);
     $('monthMsg').textContent='一括変更できませんでした。';
   }finally{
     busy=false;
   }
+
+  if($('date').value.startsWith(month))await loadDay(false);
 }
 
 async function ensureAuth(){

@@ -34,9 +34,18 @@ main{max-width:720px;margin:auto;padding:12px 10px calc(24px + env(safe-area-ins
 .badge.closed{background:#eae8e5;color:#77716a}
 .badge.booking{background:#f0e8df;color:#65584e}
 .badge.blocked{background:#f6dddd;color:#93483f}
+.paintToolbar{display:grid;grid-template-columns:1fr 1fr 1.05fr;gap:6px;margin-top:8px}
+.paintToolbar button{min-height:40px;border-radius:11px;font-size:11px;font-weight:900;padding:7px 6px}
+.paintOpenBtn{border:1px solid #b9d7c1;background:#f4faf5;color:#168047}
+.paintCloseBtn{border:1px solid #dfbbb6;background:#fff8f7;color:#9b4138}
+.paintOpenBtn.active{background:#168047;color:#fff;border-color:#168047}
+.paintCloseBtn.active{background:#9b4138;color:#fff;border-color:#9b4138}
+.undoBtn{border:1px solid #d9cfc6;background:#fff;color:#514a44}
+.undoBtn:disabled{opacity:.45}
+.undoCaption{margin-top:4px;min-height:14px;color:#7b7169;font-size:9px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .guide{margin:5px 0 8px;padding:7px 9px;border-radius:10px;background:#eee8e2;color:#6d625a;font-size:11px;line-height:1.5;text-align:center}
-.guide strong:first-child{color:#168047}
-.guide strong:last-child{color:#9b4138}
+.guide strong.openGuide{color:#168047}
+.guide strong.closeGuide{color:#9b4138}
 .hourGrid{display:block}
 .hourRow{margin:6px 0;border:1px solid #ddd5cc;border-radius:13px;background:#fff;overflow:hidden}
 .hourRowHead{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 8px;background:#f5f1ed;border-bottom:1px solid #ebe4dd}
@@ -44,12 +53,11 @@ main{max-width:720px;margin:auto;padding:12px 10px calc(24px + env(safe-area-ins
 .hourRowState{font-size:9px;font-weight:900;color:#81766e}
 .quarterGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;padding:6px}
 .quarterCard{position:relative;min-width:0;height:54px;border:1px solid #ddd5cc;border-radius:10px;overflow:hidden;background:#fff;touch-action:pan-y;user-select:none;-webkit-user-select:none}
-.quarterCard:before,.quarterCard:after{position:absolute;inset:0;display:flex;align-items:center;font-size:9px;font-weight:900;opacity:0;transition:opacity .1s}
-.quarterCard:before{content:"→ OPEN";justify-content:flex-start;padding-left:5px;background:#dff0e4;color:#168047}
-.quarterCard:after{content:"CLOSE ←";justify-content:flex-end;padding-right:5px;background:#f3dcd9;color:#9b4138}
-.quarterCard.swipeOpen:before{opacity:1}
-.quarterCard.swipeClose:after{opacity:1}
-.quarterInner{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:#fff;transition:transform .14s ease,background .14s ease}
+.hourGrid.paintActive .quarterCard{touch-action:none}
+.quarterInner{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:#fff;transition:background .12s ease,box-shadow .12s ease,transform .12s ease}
+.quarterCard.paintPreviewOpen .quarterInner{background:#cfe9d6!important;color:#116d3b!important;box-shadow:inset 0 0 0 2px #168047}
+.quarterCard.paintPreviewClose .quarterInner{background:#f0cbc6!important;color:#8d3931!important;box-shadow:inset 0 0 0 2px #9b4138}
+.quarterCard.paintPreviewOpen,.quarterCard.paintPreviewClose{transform:scale(.98)}
 .quarterCard.open .quarterInner{background:#edf7ef;color:#168047}
 .quarterCard.closed .quarterInner{background:#f1f0ee;color:#7d7771}
 .quarterTime{font-size:13px;font-weight:900;line-height:1}
@@ -78,14 +86,6 @@ main{max-width:720px;margin:auto;padding:12px 10px calc(24px + env(safe-area-ins
 .monthClose{border:1px solid #d8aaa5;background:#fff;color:#9b4138}
 .msg{min-height:18px;margin-top:6px;font-size:11px;line-height:1.5;color:#7c7169}
 .loading{padding:30px 10px;text-align:center;color:#7c7169}
-@media(max-width:340px){
-  .hourGrid{gap:5px}
-  .hourCard{height:69px}
-  .hourLabel{font-size:16px}
-}
-@media(min-width:600px){
-  .hourGrid{grid-template-columns:repeat(3,minmax(0,1fr))}
-}
 </style>
 </head>
 <body>
@@ -109,9 +109,16 @@ main{max-width:720px;margin:auto;padding:12px 10px calc(24px + env(safe-area-ins
     </div>
 
     <div class="summary" id="summary"></div>
+
+    <div class="paintToolbar">
+      <button class="paintOpenBtn" id="paintOpen" type="button">OPENにする</button>
+      <button class="paintCloseBtn" id="paintClose" type="button">CLOSEにする</button>
+      <button class="undoBtn" id="undoBtn" type="button" disabled>↶ 1つ前に戻す</button>
+    </div>
+    <div class="undoCaption" id="undoCaption"></div>
   </div>
 
-  <div class="guide"><strong>右スワイプ＝OPEN</strong>　／　<strong>左スワイプ＝CLOSE</strong>　（15分単位）</div>
+  <div class="guide">OPEN / CLOSEを選んで、<strong class="openGuide">変更したい時間を指でなぞる</strong>だけ。1枠だけならタップでも変更できます。</div>
 
   <div id="loading" class="loading">読み込んでいます…</div>
   <div id="hourGrid" class="hourGrid hidden"></div>
@@ -148,8 +155,98 @@ let bookings=[];
 let blocked=[];
 let busy=false;
 let toastTimer=null;
+let paintMode=null;
+let paintGesture=null;
+
+const UNDO_KEY='nakano_open_close_undo_v1';
+const UNDO_LIMIT=10;
 
 const $=id=>document.getElementById(id);
+
+function readUndoStack(){
+  try{
+    const value=JSON.parse(localStorage.getItem(UNDO_KEY)||'[]');
+    return Array.isArray(value)?value:[];
+  }catch(_){
+    return [];
+  }
+}
+
+function writeUndoStack(stack){
+  try{
+    localStorage.setItem(UNDO_KEY,JSON.stringify(stack.slice(-UNDO_LIMIT)));
+  }catch(_){}
+}
+
+function pushUndo(label,rows){
+  if(!Array.isArray(rows)||!rows.length)return;
+  const stack=readUndoStack();
+  stack.push({
+    label:String(label||'変更'),
+    rows:rows.map(row=>({
+      slot_date:String(row.slot_date),
+      start_time:String(row.start_time),
+      is_open:!!row.is_open
+    })),
+    at:Date.now()
+  });
+  writeUndoStack(stack);
+  updateUndoButton();
+}
+
+function updateUndoButton(){
+  const stack=readUndoStack();
+  const btn=$('undoBtn');
+  const caption=$('undoCaption');
+  if(btn)btn.disabled=!stack.length;
+  if(caption){
+    caption.textContent=stack.length
+      ? '戻せる変更：'+String(stack[stack.length-1].label||'直前の変更')
+      : '';
+  }
+}
+
+function snapshotCurrentTimes(date,times){
+  const map=slotMap();
+  return times.map(time=>({
+    slot_date:date,
+    start_time:time,
+    is_open:!!map.get(time)?.is_open
+  }));
+}
+
+async function restoreUndoRows(rows){
+  for(let i=0;i<rows.length;i+=500){
+    const {error}=await supabase
+      .from('nakano_open_slots')
+      .upsert(rows.slice(i,i+500),{onConflict:'slot_date,start_time'});
+    if(error)throw error;
+  }
+}
+
+async function undoLastChange(){
+  if(busy)return;
+  const stack=readUndoStack();
+  const action=stack[stack.length-1];
+  if(!action?.rows?.length)return;
+
+  busy=true;
+  $('undoBtn').disabled=true;
+
+  try{
+    await restoreUndoRows(action.rows);
+    stack.pop();
+    writeUndoStack(stack);
+    showToast('1つ前の状態に戻しました');
+    await loadDay(false);
+  }catch(error){
+    console.error(error);
+    showToast('戻せませんでした');
+  }finally{
+    busy=false;
+    updateUndoButton();
+  }
+}
 
 function todayJapan(){
   const parts=new Intl.DateTimeFormat('en-US',{
@@ -251,7 +348,9 @@ function renderSummary(){
 function render(){
   const grid=$('hourGrid');
   grid.innerHTML='';
+  grid.classList.toggle('paintActive',!!paintMode);
   const map=slotMap();
+  let index=0;
 
   hours.forEach(hour=>{
     const row=document.createElement('div');
@@ -284,6 +383,7 @@ function render(){
       const card=document.createElement('div');
       card.className='quarterCard '+(isOpen?'open':'closed')+(isBusy?' busySlot':'');
       card.dataset.time=time;
+      card.dataset.index=String(index++);
 
       const inner=document.createElement('div');
       inner.className='quarterInner';
@@ -300,7 +400,6 @@ function render(){
         card.appendChild(busyDot);
       }
 
-      bindQuarterSwipe(card,inner,time);
       quarterGrid.appendChild(card);
     });
 
@@ -313,90 +412,141 @@ function render(){
   grid.classList.remove('hidden');
 }
 
-function bindQuarterSwipe(card,inner,time){
-  let pointerId=null;
-  let startX=0,startY=0;
-  let dx=0;
-  let horizontal=false;
+function setPaintMode(mode){
+  paintMode=paintMode===mode?null:mode;
+  $('paintOpen').classList.toggle('active',paintMode==='open');
+  $('paintClose').classList.toggle('active',paintMode==='close');
+  $('hourGrid').classList.toggle('paintActive',!!paintMode);
+  clearPaintPreview();
 
-  card.addEventListener('pointerdown',e=>{
-    if(busy)return;
-    if(e.pointerType==='mouse'&&e.button!==0)return;
-    pointerId=e.pointerId;
-    startX=e.clientX;
-    startY=e.clientY;
-    dx=0;
-    horizontal=false;
-    try{card.setPointerCapture(pointerId)}catch(_){}
-  });
+  if(paintMode==='open')showToast('OPENにする時間をなぞってください');
+  else if(paintMode==='close')showToast('CLOSEにする時間をなぞってください');
+  else showToast('なぞり調整を終了しました');
+}
 
-  card.addEventListener('pointermove',e=>{
-    if(pointerId!==e.pointerId)return;
-    const moveX=e.clientX-startX;
-    const moveY=e.clientY-startY;
+function allQuarterCards(){
+  return [...document.querySelectorAll('.quarterCard[data-index]')];
+}
 
-    if(!horizontal){
-      if(Math.abs(moveY)>Math.abs(moveX)&&Math.abs(moveY)>7)return;
-      if(Math.abs(moveX)>8)horizontal=true;
-    }
-    if(!horizontal)return;
-
-    dx=Math.max(-48,Math.min(48,moveX));
-    inner.style.transition='none';
-    inner.style.transform='translateX('+dx+'px)';
-    card.classList.toggle('swipeOpen',dx>6);
-    card.classList.toggle('swipeClose',dx<-6);
-  });
-
-  const finish=async e=>{
-    if(pointerId===null||e.pointerId!==pointerId)return;
-    try{card.releasePointerCapture(pointerId)}catch(_){}
-    pointerId=null;
-
-    inner.style.transition='transform .14s ease,background .14s ease';
-    card.classList.remove('swipeOpen','swipeClose');
-
-    if(horizontal&&Math.abs(dx)>=28){
-      const open=dx>0;
-      inner.style.transform='translateX('+(open?58:-58)+'px)';
-      await setQuarter(time,open);
-    }else{
-      inner.style.transform='translateX(0)';
-    }
-  };
-
-  card.addEventListener('pointerup',finish);
-  card.addEventListener('pointercancel',e=>{
-    if(pointerId!==e.pointerId)return;
-    pointerId=null;
-    card.classList.remove('swipeOpen','swipeClose');
-    inner.style.transition='transform .14s ease,background .14s ease';
-    inner.style.transform='translateX(0)';
+function clearPaintPreview(){
+  document.querySelectorAll('.paintPreviewOpen,.paintPreviewClose').forEach(el=>{
+    el.classList.remove('paintPreviewOpen','paintPreviewClose');
   });
 }
 
-async function setQuarter(time,open){
-  if(busy)return;
-  busy=true;
+function previewPaintRange(startIndex,endIndex){
+  clearPaintPreview();
+  const cards=allQuarterCards();
+  const from=Math.min(startIndex,endIndex);
+  const to=Math.max(startIndex,endIndex);
+  for(let i=from;i<=to;i++){
+    cards[i]?.classList.add(paintMode==='open'?'paintPreviewOpen':'paintPreviewClose');
+  }
+}
+
+function cardAtPoint(x,y){
+  const el=document.elementFromPoint(x,y);
+  return el?.closest?.('.quarterCard[data-index]')||null;
+}
+
+function bindPaintGrid(){
+  const grid=$('hourGrid');
+
+  grid.addEventListener('pointerdown',event=>{
+    if(!paintMode||busy)return;
+    const card=event.target.closest?.('.quarterCard[data-index]');
+    if(!card)return;
+    if(event.pointerType==='mouse'&&event.button!==0)return;
+
+    event.preventDefault();
+    const index=Number(card.dataset.index);
+    paintGesture={
+      pointerId:event.pointerId,
+      startIndex:index,
+      endIndex:index
+    };
+
+    try{grid.setPointerCapture(event.pointerId)}catch(_){}
+    previewPaintRange(index,index);
+  });
+
+  grid.addEventListener('pointermove',event=>{
+    if(!paintGesture||paintGesture.pointerId!==event.pointerId)return;
+    event.preventDefault();
+
+    const card=cardAtPoint(event.clientX,event.clientY);
+    if(!card)return;
+
+    const index=Number(card.dataset.index);
+    if(!Number.isFinite(index)||index===paintGesture.endIndex)return;
+
+    paintGesture.endIndex=index;
+    previewPaintRange(paintGesture.startIndex,index);
+  });
+
+  const finish=async event=>{
+    if(!paintGesture||paintGesture.pointerId!==event.pointerId)return;
+    event.preventDefault();
+
+    try{grid.releasePointerCapture(event.pointerId)}catch(_){}
+
+    const gesture=paintGesture;
+    paintGesture=null;
+
+    const cards=allQuarterCards();
+    const from=Math.min(gesture.startIndex,gesture.endIndex);
+    const to=Math.max(gesture.startIndex,gesture.endIndex);
+    const times=cards.slice(from,to+1).map(card=>String(card.dataset.time||'')).filter(Boolean);
+
+    clearPaintPreview();
+    if(!times.length)return;
+
+    await applyPaintTimes(times,paintMode==='open');
+  };
+
+  grid.addEventListener('pointerup',finish);
+  grid.addEventListener('pointercancel',event=>{
+    if(!paintGesture||paintGesture.pointerId!==event.pointerId)return;
+    paintGesture=null;
+    clearPaintPreview();
+  });
+}
+
+async function applyPaintTimes(times,open){
+  if(busy||!times.length)return;
+
   const date=$('date').value;
+  const before=snapshotCurrentTimes(date,times);
+  const rows=times.map(time=>({
+    slot_date:date,
+    start_time:time,
+    is_open:open
+  }));
 
-  const {error}=await supabase
-    .from('nakano_open_slots')
-    .upsert(
-      {slot_date:date,start_time:time,is_open:open},
-      {onConflict:'slot_date,start_time'}
-    );
-
-  busy=false;
-
-  if(error){
-    console.error(error);
-    showToast('変更できませんでした');
-    await loadDay();
+  const changed=before.some((row,i)=>row.is_open!==rows[i].is_open);
+  if(!changed){
+    showToast('すでに'+(open?'OPEN':'CLOSE')+'です');
     return;
   }
 
-  showToast(String(time).slice(0,5)+' を'+(open?'OPEN':'CLOSE'));
+  busy=true;
+  try{
+    const {error}=await supabase
+      .from('nakano_open_slots')
+      .upsert(rows,{onConflict:'slot_date,start_time'});
+    if(error)throw error;
+
+    const first=String(times[0]).slice(0,5);
+    const last=String(times[times.length-1]).slice(0,5);
+    pushUndo(first+(times.length>1?'〜'+last:'')+' '+(open?'OPEN':'CLOSE'),before);
+    showToast(times.length+'枠を'+(open?'OPEN':'CLOSE')+'に変更');
+  }catch(error){
+    console.error(error);
+    showToast('変更できませんでした');
+  }finally{
+    busy=false;
+  }
+
   await loadDay(false);
 }
 
@@ -433,8 +583,11 @@ async function loadDay(showLoading=true){
 
 async function setWholeDay(open){
   if(busy)return;
-  busy=true;
   const date=$('date').value;
+  const times=[];
+  for(let min=DAY_START;min<DAY_END;min+=15)times.push(hhmm(min));
+  const before=snapshotCurrentTimes(date,times);
+  busy=true;
   const rows=[];
   for(let min=DAY_START;min<DAY_END;min+=15){
     rows.push({slot_date:date,start_time:hhmm(min),is_open:open});
@@ -446,14 +599,18 @@ async function setWholeDay(open){
     showToast('変更できませんでした');
     return;
   }
+  pushUndo(open?'全時間OPEN':'全日CLOSE',before);
   showToast(open?'全時間OPEN':'全日CLOSE');
   await loadDay(false);
 }
 
 async function setNormalHours(){
   if(busy)return;
-  busy=true;
   const date=$('date').value;
+  const times=[];
+  for(let min=DAY_START;min<DAY_END;min+=15)times.push(hhmm(min));
+  const before=snapshotCurrentTimes(date,times);
+  busy=true;
   const rows=[];
   for(let min=DAY_START;min<DAY_END;min+=15){
     rows.push({
@@ -469,6 +626,7 @@ async function setNormalHours(){
     showToast('変更できませんでした');
     return;
   }
+  pushUndo('通常営業時間 10:00〜20:00',before);
   showToast('通常営業時間に設定しました');
   await loadDay(false);
 }
@@ -485,9 +643,20 @@ async function setMonth(normal){
   busy=true;
   $('monthMsg').textContent='変更しています…';
 
+  let beforeMonth=[];
   try{
     const start=month+'-01';
     const end=nextMonthStart(month);
+
+    const beforeResult=await supabase
+      .from('nakano_open_slots')
+      .select('slot_date,start_time,is_open')
+      .gte('slot_date',start)
+      .lt('slot_date',end);
+    if(beforeResult.error)throw beforeResult.error;
+    beforeMonth=beforeResult.data||[];
+
+
     const d=new Date(start+'T00:00:00Z');
     const endDate=new Date(end+'T00:00:00Z');
     const rows=[];
@@ -511,6 +680,7 @@ async function setMonth(normal){
       if(error)throw error;
     }
 
+    pushUndo(month+' '+(normal?'通常営業時間':'全部CLOSE'),beforeMonth);
     $('monthMsg').textContent=normal?'通常営業時間で設定しました。':'全部CLOSEにしました。';
   }catch(error){
     console.error(error);
@@ -555,11 +725,21 @@ $('today').onclick=()=>{
   $('date').value=todayJapan();
   loadDay();
 };
-$('date').onchange=loadDay;
+$('date').onchange=()=>{
+  paintGesture=null;
+  clearPaintPreview();
+  loadDay();
+};
+$('paintOpen').onclick=()=>setPaintMode('open');
+$('paintClose').onclick=()=>setPaintMode('close');
+$('undoBtn').onclick=undoLastChange;
 $('normalHours').onclick=setNormalHours;
 $('allClose').onclick=()=>setWholeDay(false);
 $('monthNormal').onclick=()=>setMonth(true);
 $('monthClose').onclick=()=>setMonth(false);
+
+bindPaintGrid();
+updateUndoButton();
 
 if(await ensureAuth()){
   $('date').value=initialDate();

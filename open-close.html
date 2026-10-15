@@ -69,7 +69,7 @@ main{max-width:720px;margin:auto;padding:12px 10px calc(24px + env(safe-area-ins
   .hourRow{margin:0}
 }
 
-.blockedPanel{margin-top:10px;border:1px solid #ddd5cc;border-radius:13px;background:#fff;overflow:hidden}
+.blockedPanel{margin-top:7px;border:1px solid #ddd5cc;border-radius:13px;background:#fff;overflow:hidden}
 .blockedPanel summary{padding:12px;font-size:13px;font-weight:900;cursor:pointer;list-style:none}
 .blockedPanel summary::-webkit-details-marker{display:none}
 .blockedInner{padding:0 11px 12px;border-top:1px solid #eee7df}
@@ -94,7 +94,13 @@ main{max-width:720px;margin:auto;padding:12px 10px calc(24px + env(safe-area-ins
 .blockedDelete{margin-top:5px;border:1px solid #d8aaa5;border-radius:8px;background:#fff;color:#9b4138;padding:5px 8px;font-size:10px;font-weight:800}
 .toast{position:fixed;left:50%;bottom:max(18px,calc(env(safe-area-inset-bottom) + 12px));z-index:80;transform:translate(-50%,12px);opacity:0;pointer-events:none;padding:9px 13px;border-radius:999px;background:#403934;color:#fff;font-size:12px;font-weight:800;transition:.18s}
 .toast.show{opacity:1;transform:translate(-50%,0)}
-.month{margin-top:10px;border:1px solid #ddd5cc;border-radius:13px;background:#fff;overflow:hidden}
+.bulkSettingsTitle{
+  margin:4px 2px 6px;
+  color:#514a44;
+  font-size:13px;
+  font-weight:900;
+}
+.month{margin-top:6px;border:1px solid #ddd5cc;border-radius:13px;background:#fff;overflow:hidden}
 .month summary{padding:11px 12px;font-size:12px;font-weight:900;cursor:pointer;list-style:none}
 .month summary::-webkit-details-marker{display:none}
 .monthInner{padding:0 11px 11px;border-top:1px solid #eee7df}
@@ -135,12 +141,8 @@ main{max-width:720px;margin:auto;padding:12px 10px calc(24px + env(safe-area-ins
     </div>
   </div>
 
-  <div class="guide"><span class="openGuide">右へなぞる＝OPEN</span>　／　<span class="closeGuide">左へなぞる＝CLOSE</span><br>なぞった15分枠をまとめて変更します。予約・予定がある枠はOPENできません。</div>
-
-  <div id="loading" class="loading">読み込んでいます…</div>
-  <div id="hourGrid" class="hourGrid hidden"></div>
-
-  <details class="month">
+  <div class="bulkSettingsTitle">まとめ設定</div>
+<details class="month">
     <summary>月単位の一括設定</summary>
     <div class="monthInner">
       <input class="monthInput" id="month" type="month">
@@ -191,6 +193,13 @@ main{max-width:720px;margin:auto;padding:12px 10px calc(24px + env(safe-area-ins
       <div id="blockedList"></div>
     </div>
   </details>
+
+  <div class="guide"><span class="openGuide">右へなぞる＝OPEN</span>　／　<span class="closeGuide">左へなぞる＝CLOSE</span><br>なぞった15分枠をまとめて変更します。予約・予定がある枠はOPENできません。</div>
+
+  <div id="loading" class="loading">読み込んでいます…</div>
+  <div id="hourGrid" class="hourGrid hidden"></div>
+
+
 </main>
 <div class="toast" id="toast"></div>
 

@@ -34,18 +34,13 @@ main{max-width:720px;margin:auto;padding:12px 10px calc(24px + env(safe-area-ins
 .badge.closed{background:#eae8e5;color:#77716a}
 .badge.booking{background:#f0e8df;color:#65584e}
 .badge.blocked{background:#f6dddd;color:#93483f}
-.paintToolbar{display:grid;grid-template-columns:1fr 1fr 1.05fr;gap:6px;margin-top:8px}
-.paintToolbar button{min-height:40px;border-radius:11px;font-size:11px;font-weight:900;padding:7px 6px}
-.paintOpenBtn{border:1px solid #b9d7c1;background:#f4faf5;color:#168047}
-.paintCloseBtn{border:1px solid #dfbbb6;background:#fff8f7;color:#9b4138}
-.paintOpenBtn.active{background:#168047;color:#fff;border-color:#168047}
-.paintCloseBtn.active{background:#9b4138;color:#fff;border-color:#9b4138}
-.undoBtn{border:1px solid #d9cfc6;background:#fff;color:#514a44}
+.undoRow{display:flex;align-items:center;justify-content:flex-end;gap:7px;margin-top:7px}
+.undoBtn{width:auto;border:1px solid #d9cfc6;border-radius:10px;background:#fff;color:#514a44;min-height:36px;padding:7px 10px;font-size:11px;font-weight:900}
 .undoBtn:disabled{opacity:.45}
-.undoCaption{margin-top:4px;min-height:14px;color:#7b7169;font-size:9px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.undoCaption{min-width:0;color:#7b7169;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .guide{margin:5px 0 8px;padding:7px 9px;border-radius:10px;background:#eee8e2;color:#6d625a;font-size:11px;line-height:1.5;text-align:center}
-.guide strong.openGuide{color:#168047}
-.guide strong.closeGuide{color:#9b4138}
+.guide .openGuide{color:#168047;font-weight:900}
+.guide .closeGuide{color:#9b4138;font-weight:900}
 .hourGrid{display:block}
 .hourRow{margin:6px 0;border:1px solid #ddd5cc;border-radius:13px;background:#fff;overflow:hidden}
 .hourRowHead{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:5px 8px;background:#f5f1ed;border-bottom:1px solid #ebe4dd}
@@ -53,17 +48,17 @@ main{max-width:720px;margin:auto;padding:12px 10px calc(24px + env(safe-area-ins
 .hourRowState{font-size:9px;font-weight:900;color:#81766e}
 .quarterGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;padding:6px}
 .quarterCard{position:relative;min-width:0;height:54px;border:1px solid #ddd5cc;border-radius:10px;overflow:hidden;background:#fff;touch-action:pan-y;user-select:none;-webkit-user-select:none}
-.hourGrid.paintActive .quarterCard{touch-action:none}
 .quarterInner{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:#fff;transition:background .12s ease,box-shadow .12s ease,transform .12s ease}
-.quarterCard.paintPreviewOpen .quarterInner{background:#cfe9d6!important;color:#116d3b!important;box-shadow:inset 0 0 0 2px #168047}
-.quarterCard.paintPreviewClose .quarterInner{background:#f0cbc6!important;color:#8d3931!important;box-shadow:inset 0 0 0 2px #9b4138}
-.quarterCard.paintPreviewOpen,.quarterCard.paintPreviewClose{transform:scale(.98)}
+.quarterCard.rangePreviewOpen .quarterInner{background:#cfe9d6!important;color:#116d3b!important;box-shadow:inset 0 0 0 2px #168047}
+.quarterCard.rangePreviewClose .quarterInner{background:#f0cbc6!important;color:#8d3931!important;box-shadow:inset 0 0 0 2px #9b4138}
+.quarterCard.rangePreviewSkip .quarterInner{background:#f4e6e3!important;color:#8d514b!important;box-shadow:inset 0 0 0 2px #c6928c}
 .quarterCard.open .quarterInner{background:#edf7ef;color:#168047}
 .quarterCard.closed .quarterInner{background:#f1f0ee;color:#7d7771}
+.quarterCard.locked .quarterInner{background:#f6dddd!important;color:#93483f!important}
+.quarterCard.locked{border-color:#d2aaa5}
 .quarterTime{font-size:13px;font-weight:900;line-height:1}
 .quarterState{font-size:8px;font-weight:900;line-height:1}
 .quarterBusy{position:absolute;right:3px;top:3px;z-index:3;width:7px;height:7px;border-radius:50%;background:#9b4138;box-shadow:0 0 0 2px rgba(255,255,255,.9)}
-.quarterCard.busySlot{border-color:#d2aaa5}
 @media(max-width:340px){
   .quarterGrid{gap:4px;padding:5px}
   .quarterCard{height:51px}
@@ -73,6 +68,30 @@ main{max-width:720px;margin:auto;padding:12px 10px calc(24px + env(safe-area-ins
   .hourGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
   .hourRow{margin:0}
 }
+
+.blockedPanel{margin-top:10px;border:1px solid #ddd5cc;border-radius:13px;background:#fff;overflow:hidden}
+.blockedPanel summary{padding:12px;font-size:13px;font-weight:900;cursor:pointer;list-style:none}
+.blockedPanel summary::-webkit-details-marker{display:none}
+.blockedInner{padding:0 11px 12px;border-top:1px solid #eee7df}
+.blockedMonthNav{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:9px}
+.blockedMonthNav button{min-height:38px;border:1px solid #d9cfc6;border-radius:10px;background:#fff;color:#514a44;font-size:11px;font-weight:800}
+.weekHeader,.daySelector{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.weekHeader{margin-top:8px;text-align:center;color:#77716a;font-size:10px}
+.daySelector{margin-top:5px}
+.dayButton{min-width:0;min-height:37px;padding:4px 2px;border:1px solid #ddd5cc;border-radius:8px;background:#fff;color:#4d4843;font-size:11px;font-weight:800}
+.dayButton.selected{border-color:#61574d;background:#61574d;color:#fff}
+.selectedDatesBox{margin:8px 0;padding:8px;border-radius:9px;background:#faf8f5;font-size:11px;line-height:1.5}
+.blockedTimeRow{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.blockedTimeRow label{display:block;margin-top:5px;font-size:11px;font-weight:800}
+.blockedTimeRow input,.blockedMemoInput{width:100%;height:42px;margin-top:4px;border:1px solid #ddd5cc;border-radius:10px;background:#fff;padding:0 9px}
+.blockedActions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.blockedActions button{min-height:42px;border-radius:10px;font-size:11px;font-weight:900}
+.blockedTimeBtn{border:1px solid #61574d;background:#61574d;color:#fff}
+.blockedDayBtn{border:1px solid #d8aaa5;background:#fff8f7;color:#9b4138}
+.blockedListTitle{margin:12px 0 4px;font-size:12px;font-weight:900}
+.blockedItem{padding:9px 0;border-bottom:1px solid #eee7df;font-size:11px;line-height:1.5}
+.blockedItem:last-child{border-bottom:0}
+.blockedDelete{margin-top:5px;border:1px solid #d8aaa5;border-radius:8px;background:#fff;color:#9b4138;padding:5px 8px;font-size:10px;font-weight:800}
 .toast{position:fixed;left:50%;bottom:max(18px,calc(env(safe-area-inset-bottom) + 12px));z-index:80;transform:translate(-50%,12px);opacity:0;pointer-events:none;padding:9px 13px;border-radius:999px;background:#403934;color:#fff;font-size:12px;font-weight:800;transition:.18s}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .month{margin-top:10px;border:1px solid #ddd5cc;border-radius:13px;background:#fff;overflow:hidden}
@@ -110,15 +129,13 @@ main{max-width:720px;margin:auto;padding:12px 10px calc(24px + env(safe-area-ins
 
     <div class="summary" id="summary"></div>
 
-    <div class="paintToolbar">
-      <button class="paintOpenBtn" id="paintOpen" type="button">OPENにする</button>
-      <button class="paintCloseBtn" id="paintClose" type="button">CLOSEにする</button>
+    <div class="undoRow">
+      <div class="undoCaption" id="undoCaption"></div>
       <button class="undoBtn" id="undoBtn" type="button" disabled>↶ 1つ前に戻す</button>
     </div>
-    <div class="undoCaption" id="undoCaption"></div>
   </div>
 
-  <div class="guide">OPEN / CLOSEを選んで、<strong class="openGuide">変更したい時間を指でなぞる</strong>だけ。1枠ならタップ。選択中のボタンをもう一度押すと調整を終了できます。</div>
+  <div class="guide"><span class="openGuide">右へなぞる＝OPEN</span>　／　<span class="closeGuide">左へなぞる＝CLOSE</span><br>なぞった15分枠をまとめて変更します。予約・予定がある枠はOPENできません。</div>
 
   <div id="loading" class="loading">読み込んでいます…</div>
   <div id="hourGrid" class="hourGrid hidden"></div>
@@ -132,6 +149,46 @@ main{max-width:720px;margin:auto;padding:12px 10px calc(24px + env(safe-area-ins
         <button class="monthClose" id="monthClose" type="button">この月を全部CLOSE</button>
       </div>
       <div class="msg" id="monthMsg"></div>
+    </div>
+  </details>
+
+  <details class="blockedPanel" id="blockedPanel">
+    <summary>休み・予定・予約不可をまとめて設定</summary>
+    <div class="blockedInner">
+      <div class="blockedMonthNav">
+        <button id="blockedPrevMonth" type="button">← 前月</button>
+        <button id="blockedNextMonth" type="button">翌月 →</button>
+      </div>
+      <input class="monthInput" id="blockedMonth" type="month">
+
+      <div class="weekHeader">
+        <div>日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div>土</div>
+      </div>
+      <div id="daySelector" class="daySelector"></div>
+      <div id="selectedDatesBox" class="selectedDatesBox">日付を選択してください。</div>
+
+      <div class="blockedTimeRow">
+        <div>
+          <label>開始時間</label>
+          <input type="time" id="blockedStart" step="900">
+        </div>
+        <div>
+          <label>終了時間</label>
+          <input type="time" id="blockedEnd" step="900">
+        </div>
+      </div>
+
+      <label style="display:block;margin-top:7px;font-size:11px;font-weight:800">メモ</label>
+      <input class="blockedMemoInput" id="blockedMemo" placeholder="例：休み・外出・私用">
+
+      <div class="blockedActions">
+        <button class="blockedTimeBtn" id="addBlockedTime" type="button">この時間を予約不可</button>
+        <button class="blockedDayBtn" id="addBlockedDay" type="button">選択日を終日休み</button>
+      </div>
+
+      <div class="msg" id="blockedMsg"></div>
+      <div class="blockedListTitle">この月の休み・予定・予約不可</div>
+      <div id="blockedList"></div>
     </div>
   </details>
 </main>
@@ -155,8 +212,8 @@ let bookings=[];
 let blocked=[];
 let busy=false;
 let toastTimer=null;
-let paintMode=null;
-let paintGesture=null;
+let swipeGesture=null;
+let selectedBlockedDates=new Set();
 
 const UNDO_KEY='nakano_open_close_undo_v1';
 const UNDO_LIMIT=10;
@@ -278,6 +335,22 @@ function nextMonthStart(month){
   return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-01';
 }
 
+function datesInMonth(month){
+  if(!/^\d{4}-\d{2}$/.test(String(month||'')))return [];
+  const [year,mon]=month.split('-').map(Number);
+  const last=new Date(Date.UTC(year,mon,0)).getUTCDate();
+  return Array.from({length:last},(_,i)=>month+'-'+String(i+1).padStart(2,'0'));
+}
+
+function esc(value){
+  return String(value??'')
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'","&#039;");
+}
+
 function hhmm(minutes){
   return String(Math.floor(minutes/60)).padStart(2,'0')+':'+String(minutes%60).padStart(2,'0')+':00';
 }
@@ -353,7 +426,6 @@ function renderSummary(){
 function render(){
   const grid=$('hourGrid');
   grid.innerHTML='';
-  grid.classList.toggle('paintActive',!!paintMode);
   const map=slotMap();
   let index=0;
 
@@ -386,15 +458,17 @@ function render(){
       const isBusy=busyInfo.bookingCount>0||busyInfo.blockedCount>0;
 
       const card=document.createElement('div');
-      card.className='quarterCard '+(isOpen?'open':'closed')+(isBusy?' busySlot':'');
+      card.className='quarterCard '+(isBusy?'locked':(isOpen?'open':'closed'));
       card.dataset.time=time;
       card.dataset.index=String(index++);
+      card.dataset.locked=isBusy?'1':'0';
 
       const inner=document.createElement('div');
       inner.className='quarterInner';
+      const stateLabel=busyInfo.bookingCount?'予約':busyInfo.blockedCount?'予定':isOpen?'OPEN':'CLOSE';
       inner.innerHTML=
         '<div class="quarterTime">'+String(minute).padStart(2,'0')+'</div>'+
-        '<div class="quarterState">'+(isOpen?'OPEN':'CLOSE')+'</div>';
+        '<div class="quarterState">'+stateLabel+'</div>';
 
       card.appendChild(inner);
 
@@ -417,35 +491,27 @@ function render(){
   grid.classList.remove('hidden');
 }
 
-function setPaintMode(mode){
-  paintMode=paintMode===mode?null:mode;
-  $('paintOpen').classList.toggle('active',paintMode==='open');
-  $('paintClose').classList.toggle('active',paintMode==='close');
-  $('hourGrid').classList.toggle('paintActive',!!paintMode);
-  clearPaintPreview();
-
-  if(paintMode==='open')showToast('OPENにする時間をなぞってください');
-  else if(paintMode==='close')showToast('CLOSEにする時間をなぞってください');
-  else showToast('なぞり調整を終了しました');
-}
-
 function allQuarterCards(){
   return [...document.querySelectorAll('.quarterCard[data-index]')];
 }
 
-function clearPaintPreview(){
-  document.querySelectorAll('.paintPreviewOpen,.paintPreviewClose').forEach(el=>{
-    el.classList.remove('paintPreviewOpen','paintPreviewClose');
+function clearRangePreview(){
+  document.querySelectorAll('.rangePreviewOpen,.rangePreviewClose,.rangePreviewSkip').forEach(el=>{
+    el.classList.remove('rangePreviewOpen','rangePreviewClose','rangePreviewSkip');
   });
 }
 
-function previewPaintRange(startIndex,endIndex){
-  clearPaintPreview();
+function previewSwipeRange(startIndex,endIndex,open){
+  clearRangePreview();
   const cards=allQuarterCards();
   const from=Math.min(startIndex,endIndex);
   const to=Math.max(startIndex,endIndex);
+
   for(let i=from;i<=to;i++){
-    cards[i]?.classList.add(paintMode==='open'?'paintPreviewOpen':'paintPreviewClose');
+    const card=cards[i];
+    if(!card)continue;
+    if(open&&card.dataset.locked==='1')card.classList.add('rangePreviewSkip');
+    else card.classList.add(open?'rangePreviewOpen':'rangePreviewClose');
   }
 }
 
@@ -454,70 +520,96 @@ function cardAtPoint(x,y){
   return el?.closest?.('.quarterCard[data-index]')||null;
 }
 
-function bindPaintGrid(){
+function bindSwipeGrid(){
   const grid=$('hourGrid');
 
   grid.addEventListener('pointerdown',event=>{
-    if(!paintMode||busy)return;
+    if(busy)return;
     const card=event.target.closest?.('.quarterCard[data-index]');
     if(!card)return;
     if(event.pointerType==='mouse'&&event.button!==0)return;
 
-    event.preventDefault();
-    const index=Number(card.dataset.index);
-    paintGesture={
+    swipeGesture={
       pointerId:event.pointerId,
-      startIndex:index,
-      endIndex:index
+      startIndex:Number(card.dataset.index),
+      endIndex:Number(card.dataset.index),
+      startX:event.clientX,
+      startY:event.clientY,
+      direction:null
     };
-
-    try{grid.setPointerCapture(event.pointerId)}catch(_){}
-    previewPaintRange(index,index);
   });
 
   grid.addEventListener('pointermove',event=>{
-    if(!paintGesture||paintGesture.pointerId!==event.pointerId)return;
+    if(!swipeGesture||swipeGesture.pointerId!==event.pointerId)return;
+
+    const dx=event.clientX-swipeGesture.startX;
+    const dy=event.clientY-swipeGesture.startY;
+
+    if(!swipeGesture.direction){
+      if(Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>10)return;
+      if(Math.abs(dx)<12)return;
+      swipeGesture.direction=dx>0?'open':'close';
+      try{grid.setPointerCapture(event.pointerId)}catch(_){}
+    }
+
     event.preventDefault();
 
     const card=cardAtPoint(event.clientX,event.clientY);
-    if(!card)return;
+    if(card){
+      const index=Number(card.dataset.index);
+      if(Number.isFinite(index))swipeGesture.endIndex=index;
+    }else{
+      // 指がカード外へ出ても横移動量に応じて複数枠をまとめて選択できるようにする
+      const step=Math.max(0,Math.floor(Math.abs(dx)/34));
+      swipeGesture.endIndex=swipeGesture.direction==='open'
+        ? Math.min(allQuarterCards().length-1,swipeGesture.startIndex+step)
+        : Math.max(0,swipeGesture.startIndex-step);
+    }
 
-    const index=Number(card.dataset.index);
-    if(!Number.isFinite(index)||index===paintGesture.endIndex)return;
-
-    paintGesture.endIndex=index;
-    previewPaintRange(paintGesture.startIndex,index);
-  });
+    previewSwipeRange(
+      swipeGesture.startIndex,
+      swipeGesture.endIndex,
+      swipeGesture.direction==='open'
+    );
+  },{passive:false});
 
   const finish=async event=>{
-    if(!paintGesture||paintGesture.pointerId!==event.pointerId)return;
-    event.preventDefault();
+    if(!swipeGesture||swipeGesture.pointerId!==event.pointerId)return;
 
+    const gesture=swipeGesture;
+    swipeGesture=null;
     try{grid.releasePointerCapture(event.pointerId)}catch(_){}
 
-    const gesture=paintGesture;
-    paintGesture=null;
+    clearRangePreview();
+
+    if(!gesture.direction)return;
 
     const cards=allQuarterCards();
     const from=Math.min(gesture.startIndex,gesture.endIndex);
     const to=Math.max(gesture.startIndex,gesture.endIndex);
-    const times=cards.slice(from,to+1).map(card=>String(card.dataset.time||'')).filter(Boolean);
+    let selected=cards.slice(from,to+1);
 
-    clearPaintPreview();
-    if(!times.length)return;
+    const open=gesture.direction==='open';
+    const skipped=open?selected.filter(card=>card.dataset.locked==='1').length:0;
+    if(open)selected=selected.filter(card=>card.dataset.locked!=='1');
 
-    await applyPaintTimes(times,paintMode==='open');
+    const times=selected.map(card=>String(card.dataset.time||'')).filter(Boolean);
+    if(!times.length){
+      if(skipped)showToast('予約・予定があるためOPENできません');
+      return;
+    }
+
+    await applySwipeTimes(times,open,skipped);
   };
 
   grid.addEventListener('pointerup',finish);
-  grid.addEventListener('pointercancel',event=>{
-    if(!paintGesture||paintGesture.pointerId!==event.pointerId)return;
-    paintGesture=null;
-    clearPaintPreview();
+  grid.addEventListener('pointercancel',()=>{
+    swipeGesture=null;
+    clearRangePreview();
   });
 }
 
-async function applyPaintTimes(times,open){
+async function applySwipeTimes(times,open,skipped=0){
   if(busy||!times.length)return;
 
   const date=$('date').value;
@@ -544,7 +636,10 @@ async function applyPaintTimes(times,open){
     const first=String(times[0]).slice(0,5);
     const last=String(times[times.length-1]).slice(0,5);
     pushUndo(first+(times.length>1?'〜'+last:'')+' '+(open?'OPEN':'CLOSE'),before);
-    showToast(times.length+'枠を'+(open?'OPEN':'CLOSE')+'に変更');
+    showToast(
+      times.length+'枠を'+(open?'OPEN':'CLOSE')+
+      (skipped?'（予約・予定 '+skipped+'枠は除外）':'')
+    );
   }catch(error){
     console.error(error);
     showToast('変更できませんでした');
@@ -554,6 +649,16 @@ async function applyPaintTimes(times,open){
 
   await loadDay(false);
 }
+
+function currentBusyTimes(){
+  const result=new Set();
+  for(let min=DAY_START;min<DAY_END;min+=15){
+    const info=busyAt(min,min+15);
+    if(info.bookingCount||info.blockedCount)result.add(hhmm(min));
+  }
+  return result;
+}
+
 
 async function loadDay(showLoading=true){
   if(busy)return;
@@ -616,12 +721,14 @@ async function setNormalHours(){
   for(let min=DAY_START;min<DAY_END;min+=15)times.push(hhmm(min));
   const before=snapshotCurrentTimes(date,times);
   busy=true;
+  const locked=currentBusyTimes();
   const rows=[];
   for(let min=DAY_START;min<DAY_END;min+=15){
+    const time=hhmm(min);
     rows.push({
       slot_date:date,
-      start_time:hhmm(min),
-      is_open:min>=10*60&&min<20*60+15
+      start_time:time,
+      is_open:min>=10*60&&min<20*60+15&&!locked.has(time)
     });
   }
   const {error}=await supabase.from('nakano_open_slots').upsert(rows,{onConflict:'slot_date,start_time'});
@@ -653,14 +760,45 @@ async function setMonth(normal){
     const start=month+'-01';
     const end=nextMonthStart(month);
 
-    const beforeResult=await supabase
-      .from('nakano_open_slots')
-      .select('slot_date,start_time,is_open')
-      .gte('slot_date',start)
-      .lt('slot_date',end);
-    if(beforeResult.error)throw beforeResult.error;
+    const [beforeResult,bookingResult,blockedResult]=await Promise.all([
+      supabase
+        .from('nakano_open_slots')
+        .select('slot_date,start_time,is_open')
+        .gte('slot_date',start)
+        .lt('slot_date',end),
+      supabase
+        .from('nakano_bookings')
+        .select('booking_date,start_time,minutes,status')
+        .gte('booking_date',start)
+        .lt('booking_date',end)
+        .eq('status','confirmed'),
+      supabase
+        .from('nakano_blocked_times')
+        .select('blocked_date,start_time,end_time')
+        .gte('blocked_date',start)
+        .lt('blocked_date',end)
+    ]);
+    if(beforeResult.error||bookingResult.error||blockedResult.error){
+      throw beforeResult.error||bookingResult.error||blockedResult.error;
+    }
     beforeMonth=beforeResult.data||[];
 
+    const occupied=new Set();
+    for(const booking of bookingResult.data||[]){
+      const begin=toMinutes(booking.start_time);
+      const finish=begin+Math.max(15,Number(booking.minutes)||15);
+      for(let min=DAY_START;min<DAY_END;min+=15){
+        if(min<finish&&min+15>begin)occupied.add(String(booking.booking_date)+'|'+hhmm(min));
+      }
+    }
+    for(const item of blockedResult.data||[]){
+      const begin=toMinutes(item.start_time);
+      let finish=toMinutes(item.end_time);
+      if(String(item.end_time).startsWith('23:59'))finish=24*60;
+      for(let min=DAY_START;min<DAY_END;min+=15){
+        if(min<finish&&min+15>begin)occupied.add(String(item.blocked_date)+'|'+hhmm(min));
+      }
+    }
 
     const d=new Date(start+'T00:00:00Z');
     const endDate=new Date(end+'T00:00:00Z');
@@ -669,10 +807,13 @@ async function setMonth(normal){
     while(d<endDate){
       const date=d.toISOString().slice(0,10);
       for(let min=DAY_START;min<DAY_END;min+=15){
+        const time=hhmm(min);
         rows.push({
           slot_date:date,
-          start_time:hhmm(min),
-          is_open:normal?(min>=10*60&&min<20*60+15):false
+          start_time:time,
+          is_open:normal
+            ? (min>=10*60&&min<20*60+15&&!occupied.has(date+'|'+time))
+            : false
         });
       }
       d.setUTCDate(d.getUTCDate()+1);
@@ -695,6 +836,155 @@ async function setMonth(normal){
   }
 
   if($('date').value.startsWith(month))await loadDay(false);
+}
+
+
+function renderDaySelector(){
+  const month=$('blockedMonth').value;
+  const box=$('daySelector');
+  box.innerHTML='';
+  if(!month)return;
+
+  const dates=datesInMonth(month);
+  if(!dates.length)return;
+
+  const first=new Date(dates[0]+'T00:00:00').getDay();
+  for(let i=0;i<first;i++)box.appendChild(document.createElement('span'));
+
+  dates.forEach(date=>{
+    const button=document.createElement('button');
+    button.type='button';
+    button.className='dayButton'+(selectedBlockedDates.has(date)?' selected':'');
+    button.textContent=String(Number(date.slice(-2)));
+    button.onclick=()=>{
+      if(selectedBlockedDates.has(date))selectedBlockedDates.delete(date);
+      else selectedBlockedDates.add(date);
+      renderDaySelector();
+      renderSelectedDates();
+    };
+    box.appendChild(button);
+  });
+
+  renderSelectedDates();
+}
+
+function renderSelectedDates(){
+  const dates=[...selectedBlockedDates].sort();
+  $('selectedDatesBox').textContent=dates.length
+    ? '選択中：'+dates.map(x=>Number(x.slice(5,7))+'月'+Number(x.slice(-2))+'日').join('・')
+    : '日付を選択してください。';
+}
+
+async function saveBlocked(wholeDay=false){
+  const dates=[...selectedBlockedDates].sort();
+  if(!dates.length){
+    $('blockedMsg').textContent='予約不可にする日を選択してください。';
+    return;
+  }
+
+  let start=$('blockedStart').value;
+  let end=$('blockedEnd').value;
+  const memo=$('blockedMemo').value.trim();
+
+  if(wholeDay){
+    start='00:00:00';
+    end='23:59:59';
+  }else{
+    if(!start||!end){
+      $('blockedMsg').textContent='開始時間と終了時間を入力してください。';
+      return;
+    }
+    if(end<=start){
+      $('blockedMsg').textContent='終了時間は開始時間より後にしてください。';
+      return;
+    }
+    start=start.length===5?start+':00':start;
+    end=end.length===5?end+':00':end;
+  }
+
+  const rows=dates.map(date=>({
+    blocked_date:date,
+    start_time:start,
+    end_time:end,
+    memo:wholeDay?(memo?'終日：'+memo:'終日予約不可'):(memo||null)
+  }));
+
+  const {error}=await supabase.from('nakano_blocked_times').insert(rows);
+  if(error){
+    console.error(error);
+    $('blockedMsg').textContent='登録できませんでした。';
+    return;
+  }
+
+  $('blockedMsg').textContent=dates.length+'日分を登録しました。';
+  selectedBlockedDates=new Set();
+  $('blockedStart').value='';
+  $('blockedEnd').value='';
+  $('blockedMemo').value='';
+
+  renderDaySelector();
+  await loadMonthBlockedTimes();
+  if(dates.includes($('date').value))await loadDay(false);
+}
+
+async function loadMonthBlockedTimes(){
+  const month=$('blockedMonth').value;
+  if(!month)return;
+
+  const {data,error}=await supabase
+    .from('nakano_blocked_times')
+    .select('*')
+    .gte('blocked_date',month+'-01')
+    .lt('blocked_date',nextMonthStart(month))
+    .order('blocked_date')
+    .order('start_time');
+
+  if(error){
+    console.error(error);
+    $('blockedList').innerHTML='<span class="msg">読み込めませんでした。</span>';
+    return;
+  }
+
+  if(!data?.length){
+    $('blockedList').innerHTML='<span class="msg">この月の設定はありません。</span>';
+    return;
+  }
+
+  $('blockedList').innerHTML=data.map(item=>{
+    const start=String(item.start_time).slice(0,5);
+    const end=String(item.end_time).slice(0,5);
+    const whole=start==='00:00'&&end.startsWith('23:59');
+    return '<div class="blockedItem">'+
+      '<strong>'+esc(item.blocked_date)+(whole?'　終日':'')+'</strong><br>'+
+      (whole?'終日予約不可':esc(start)+' ～ '+esc(end))+
+      (item.memo?'<br><span style="color:#7b7169">'+esc(item.memo)+'</span>':'')+
+      '<br><button class="blockedDelete" type="button" data-id="'+esc(item.id)+'">解除</button>'+
+      '</div>';
+  }).join('');
+
+  document.querySelectorAll('.blockedDelete').forEach(button=>{
+    button.onclick=async()=>{
+      if(!confirm('この予約不可設定を解除しますか？'))return;
+      const {error}=await supabase.from('nakano_blocked_times').delete().eq('id',button.dataset.id);
+      if(error){
+        console.error(error);
+        showToast('解除できませんでした');
+        return;
+      }
+      await loadMonthBlockedTimes();
+      await loadDay(false);
+    };
+  });
+}
+
+function shiftBlockedMonth(delta){
+  const base=$('blockedMonth').value||monthFromDate($('date').value)||monthFromDate(todayJapan());
+  const [year,mon]=base.split('-').map(Number);
+  const d=new Date(Date.UTC(year,mon-1+delta,1));
+  $('blockedMonth').value=d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0');
+  selectedBlockedDates=new Set();
+  renderDaySelector();
+  loadMonthBlockedTimes();
 }
 
 async function ensureAuth(){
@@ -731,25 +1021,47 @@ $('today').onclick=()=>{
   loadDay();
 };
 $('date').onchange=()=>{
-  paintGesture=null;
-  clearPaintPreview();
+  swipeGesture=null;
+  clearRangePreview();
   loadDay();
 };
-$('paintOpen').onclick=()=>setPaintMode('open');
-$('paintClose').onclick=()=>setPaintMode('close');
 $('undoBtn').onclick=undoLastChange;
 $('normalHours').onclick=setNormalHours;
 $('allClose').onclick=()=>setWholeDay(false);
 $('monthNormal').onclick=()=>setMonth(true);
 $('monthClose').onclick=()=>setMonth(false);
+$('blockedPrevMonth').onclick=()=>shiftBlockedMonth(-1);
+$('blockedNextMonth').onclick=()=>shiftBlockedMonth(1);
+$('blockedMonth').onchange=()=>{
+  selectedBlockedDates=new Set();
+  renderDaySelector();
+  loadMonthBlockedTimes();
+};
+$('addBlockedTime').onclick=()=>saveBlocked(false);
+$('addBlockedDay').onclick=()=>saveBlocked(true);
 
-bindPaintGrid();
+bindSwipeGrid();
 updateUndoButton();
 
 if(await ensureAuth()){
   $('date').value=initialDate();
   $('month').value=monthFromDate($('date').value);
-  await loadDay();
+  $('blockedMonth').value=monthFromDate($('date').value);
+  renderDaySelector();
+  await Promise.all([loadDay(),loadMonthBlockedTimes()]);
+
+  const params=new URLSearchParams(location.search);
+  const planStart=params.get('planStart');
+  const planEnd=params.get('planEnd');
+  if(planStart){
+    selectedBlockedDates=new Set([$('date').value]);
+    $('blockedMonth').value=monthFromDate($('date').value);
+    renderDaySelector();
+    if(/^\d{2}:\d{2}$/.test(planStart))$('blockedStart').value=planStart;
+    if(/^\d{2}:\d{2}$/.test(planEnd||''))$('blockedEnd').value=planEnd;
+    $('blockedPanel').open=true;
+    requestAnimationFrame(()=>$('blockedPanel').scrollIntoView({behavior:'smooth',block:'start'}));
+  }
 }
 </script>
 </body>

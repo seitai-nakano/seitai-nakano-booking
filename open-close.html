@@ -118,7 +118,7 @@ main{max-width:720px;margin:auto;padding:12px 10px calc(24px + env(safe-area-ins
   <div class="topbar">
     <div class="topline">
       <div class="title">OPEN / CLOSE設定</div>
-      <a class="back" href="./admin.html">管理トップへ</a>
+      <a class="back" href="./admin.html?_adminv=20261015-compact-readable-v2">管理トップへ</a>
     </div>
 
     <div class="dateNav">
@@ -999,7 +999,7 @@ function shiftBlockedMonth(delta){
 async function ensureAuth(){
   const {data,error}=await supabase.auth.getUser();
   if(error||!data?.user){
-    location.replace('./admin.html');
+    location.replace('./admin.html?_adminv=20261015-compact-readable-v2');
     return false;
   }
   return true;

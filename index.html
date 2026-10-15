@@ -66,6 +66,42 @@
 /* single-source mascot drag */
 .bookingGuideMascotBtn{touch-action:none!important;-webkit-touch-callout:none!important;-webkit-user-select:none!important;user-select:none!important}
 .bookingGuide.dragging .bookingGuideMascotBtn{animation:none!important;cursor:grabbing}
+
+/* 予約ページ キャンペーン */
+.campaignCard{
+  margin:.45rem 0 .75rem;
+  padding:.9rem .95rem;
+  border:1px solid rgba(85,19,15,.22);
+  border-radius:16px;
+  background:linear-gradient(180deg,#fffaf8 0%,#fff 100%);
+  box-shadow:0 4px 14px rgba(72,38,31,.05);
+}
+.campaignCardLabel{
+  display:inline-flex;
+  align-items:center;
+  min-height:1.7rem;
+  padding:.25rem .55rem;
+  border-radius:999px;
+  background:#55130f;
+  color:#fff;
+  font-size:.69rem;
+  font-weight:800;
+  letter-spacing:.08em;
+}
+.campaignCardTitle{
+  margin:.55rem 0 .25rem;
+  color:#2a2522;
+  font-size:1.03rem;
+  line-height:1.45;
+  font-weight:800;
+}
+.campaignCardBody{
+  color:#5f554f;
+  font-size:.9rem;
+  line-height:1.75;
+  white-space:pre-wrap;
+}
+
 </style>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <link rel="stylesheet" href="./customer-brand.css?v=20260919-1">
@@ -851,6 +887,11 @@ body.bookingSplashReveal main{
 <header class="header"><h1>完全紹介制サロン整体なかの</h1><p class="subtitle">オンライン予約</p><div id="lineStatus" class="lineBox">LINEとの連携を確認しています…</div></header>
 <div id="latestManage" class="manageBanner hidden">予約済みの内容を確認・変更する場合は <a id="latestManageLink" href="#">こちら</a></div>
 <div id="bookingArea">
+<section class="campaignCard hidden" id="campaignCard" aria-live="polite">
+  <div class="campaignCardLabel">CAMPAIGN</div>
+  <div class="campaignCardTitle" id="campaignTitle"></div>
+  <div class="campaignCardBody" id="campaignBody"></div>
+</section>
 <nav class="bookingWizardProgress" id="bookingWizardProgress" aria-label="予約の進み具合">
   <button type="button" class="wizardProgressItem active" data-wizard-step="1"><span>1</span><small>メニュー</small></button>
   <i></i>
@@ -1067,6 +1108,30 @@ function bookingGuideInit(){
 }
 
 function esc(v){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'","&#039;")}
+async function loadCampaign(){
+  const card=$('campaignCard');
+  if(!card)return;
+  try{
+    const{data,error}=await supabase
+      .from('nakano_campaign_settings')
+      .select('title,body,is_active')
+      .eq('id',1)
+      .maybeSingle();
+    if(error)throw error;
+    const title=String(data?.title||'').trim();
+    const body=String(data?.body||'').trim();
+    if(!data?.is_active||(!title&&!body)){
+      card.classList.add('hidden');
+      return;
+    }
+    $('campaignTitle').textContent=title||'キャンペーンのお知らせ';
+    $('campaignBody').textContent=body;
+    card.classList.remove('hidden');
+  }catch(error){
+    console.warn('キャンペーンを読み込めませんでした',error);
+    card.classList.add('hidden');
+  }
+}
 function japanParts(){const p=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date()),g=t=>p.find(x=>x.type===t)?.value||'';return{y:+g('year'),m:+g('month'),d:+g('day'),h:+g('hour'),min:+g('minute')}}
 function todayJapan(){const p=japanParts();return `${String(p.y).padStart(4,'0')}-${String(p.m).padStart(2,'0')}-${String(p.d).padStart(2,'0')}`}
 function addDaysIso(s,n){const[y,m,d]=s.split('-').map(Number),x=new Date(Date.UTC(y,m-1,d));x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)}
@@ -1794,7 +1859,7 @@ function bookingGuideInstallDrag(){
 }
 
 
-async function start(){bookingGuideInit();bookingGuideInstallDrag();loadLatestManage();await loadMenus();if(manageToken)await loadManageBooking()}start();
+async function start(){bookingGuideInit();bookingGuideInstallDrag();loadLatestManage();await Promise.all([loadCampaign(),loadMenus()]);if(manageToken)await loadManageBooking()}start();
 </script>
 <script type="module">import(`./booking-calendar-v2.js?_v=${Date.now()}`);</script>
 </main>

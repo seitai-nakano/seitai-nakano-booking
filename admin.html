@@ -2980,13 +2980,13 @@ function renderSlotButtons(){
     openHour.type='button';
     openHour.className='slotHourAction open';
     openHour.textContent='OPEN';
-    openHour.onclick=()=>setSlotRange(true,timeToMinutes(hourTimes[0]),timeToMinutes(hourTimes.at(-1)));
+    openHour.onclick=()=>setSlotRange(true,timeToMinutes(hourTimes[0]),timeToMinutes(hourTimes[hourTimes.length-1]));
 
     const closeHour=document.createElement('button');
     closeHour.type='button';
     closeHour.className='slotHourAction close';
     closeHour.textContent='CLOSE';
-    closeHour.onclick=()=>setSlotRange(false,timeToMinutes(hourTimes[0]),timeToMinutes(hourTimes.at(-1)));
+    closeHour.onclick=()=>setSlotRange(false,timeToMinutes(hourTimes[0]),timeToMinutes(hourTimes[hourTimes.length-1]));
 
     actions.append(openHour,closeHour);
     header.append(title,actions);

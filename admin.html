@@ -547,6 +547,53 @@ button:disabled{
 @media(max-width:420px){.adminTimeButtons{grid-template-columns:repeat(3,minmax(0,1fr));max-height:300px}.adminTimeButton{min-height:48px;font-size:15px}}
 
 
+
+/* OPEN / CLOSE 操作改善 */
+.openCloseCard{scroll-margin-top:10px}
+.openCloseTitleRow{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.openCloseDateLabel{flex:0 0 auto;padding:5px 9px;border-radius:999px;background:#f4ece9;color:#705f58;font-size:12px;font-weight:800}
+.openCloseDateNav{display:grid;grid-template-columns:1fr .85fr 1fr;gap:7px;margin-top:12px}
+.openCloseDateNav button{margin:0!important;padding:10px 6px!important}
+.openCloseSummary{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.openCloseSummaryBadge{padding:5px 8px;border-radius:999px;font-size:11px;font-weight:800}
+.openCloseSummaryBadge.open{background:#eaf3ec;color:#168047}
+.openCloseSummaryBadge.closed{background:#eeeeec;color:#77716a}
+.openCloseSummaryBadge.booking{background:#f4eee8;color:#675b51;border:1px solid #d7ccc2}
+.openCloseSummaryBadge.blocked{background:#f6dddd;color:#9b4138}
+.openClosePreset{margin-top:12px!important}
+.openCloseRangeBox{margin-top:12px;padding:12px;border:1px solid #e2dad2;border-radius:13px;background:#faf8f5}
+.openCloseRangeTitle{font-size:13px;font-weight:800;color:#4d4843}
+.openCloseRangeInputs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.openCloseRangeInputs label{margin-top:8px}
+.openCloseRangeInputs input{margin-top:4px}
+.openRangeButton{border-color:#b9d7c1!important;color:#168047!important;background:#f5fbf6!important}
+.closeRangeButton{border-color:#dfbbb6!important;color:#9b4138!important;background:#fff8f7!important}
+.openCloseWholeDay{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
+.openCloseWholeDay button{margin:0!important;font-size:12px;padding:10px 6px!important}
+.openCloseSlots{display:block!important}
+.slotHourGroup{margin:9px 0;border:1px solid #e2dad2;border-radius:13px;background:#faf8f5;overflow:hidden}
+.slotHourHeader{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 9px;border-bottom:1px solid #ebe4dd}
+.slotHourTitle{font-size:14px;font-weight:900;color:#4d4843}
+.slotHourActions{display:flex;gap:5px}
+.slotHourAction{width:auto!important;min-width:52px;margin:0!important;padding:6px 8px!important;border-radius:8px!important;font-size:10px!important;font-weight:800!important}
+.slotHourAction.open{border:1px solid #b9d7c1!important;background:#f4faf5!important;color:#168047!important}
+.slotHourAction.close{border:1px solid #dfbbb6!important;background:#fff8f7!important;color:#9b4138!important}
+.slotHourChoices{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:8px}
+.slotHourChoices .slot{min-height:52px}
+.openCloseMonthDetails{margin-top:16px;border-top:1px solid #eee7df;padding-top:12px}
+.openCloseMonthDetails summary{cursor:pointer;padding:7px 0;font-size:14px;font-weight:800;color:#5c544d;list-style:none}
+.openCloseMonthDetails summary::-webkit-details-marker{display:none}
+.openCloseMonthDetails summary:after{content:'▼';float:right;font-size:10px;color:#8a8179}
+.openCloseMonthDetails[open] summary:after{content:'▲'}
+.openCloseMonthInner{padding-top:7px}
+@media(max-width:420px){
+  .openCloseTitleRow{align-items:flex-start}
+  .openCloseDateLabel{font-size:11px}
+  .slotHourChoices{gap:5px;padding:7px}
+  .slotHourActions{gap:4px}
+  .slotHourAction{min-width:47px;padding:6px!important}
+}
+
 /* 通知折りたたみ */
 
 details.settingsDetails{
@@ -752,52 +799,65 @@ CLOSE
 </section>
 
 
-<section class="card">
+<section class="card openCloseCard">
 
-<h2>OPEN / CLOSE</h2>
-
-<p class="muted">
-15分単位で受付可否を変更できます。
-</p>
-
-<div class="row">
-
-<button class="secondary" id="openAll">
-この日を全部OPEN
-</button>
-
-<button class="secondary" id="closeAll">
-この日を全部CLOSE
-</button>
-
+<div class="openCloseTitleRow">
+  <div>
+    <h2>OPEN / CLOSE</h2>
+    <p class="muted" style="margin:0">受付できる時間をタップで変更できます。</p>
+  </div>
+  <div class="openCloseDateLabel" id="openCloseDateLabel"></div>
 </div>
 
-<div
-  id="slots"
-  class="slots"
-  style="margin-top:10px"
-></div>
-
-
-<hr style="border:0;border-top:1px solid #eee7df;margin:20px 0">
-
-<h3>月単位で一括変更</h3>
-
-<input type="month" id="month">
-
-<div class="row">
-
-<button class="secondary" id="openMonth">
-この月を全部OPEN
-</button>
-
-<button class="secondary" id="closeMonth">
-この月を全部CLOSE
-</button>
-
+<div class="openCloseDateNav">
+  <button class="secondary" id="openClosePrev" type="button">← 前日</button>
+  <button class="secondary" id="openCloseToday" type="button">今日</button>
+  <button class="secondary" id="openCloseNext" type="button">翌日 →</button>
 </div>
 
-<div id="monthMsg" class="msg"></div>
+<div class="openCloseSummary" id="openCloseSummary"></div>
+
+<button class="primary openClosePreset" id="normalHours" type="button">
+通常営業時間にする（10:00〜20:00）
+</button>
+
+<div class="openCloseRangeBox">
+  <div class="openCloseRangeTitle">時間帯をまとめて変更</div>
+  <div class="openCloseRangeInputs">
+    <div>
+      <label>開始</label>
+      <input type="time" id="openCloseStart" step="900" value="10:00">
+    </div>
+    <div>
+      <label>最終受付</label>
+      <input type="time" id="openCloseLastStart" step="900" value="20:00">
+    </div>
+  </div>
+  <div class="row">
+    <button class="secondary openRangeButton" id="openRange" type="button">この時間帯をOPEN</button>
+    <button class="secondary closeRangeButton" id="closeRange" type="button">この時間帯をCLOSE</button>
+  </div>
+</div>
+
+<div class="openCloseWholeDay">
+  <button class="secondary" id="openAll" type="button">全時間OPEN</button>
+  <button class="secondary" id="closeAll" type="button">全時間CLOSE</button>
+</div>
+
+<div id="slots" class="slots openCloseSlots" style="margin-top:12px"></div>
+
+<details class="openCloseMonthDetails">
+  <summary>月単位の一括設定</summary>
+  <div class="openCloseMonthInner">
+    <p class="muted">「通常営業時間」は10:00〜20:00をOPEN、8:00〜9:45と20:15以降をCLOSEにします。</p>
+    <input type="month" id="month">
+    <div class="row">
+      <button class="secondary" id="openMonth" type="button">この月を通常営業時間で設定</button>
+      <button class="secondary" id="closeMonth" type="button">この月を全部CLOSE</button>
+    </div>
+    <div id="monthMsg" class="msg"></div>
+  </div>
+</details>
 
 </section>
 
@@ -2837,281 +2897,255 @@ async function loadDay(){
    OPEN CLOSE
 ========================== */
 
+function slotBusyForTime(time){
+  const slotStart=timeToMinutes(time);
+  const slotEnd=slotStart+15;
+
+  const booking=currentBookings.find(item=>{
+    const start=timeToMinutes(item.start_time);
+    const duration=menuMinutes(item);
+    return overlaps(slotStart,slotEnd,start,start+duration);
+  });
+
+  const blocked=currentBlocked.find(item=>{
+    const start=timeToMinutes(item.start_time);
+    let end=timeToMinutes(item.end_time);
+    if(String(item.end_time).startsWith('23:59'))end=24*60;
+    return overlaps(slotStart,slotEnd,start,end);
+  });
+
+  return {booking,blocked};
+}
+
+
+function formatOpenCloseDate(date){
+  if(!date)return '';
+  const [y,m,d]=date.split('-').map(Number);
+  const weekday=['日','月','火','水','木','金','土'][new Date(`${date}T00:00:00`).getDay()];
+  return `${m}/${d}（${weekday}）`;
+}
+
+
+function renderOpenCloseSummary(){
+  const map=new Map(currentSlots.map(row=>[String(row.start_time),row]));
+  let openCount=0;
+  let closedCount=0;
+
+  times.forEach(time=>{
+    const busy=slotBusyForTime(time);
+    if(busy.booking||busy.blocked)return;
+    if(map.get(time)?.is_open)openCount++;
+    else closedCount++;
+  });
+
+  if($('openCloseDateLabel'))$('openCloseDateLabel').textContent=formatOpenCloseDate($('date').value);
+  if($('openCloseSummary')){
+    $('openCloseSummary').innerHTML=
+      `<span class="openCloseSummaryBadge open">OPEN ${openCount}</span>`
+      +`<span class="openCloseSummaryBadge closed">CLOSE ${closedCount}</span>`
+      +`<span class="openCloseSummaryBadge booking">予約 ${currentBookings.length}</span>`
+      +`<span class="openCloseSummaryBadge blocked">予定 ${currentBlocked.length}</span>`;
+  }
+}
+
+
 function renderSlotButtons(){
-
-  const box=
-    $('slots');
-
-
+  const box=$('slots');
   box.innerHTML='';
 
+  const map=new Map(currentSlots.map(row=>[String(row.start_time),row]));
+  const groups=new Map();
 
-  const map=
-    new Map(
-      currentSlots.map(
-        row=>[
-          String(
-            row.start_time
-          ),
-          row
-        ]
-      )
-    );
+  times.forEach(time=>{
+    const hour=String(time).slice(0,2);
+    if(!groups.has(hour))groups.set(hour,[]);
+    groups.get(hour).push(time);
+  });
 
+  for(const [hour,hourTimes] of groups){
+    const group=document.createElement('div');
+    group.className='slotHourGroup';
 
-  times.forEach(
-    time=>{
+    const header=document.createElement('div');
+    header.className='slotHourHeader';
 
-      const row=
-        map.get(
-          time
-        );
+    const title=document.createElement('div');
+    title.className='slotHourTitle';
+    title.textContent=`${Number(hour)}時`;
 
+    const actions=document.createElement('div');
+    actions.className='slotHourActions';
 
-      const isOpen=
-        !!row?.is_open;
+    const openHour=document.createElement('button');
+    openHour.type='button';
+    openHour.className='slotHourAction open';
+    openHour.textContent='OPEN';
+    openHour.onclick=()=>setSlotRange(true,timeToMinutes(hourTimes[0]),timeToMinutes(hourTimes.at(-1)));
 
+    const closeHour=document.createElement('button');
+    closeHour.type='button';
+    closeHour.className='slotHourAction close';
+    closeHour.textContent='CLOSE';
+    closeHour.onclick=()=>setSlotRange(false,timeToMinutes(hourTimes[0]),timeToMinutes(hourTimes.at(-1)));
 
-      const slotStart=
-        timeToMinutes(
-          time
-        );
+    actions.append(openHour,closeHour);
+    header.append(title,actions);
 
+    const choices=document.createElement('div');
+    choices.className='slotHourChoices';
 
-      const slotEnd=
-        slotStart+15;
+    hourTimes.forEach(time=>{
+      const row=map.get(time);
+      const isOpen=!!row?.is_open;
+      const {booking,blocked}=slotBusyForTime(time);
+      const busy=booking||blocked;
 
-
-      const booking=
-        currentBookings.find(
-          item=>{
-
-            const start=
-              timeToMinutes(
-                item.start_time
-              );
-
-
-            const duration=
-              menuMinutes(
-                item
-              );
-
-
-            return overlaps(
-              slotStart,
-              slotEnd,
-              start,
-              start+duration
-            );
-          }
-        );
-
-
-      const blocked=
-        currentBlocked.find(
-          item=>{
-
-            const start=
-              timeToMinutes(
-                item.start_time
-              );
-
-
-            let end=
-              timeToMinutes(
-                item.end_time
-              );
-
-
-            if(
-              String(
-                item.end_time
-              ).startsWith(
-                '23:59'
-              )
-            ){
-
-              end=
-                24*60;
-            }
-
-
-            return overlaps(
-              slotStart,
-              slotEnd,
-              start,
-              end
-            );
-          }
-        );
-
-
-      const busy=
-        booking||blocked;
-
-
-      const button=
-        document.createElement(
-          'button'
-        );
-
-
-      button.className=
-        'slot '
-        +
-        (
-          busy
-          ?
-          'busy'
-          :
-          isOpen
-          ?
-          'open'
-          :
-          'closed'
-        );
-
-
+      const button=document.createElement('button');
+      button.type='button';
+      button.className='slot '+(busy?'busy':isOpen?'open':'closed');
       button.innerHTML=`
-
-        <span class="slotTime">
-          ${time.slice(0,5)}
-        </span>
-
-        <span class="slotLabel">
-
-          ${
-            booking
-            ?
-            '予約'
-            :
-            blocked
-            ?
-            '予定'
-            :
-            isOpen
-            ?
-            '空き'
-            :
-            'CLOSE'
-          }
-
-        </span>
-
+        <span class="slotTime">${time.slice(0,5)}</span>
+        <span class="slotLabel">${booking?'予約':blocked?'予定':isOpen?'OPEN':'CLOSE'}</span>
       `;
 
-
-      button.onclick=
-      async()=>{
-
-        if(busy){
-
-          if(booking){
-
-            openEdit(
-              booking
-            );
-          }
-
+      button.onclick=async()=>{
+        if(booking){
+          openEdit(booking);
+          return;
+        }
+        if(blocked){
+          openBlockedEditor(blocked);
           return;
         }
 
-
-        const {error}=
-          await supabase
-            .from(
-              'nakano_open_slots'
-            )
-            .upsert(
-              {
-                slot_date:
-                  $('date').value,
-
-                start_time:
-                  time,
-
-                is_open:
-                  !isOpen
-              },
-              {
-                onConflict:
-                  'slot_date,start_time'
-              }
-            );
-
-
-        if(error){
-
-          alert(
-            '変更できませんでした。'
+        const {error}=await supabase
+          .from('nakano_open_slots')
+          .upsert(
+            {slot_date:$('date').value,start_time:time,is_open:!isOpen},
+            {onConflict:'slot_date,start_time'}
           );
 
+        if(error){
+          alert('変更できませんでした。');
           return;
         }
-
 
         await loadDay();
       };
 
+      choices.appendChild(button);
+    });
 
-      box.appendChild(
-        button
-      );
-    }
-  );
+    group.append(header,choices);
+    box.appendChild(group);
+  }
+
+  renderOpenCloseSummary();
 }
 
 
-async function setAll(open){
-
-  const date=
-    $('date').value;
-
-
-  if(!date){
-    return;
-  }
-
-
-  const rows=
-    times.map(
-      time=>({
-        slot_date:
-          date,
-        start_time:
-          time,
-        is_open:
-          open
-      })
-    );
-
-
-  const {error}=
-    await supabase
-      .from(
-        'nakano_open_slots'
-      )
-      .upsert(
-        rows,
-        {
-          onConflict:
-            'slot_date,start_time'
-        }
-      );
-
+async function upsertOpenCloseRows(rows){
+  const {error}=await supabase
+    .from('nakano_open_slots')
+    .upsert(rows,{onConflict:'slot_date,start_time'});
 
   if(error){
+    console.error(error);
+    alert('変更できませんでした。');
+    return false;
+  }
 
-    alert(
-      '変更できませんでした。'
-    );
+  await loadDay();
+  return true;
+}
 
+
+async function setSlotRange(open,startMinutes,endMinutes){
+  const date=$('date').value;
+  if(!date)return;
+
+  const start=Math.min(startMinutes,endMinutes);
+  const end=Math.max(startMinutes,endMinutes);
+
+  const rows=times
+    .filter(time=>{
+      const m=timeToMinutes(time);
+      return m>=start&&m<=end;
+    })
+    .map(time=>({slot_date:date,start_time:time,is_open:open}));
+
+  if(!rows.length)return;
+  await upsertOpenCloseRows(rows);
+}
+
+
+async function setNormalHours(){
+  const date=$('date').value;
+  if(!date)return;
+
+  const rows=times.map(time=>({
+    slot_date:date,
+    start_time:time,
+    is_open:timeToMinutes(time)>=10*60&&timeToMinutes(time)<20*60+15
+  }));
+
+  await upsertOpenCloseRows(rows);
+}
+
+
+async function setSelectedRange(open){
+  const start=$('openCloseStart').value;
+  const last=$('openCloseLastStart').value;
+
+  if(!start||!last){
+    alert('開始時間と最終受付時間を選んでください。');
     return;
   }
 
+  const startMin=timeToMinutes(start);
+  const lastMin=timeToMinutes(last);
 
-  await loadDay();
+  if(lastMin<startMin){
+    alert('最終受付時間は開始時間以降にしてください。');
+    return;
+  }
+
+  await setSlotRange(open,startMin,lastMin);
+}
+
+
+function shiftOpenCloseDate(days){
+  const base=$('date').value||todayJapan();
+  const [y,m,d]=base.split('-').map(Number);
+  const date=new Date(Date.UTC(y,m-1,d));
+  date.setUTCDate(date.getUTCDate()+days);
+  $('date').value=date.toISOString().slice(0,10);
+  $('date').dispatchEvent(new Event('change',{bubbles:true}));
+}
+
+
+$('openClosePrev').onclick=()=>shiftOpenCloseDate(-1);
+$('openCloseToday').onclick=()=>{
+  $('date').value=todayJapan();
+  $('date').dispatchEvent(new Event('change',{bubbles:true}));
+};
+$('openCloseNext').onclick=()=>shiftOpenCloseDate(1);
+$('normalHours').onclick=setNormalHours;
+$('openRange').onclick=()=>setSelectedRange(true);
+$('closeRange').onclick=()=>setSelectedRange(false);
+
+
+async function setAll(open){
+  const date=$('date').value;
+  if(!date)return;
+
+  const rows=times.map(time=>({
+    slot_date:date,
+    start_time:time,
+    is_open:open
+  }));
+
+  await upsertOpenCloseRows(rows);
 }
 
 
@@ -3134,18 +3168,10 @@ async function setMonth(open){
   }
 
 
-  const label=
-    open
-    ?
-    'OPEN'
-    :
-    'CLOSE';
-
-
   if(
     !confirm(
       open
-      ? `${month} を一括設定しますか？\n10:00〜20:00をOPEN、8:00〜9:45と20:15以降をCLOSEにします。`
+      ? `${month} を通常営業時間で設定しますか？\n10:00〜20:00をOPEN、8:00〜9:45と20:15以降をCLOSEにします。`
       : `${month} を全部CLOSEにしますか？`
     )
   ){

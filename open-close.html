@@ -23,9 +23,10 @@ main{max-width:720px;margin:auto;padding:12px 10px calc(24px + env(safe-area-ins
 .dateNav{display:grid;grid-template-columns:42px 1fr 42px;gap:6px;margin-top:9px;align-items:center}
 .navBtn{height:42px;border:1px solid #d9cfc6;border-radius:11px;background:#fff;color:#514a44;font-size:19px;font-weight:900}
 .dateInput{height:42px;width:100%;border:1px solid #d9cfc6;border-radius:11px;background:#fff;color:#352f2b;padding:0 10px;font-weight:800;text-align:center;-webkit-appearance:none;appearance:none}
-.quick{display:grid;grid-template-columns:1.3fr .7fr;gap:6px;margin-top:7px}
+.quick{display:grid;grid-template-columns:1.25fr .9fr .62fr;gap:6px;margin-top:7px}
 .quick button{min-height:40px;border-radius:11px;font-weight:900;padding:7px 8px}
 .normalBtn{border:1px solid #61574d;background:#61574d;color:#fff}
+.allCloseBtn{border:1px solid #d8aaa5;background:#fff8f7;color:#9b4138}
 .todayBtn{border:1px solid #d9cfc6;background:#fff;color:#514a44}
 .summary{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
 .badge{padding:4px 7px;border-radius:999px;font-size:10px;font-weight:900}
@@ -97,7 +98,8 @@ main{max-width:720px;margin:auto;padding:12px 10px calc(24px + env(safe-area-ins
     </div>
 
     <div class="quick">
-      <button class="normalBtn" id="normalHours" type="button">通常営業時間 10:00〜20:00</button>
+      <button class="normalBtn" id="normalHours" type="button">通常 10:00〜20:00</button>
+      <button class="allCloseBtn" id="allClose" type="button">全日CLOSE</button>
       <button class="todayBtn" id="today" type="button">今日</button>
     </div>
 
@@ -397,6 +399,25 @@ async function loadDay(showLoading=true){
   render();
 }
 
+async function setWholeDay(open){
+  if(busy)return;
+  busy=true;
+  const date=$('date').value;
+  const rows=[];
+  for(let min=DAY_START;min<DAY_END;min+=15){
+    rows.push({slot_date:date,start_time:hhmm(min),is_open:open});
+  }
+  const {error}=await supabase.from('nakano_open_slots').upsert(rows,{onConflict:'slot_date,start_time'});
+  busy=false;
+  if(error){
+    console.error(error);
+    showToast('変更できませんでした');
+    return;
+  }
+  showToast(open?'全時間OPEN':'全日CLOSE');
+  await loadDay(false);
+}
+
 async function setNormalHours(){
   if(busy)return;
   busy=true;
@@ -504,6 +525,7 @@ $('today').onclick=()=>{
 };
 $('date').onchange=loadDay;
 $('normalHours').onclick=setNormalHours;
+$('allClose').onclick=()=>setWholeDay(false);
 $('monthNormal').onclick=()=>setMonth(true);
 $('monthClose').onclick=()=>setMonth(false);
 

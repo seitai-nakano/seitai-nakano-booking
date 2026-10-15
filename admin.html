@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>整体なかの｜管理トップ</title>
-<meta name="nakano-admin-build" content="2026-10-15-readable-type-v3">
+<meta name="nakano-admin-build" content="2026-10-15-campaign-editor-v4">
 <script>
 (function(){
   var BUILD='20261015-compact-readable-v2';
@@ -1179,6 +1179,78 @@ details.settingsDetails summary{
   }
 }
 
+
+/* キャンペーン管理 */
+.campaignAdminCard{
+  border-color:#d7c8bc;
+  background:#fffdfb;
+}
+.campaignAdminDetails{
+  overflow:hidden;
+}
+.campaignAdminDetails summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  cursor:pointer;
+  list-style:none;
+  font-size:15px;
+  font-weight:800;
+}
+.campaignAdminDetails summary::-webkit-details-marker{display:none}
+.campaignAdminDetails summary:after{
+  content:"開く";
+  flex:0 0 auto;
+  color:#7a7068;
+  font-size:11px;
+  font-weight:700;
+}
+.campaignAdminDetails[open] summary:after{content:"閉じる"}
+.campaignAdminInner{
+  padding-top:12px;
+}
+.campaignToggleRow{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:0 0 10px;
+  padding:10px 11px;
+  border:1px solid #e6ddd5;
+  border-radius:11px;
+  background:#faf8f5;
+  color:#3f3a35;
+  font-size:13px;
+  font-weight:700;
+}
+.campaignToggleRow input{
+  width:auto!important;
+  margin:0!important;
+  transform:scale(1.1);
+}
+#campaignAdminBody{
+  min-height:110px;
+}
+.campaignAdminPreview{
+  margin:10px 0;
+  padding:11px;
+  border:1px dashed #d9c9bd;
+  border-radius:11px;
+  background:#fffaf8;
+}
+.campaignAdminPreviewTitle{
+  font-size:14px;
+  font-weight:800;
+  color:#3a332e;
+}
+.campaignAdminPreviewBody{
+  margin-top:4px;
+  font-size:12.5px;
+  line-height:1.65;
+  color:#625950;
+  white-space:pre-wrap;
+}
+
 </style>
 </head>
 
@@ -1278,6 +1350,32 @@ details.settingsDetails summary{
 
 </div>
 
+</section>
+
+<section class="card campaignAdminCard" id="campaignAdminCard">
+  <details class="campaignAdminDetails" id="campaignAdminDetails">
+    <summary>予約ページのキャンペーン表示</summary>
+    <div class="campaignAdminInner">
+      <label class="campaignToggleRow">
+        <input type="checkbox" id="campaignAdminActive">
+        予約ページに表示する
+      </label>
+
+      <label>キャンペーン名</label>
+      <input id="campaignAdminTitle" placeholder="例：10月・11月限定キャンペーン">
+
+      <label>キャンペーン内容</label>
+      <textarea id="campaignAdminBody" placeholder="例：ご紹介1名につき次回施術1,000円OFF"></textarea>
+
+      <div class="campaignAdminPreview">
+        <div class="campaignAdminPreviewTitle" id="campaignAdminPreviewTitle">キャンペーン名</div>
+        <div class="campaignAdminPreviewBody" id="campaignAdminPreviewBody">ここに内容が表示されます。</div>
+      </div>
+
+      <button class="primary" id="saveCampaignSettings" type="button">キャンペーン表示を保存</button>
+      <div id="campaignAdminMsg" class="msg"></div>
+    </div>
+  </details>
 </section>
 
 <section class="card scheduleCard">
@@ -2122,6 +2220,8 @@ async function syncAuth(){
   await loadMonthBlockedTimes();
 
   await loadNotifications();
+
+  await loadCampaignSettings();
 
   await resumePendingLineLink();
 
@@ -4894,6 +4994,71 @@ async()=>{
 
   await loadDay();
 };
+
+
+/* ==========================
+   キャンペーン表示
+========================== */
+
+function updateCampaignPreview(){
+  const title=String($('campaignAdminTitle')?.value||'').trim();
+  const body=String($('campaignAdminBody')?.value||'').trim();
+  if($('campaignAdminPreviewTitle'))$('campaignAdminPreviewTitle').textContent=title||'キャンペーン名';
+  if($('campaignAdminPreviewBody'))$('campaignAdminPreviewBody').textContent=body||'ここに内容が表示されます。';
+}
+
+async function loadCampaignSettings(){
+  const {data,error}=await supabase
+    .from('nakano_campaign_settings')
+    .select('id,title,body,is_active')
+    .eq('id',1)
+    .maybeSingle();
+
+  if(error){
+    console.error(error);
+    if($('campaignAdminMsg'))$('campaignAdminMsg').textContent='キャンペーン設定を読み込めませんでした。';
+    return;
+  }
+
+  if($('campaignAdminActive'))$('campaignAdminActive').checked=!!data?.is_active;
+  if($('campaignAdminTitle'))$('campaignAdminTitle').value=data?.title||'';
+  if($('campaignAdminBody'))$('campaignAdminBody').value=data?.body||'';
+  updateCampaignPreview();
+}
+
+async function saveCampaignSettings(){
+  const title=String($('campaignAdminTitle')?.value||'').trim();
+  const body=String($('campaignAdminBody')?.value||'').trim();
+  const isActive=!!$('campaignAdminActive')?.checked;
+
+  if(isActive&&!title&&!body){
+    $('campaignAdminMsg').textContent='表示する場合は、キャンペーン名か内容を入力してください。';
+    return;
+  }
+
+  $('saveCampaignSettings').disabled=true;
+  $('campaignAdminMsg').textContent='保存しています…';
+
+  const {error}=await supabase
+    .from('nakano_campaign_settings')
+    .update({title,body,is_active:isActive})
+    .eq('id',1);
+
+  $('saveCampaignSettings').disabled=false;
+
+  if(error){
+    console.error(error);
+    $('campaignAdminMsg').textContent='保存できませんでした。';
+    return;
+  }
+
+  $('campaignAdminMsg').textContent=isActive?'予約ページに表示しました。':'キャンペーン表示をOFFにしました。';
+  updateCampaignPreview();
+}
+
+$('campaignAdminTitle')?.addEventListener('input',updateCampaignPreview);
+$('campaignAdminBody')?.addEventListener('input',updateCampaignPreview);
+$('saveCampaignSettings')?.addEventListener('click',saveCampaignSettings);
 
 
 /* ==========================

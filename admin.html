@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>整体なかの｜管理トップ</title>
-<meta name="nakano-admin-build" content="2026-09-05-manual-booking-v3-15min">
+<meta name="nakano-admin-build" content="2026-10-15-compact-readable-admin">
 
 <style>
 *{box-sizing:border-box}
@@ -647,14 +647,351 @@ details.settingsDetails summary::-webkit-details-marker{
   }
 
 }
+
+/* ==========================
+   2026-10 管理画面 見やすさ改善
+========================== */
+body{
+  background:#f3f0eb;
+  color:#302d29;
+}
+
+main{
+  max-width:740px;
+  padding:12px 10px calc(84px + env(safe-area-inset-bottom));
+}
+
+.adminPageHeader{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:10px;
+  margin:2px 2px 10px;
+}
+.adminPageTitle{
+  margin:0;
+  font-size:21px;
+  line-height:1.15;
+  font-weight:900;
+  letter-spacing:.01em;
+}
+.adminPageSub{
+  margin-top:3px;
+  color:#887f77;
+  font-size:11px;
+  font-weight:700;
+}
+.adminPageBadge{
+  flex:0 0 auto;
+  padding:5px 8px;
+  border:1px solid #ddd4ca;
+  border-radius:999px;
+  background:#fff;
+  color:#766d65;
+  font-size:10px;
+  font-weight:800;
+}
+
+.card{
+  border-color:#ded6cd;
+  border-radius:15px;
+  padding:14px;
+  margin-bottom:10px;
+  box-shadow:0 1px 0 rgba(58,48,40,.02);
+}
+
+.card>h2,
+.scheduleHeader h2{
+  font-size:16px;
+  line-height:1.3;
+  font-weight:900;
+  color:#3d3935;
+}
+.card>h2{
+  margin:0 0 8px;
+}
+.card>h2:after{
+  content:"";
+  display:block;
+  width:26px;
+  height:2px;
+  margin-top:6px;
+  border-radius:999px;
+  background:#c9bdb1;
+}
+
+.muted{
+  color:#80776f;
+  font-size:12px;
+  line-height:1.5;
+}
+
+label{
+  margin-top:7px;
+  color:#514b45;
+  font-size:12px;
+  font-weight:800;
+}
+
+input,
+select,
+textarea{
+  padding:11px 12px;
+  border-color:#ddd5cc;
+  border-radius:10px;
+  margin:5px 0 9px;
+  background:#fff;
+  font-size:14px;
+}
+
+input[type="date"],
+input[type="time"],
+input[type="month"]{
+  height:44px;
+}
+
+textarea{
+  min-height:72px;
+}
+
+.primary,
+.secondary,
+.danger{
+  min-height:44px;
+  border-radius:11px;
+  padding:10px 11px;
+  font-size:13px;
+  font-weight:850;
+}
+
+/* コンパクト管理メニュー */
+.adminMenuCard{
+  padding:10px!important;
+}
+.adminMenuHead{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-bottom:8px;
+}
+.adminMenuHead h2{
+  margin:0;
+  font-size:14px;
+  font-weight:900;
+}
+.adminLogout{
+  width:auto!important;
+  min-height:32px!important;
+  margin:0!important;
+  padding:6px 9px!important;
+  border-radius:9px!important;
+  color:#81776e!important;
+  font-size:10px!important;
+}
+.adminLinks{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:6px!important;
+}
+.adminLinks a,
+.adminLinks a.wide{
+  grid-column:auto!important;
+  min-width:0;
+}
+.adminMenuTile{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:center;
+  gap:2px;
+  width:100%;
+  min-height:58px!important;
+  margin:0!important;
+  padding:8px!important;
+  text-align:left;
+  border-radius:11px!important;
+}
+.adminMenuTileTitle{
+  display:block;
+  width:100%;
+  overflow:hidden;
+  color:inherit;
+  font-size:11px;
+  font-weight:900;
+  line-height:1.25;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+.adminMenuTileSub{
+  display:block;
+  width:100%;
+  overflow:hidden;
+  color:#8a8179;
+  font-size:8px;
+  font-weight:700;
+  line-height:1.25;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+.adminMenuTile.primary .adminMenuTileSub{
+  color:rgba(255,255,255,.74);
+}
+.adminMenuTile.openCloseTile{
+  border-color:#c8b9aa;
+  background:#f8f3ee;
+}
+
+/* 当日の予定を最重要カードとして認識しやすく */
+.scheduleCard{
+  border-color:#d3c7bb;
+  box-shadow:0 4px 16px rgba(67,54,43,.05);
+}
+.scheduleHeader{
+  align-items:flex-start;
+}
+.scheduleHeader .muted{
+  margin-top:2px!important;
+}
+.scheduleTodayButton{
+  min-width:0!important;
+  min-height:36px!important;
+  padding:7px 9px!important;
+  font-size:11px!important;
+}
+#date{
+  margin-top:10px;
+  background:#faf8f5;
+  font-weight:800;
+}
+.scheduleScroll{
+  margin-top:8px;
+}
+.legend{
+  gap:8px 11px;
+  margin-top:7px;
+  font-size:10px;
+}
+.legendDot{
+  width:11px;
+  height:11px;
+}
+
+/* 予約追加フォームをグループ化して追いやすく */
+.bookingAddCard{
+  background:#fff;
+  scroll-margin-top:10px;
+}
+.bookingAddIntro{
+  margin:-1px 0 10px!important;
+}
+.formGroup{
+  padding:10px;
+  margin:9px 0;
+  border:1px solid #ebe4dd;
+  border-radius:12px;
+  background:#faf8f5;
+}
+.formGroup label:first-child{
+  margin-top:0;
+}
+.customerBox{
+  margin:8px 0;
+  padding:10px;
+  border:1px solid #ebe4dd;
+  border-radius:11px;
+  background:#faf8f5;
+}
+.adminTimeButtons{
+  gap:5px;
+  max-height:232px;
+  margin-top:5px;
+}
+.adminTimeButton{
+  min-height:40px;
+  border-radius:9px;
+  font-size:13px;
+}
+.adminTimeHelp{
+  font-size:10px!important;
+  line-height:1.4!important;
+}
+
+/* 編集カードは色で識別 */
+#editCard{
+  border-color:#cbbbab;
+  background:#fffdfb;
+}
+#editCard>h2{
+  color:#5c4c3f;
+}
+
+/* 通知はさらに控えめ */
+details.settingsDetails{
+  border-radius:11px;
+}
+details.settingsDetails summary{
+  padding:11px 12px;
+  font-size:12px;
+}
+.settingsInner{
+  padding:11px;
+}
+
+/* メッセージ */
+.msg{
+  margin-top:6px;
+  font-size:11px;
+  line-height:1.5;
+}
+
+/* モバイル */
+@media(max-width:500px){
+  main{
+    padding-left:8px;
+    padding-right:8px;
+  }
+  .card{
+    padding:12px;
+    margin-bottom:8px;
+  }
+  .adminLinks{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  }
+  .adminMenuTile{
+    min-height:55px!important;
+    padding:7px!important;
+  }
+  .adminMenuTileTitle{
+    font-size:10px;
+  }
+  .adminMenuTileSub{
+    font-size:7.5px;
+  }
+  .row{
+    grid-template-columns:1fr 1fr;
+  }
+}
+
+@media(max-width:350px){
+  .adminLinks{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+}
+
 </style>
 </head>
 
 <body>
 <main>
 
-<h1>整体なかの</h1>
-<p class="muted">管理トップ</p>
+<div class="adminPageHeader">
+  <div>
+    <h1 class="adminPageTitle">整体なかの</h1>
+    <div class="adminPageSub">管理トップ</div>
+  </div>
+  <div class="adminPageBadge">ADMIN</div>
+</div>
 
 
 <section class="card" id="loginCard">
@@ -688,52 +1025,62 @@ details.settingsDetails summary::-webkit-details-marker{
 <button class="todayFloatingButton" id="backToTodayFloating" type="button" aria-label="今日の予定に戻る">今日の予定へ</button>
 
 
-<section class="card">
+<section class="card adminMenuCard">
 
-<h2>管理メニュー</h2>
+<div class="adminMenuHead">
+  <h2>管理メニュー</h2>
+  <button class="secondary adminLogout" id="logout" type="button">ログアウト</button>
+</div>
 
 <div class="adminLinks">
 
 <a href="./bookings.html">
-<button class="primary" type="button">
-当日予約一覧
+<button class="primary adminMenuTile" type="button">
+  <span class="adminMenuTileTitle">当日予約</span>
+  <span class="adminMenuTileSub">予約一覧</span>
 </button>
 </a>
 
 <a href="./customers.html">
-<button class="secondary" type="button">
-顧客・カルテ
+<button class="secondary adminMenuTile" type="button">
+  <span class="adminMenuTileTitle">顧客</span>
+  <span class="adminMenuTileSub">カルテ</span>
 </button>
 </a>
 
-<a class="wide" href="./analytics.html">
-<button class="secondary" type="button">
-月間売上・予約集計
+<a href="./analytics.html">
+<button class="secondary adminMenuTile" type="button">
+  <span class="adminMenuTileTitle">売上</span>
+  <span class="adminMenuTileSub">月間集計</span>
 </button>
 </a>
 
-<a class="wide" href="./checkout.html">
-<button class="secondary" type="button">
-店舗会計・店販
+<a href="./checkout.html">
+<button class="secondary adminMenuTile" type="button">
+  <span class="adminMenuTileTitle">会計</span>
+  <span class="adminMenuTileSub">店舗・店販</span>
 </button>
 </a>
 
-<a class="wide" href="./open-close.html">
-<button class="secondary" type="button">
-OPEN / CLOSE設定
+<a href="./open-close.html">
+<button class="secondary adminMenuTile openCloseTile" type="button">
+  <span class="adminMenuTileTitle">OPEN/CLOSE</span>
+  <span class="adminMenuTileSub">営業・休み設定</span>
+</button>
+</a>
+
+<a href="#addBookingCard">
+<button class="secondary adminMenuTile" type="button">
+  <span class="adminMenuTileTitle">予約追加</span>
+  <span class="adminMenuTileSub">店側から登録</span>
 </button>
 </a>
 
 </div>
 
-<button class="secondary" id="logout">
-ログアウト
-</button>
-
 </section>
 
-
-<section class="card">
+<section class="card scheduleCard">
 
 <div class="scheduleHeader">
 
@@ -840,14 +1187,15 @@ CLOSE
   <div id="blockedList"></div>
 </div>
 
-<section class="card">
+<section class="card bookingAddCard" id="addBookingCard">
 
 <h2>店側から予約を追加</h2>
 
-<p class="muted">
-電話・LINE・口頭で入った予約はこちらから追加できます。
+<p class="muted bookingAddIntro">
+電話・LINE・口頭で入った予約を登録します。
 </p>
 
+<div class="formGroup">
 <div class="customerBox">
 
 <label>既存のお客様から選択</label>
@@ -859,7 +1207,9 @@ CLOSE
 </select>
 
 </div>
+</div>
 
+<div class="formGroup">
 <label>予約日</label>
 <input
   type="date"
@@ -888,8 +1238,10 @@ CLOSE
 </option>
 </select>
 <div id="adminTimeButtons" class="adminTimeButtons" aria-label="空き時間一覧"></div>
-<div class="muted adminTimeHelp">管理者予約はOPEN/CLOSE・月の予約可能設定に関係なく入力できます。既存予約と重なる時間だけ除外します。</div>
+<div class="muted adminTimeHelp">管理者予約はOPEN/CLOSEに関係なく入力できます。既存予約と重なる時間だけ除外します。</div>
+</div>
 
+<div class="formGroup">
 <label>お客様名</label>
 <input id="customerName">
 
@@ -902,6 +1254,7 @@ CLOSE
 
 <label>症状・メモ</label>
 <textarea id="memo"></textarea>
+</div>
 
 <button class="primary" id="addBooking">
 予約を追加

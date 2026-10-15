@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>整体なかの｜管理トップ</title>
-<meta name="nakano-admin-build" content="2026-10-15-compact-readable-admin-v2">
+<meta name="nakano-admin-build" content="2026-10-15-readable-type-v3">
 <script>
 (function(){
   var BUILD='20261015-compact-readable-v2';
@@ -989,6 +989,187 @@ details.settingsDetails summary{
   }
   .row{
     grid-template-columns:1fr 1fr;
+  }
+}
+
+@media(max-width:350px){
+  .adminLinks{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+}
+
+
+/* ==========================
+   2026-10-15 読みやすい文字設計
+========================== */
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","YuGothic",Meiryo,sans-serif;
+  font-size:15px;
+  line-height:1.65;
+  color:#292622;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+
+.adminPageTitle{
+  font-size:23px!important;
+  font-weight:800!important;
+  line-height:1.3!important;
+  letter-spacing:.01em!important;
+}
+.adminPageSub{
+  font-size:13px!important;
+  font-weight:600!important;
+  color:#665f58!important;
+}
+.adminPageBadge{
+  font-size:11px!important;
+  font-weight:700!important;
+}
+
+.card>h2,
+.scheduleHeader h2{
+  font-size:18px!important;
+  line-height:1.45!important;
+  font-weight:800!important;
+  letter-spacing:.01em;
+}
+.adminMenuHead h2{
+  font-size:16px!important;
+  font-weight:800!important;
+}
+
+.muted{
+  color:#675f58!important;
+  font-size:13px!important;
+  line-height:1.65!important;
+}
+
+label{
+  color:#3f3a35!important;
+  font-size:13.5px!important;
+  line-height:1.5!important;
+  font-weight:700!important;
+}
+
+input,
+select,
+textarea{
+  font-size:16px!important;
+  line-height:1.45!important;
+  color:#292622!important;
+}
+
+input::placeholder,
+textarea::placeholder{
+  color:#999087;
+  opacity:1;
+}
+
+.primary,
+.secondary,
+.danger{
+  font-size:14px!important;
+  line-height:1.35!important;
+  font-weight:700!important;
+}
+
+.adminLogout{
+  font-size:11.5px!important;
+  font-weight:700!important;
+}
+
+.adminMenuTile{
+  min-height:62px!important;
+  padding:9px 10px!important;
+}
+.adminMenuTileTitle{
+  font-size:13px!important;
+  line-height:1.35!important;
+  font-weight:800!important;
+  overflow:visible!important;
+  white-space:normal!important;
+}
+.adminMenuTileSub{
+  font-size:10.5px!important;
+  line-height:1.35!important;
+  font-weight:600!important;
+  color:#706860!important;
+  overflow:visible!important;
+  white-space:normal!important;
+}
+.adminMenuTile.primary .adminMenuTileSub{
+  color:rgba(255,255,255,.86)!important;
+}
+
+.scheduleTodayButton{
+  font-size:12.5px!important;
+  font-weight:700!important;
+}
+.todayFloatingButton{
+  font-size:13px!important;
+  font-weight:700!important;
+}
+
+.timeMark{
+  font-size:12px!important;
+  color:#5f5852!important;
+}
+.bookingTime{
+  font-size:12px!important;
+  color:#605952!important;
+}
+.bookingName{
+  font-size:15px!important;
+  font-weight:800!important;
+}
+.bookingMenu{
+  font-size:12px!important;
+  line-height:1.45!important;
+}
+.blockedSchedule{
+  font-size:12px!important;
+  line-height:1.4!important;
+}
+.legend{
+  font-size:12px!important;
+  color:#5f5852!important;
+}
+.adminTimeButton{
+  font-size:14px!important;
+  font-weight:700!important;
+}
+.adminTimeHelp{
+  font-size:12px!important;
+  line-height:1.55!important;
+  color:#675f58!important;
+}
+.msg{
+  font-size:12.5px!important;
+  line-height:1.6!important;
+}
+details.settingsDetails summary{
+  font-size:13px!important;
+  font-weight:700!important;
+}
+
+@media(max-width:500px){
+  .adminLinks{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:7px!important;
+  }
+  .adminMenuTile{
+    min-height:60px!important;
+    padding:9px 10px!important;
+  }
+  .adminMenuTileTitle{
+    font-size:13px!important;
+  }
+  .adminMenuTileSub{
+    font-size:10.5px!important;
+  }
+  .card{
+    padding:13px!important;
   }
 }
 

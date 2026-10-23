@@ -1134,7 +1134,13 @@ function shiftBlockedMonth(delta){
 async function ensureAuth(){
   const {data,error}=await supabase.auth.getUser();
   if(error||!data?.user){
-    location.replace('./admin.html?_adminv=20261015-compact-readable-v2');
+    location.replace('./admin.html?_adminv=20261024-security-v5');
+    return false;
+  }
+  const{data:isAdmin,error:adminError}=await supabase.rpc('nakano_current_user_is_admin');
+  if(adminError||isAdmin!==true){
+    await supabase.auth.signOut();
+    location.replace('./admin.html?_adminv=20261024-security-v5');
     return false;
   }
   return true;

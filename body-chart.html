@@ -49,7 +49,7 @@ function localObjects(){try{const v=JSON.parse(localStorage.getItem(OBJECT_KEY)|
 function setLocalObjects(v){try{localStorage.setItem(OBJECT_KEY,JSON.stringify(Array.isArray(v)?v:[]))}catch{}}
 function setLegacyMessage(text){try{const el=frame.contentDocument?.getElementById('msg');if(el)el.textContent=text}catch{}}
 
-async function sessionExists(){try{const{data:{session}}=await supabase.auth.getSession();return!!session}catch{return false}}
+async function sessionExists(){try{const{data:{session}}=await supabase.auth.getSession();if(!session)return false;const{data,error}=await supabase.rpc('nakano_current_user_is_admin');return !error&&data===true}catch{return false}}
 async function fetchCloud(){
   if(customer==='draft'||date==='undated')return null;
   try{

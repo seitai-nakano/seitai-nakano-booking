@@ -134,6 +134,11 @@ function hookLegacy(){
 
 async function start(){
   const hasSession=await sessionExists();
+  if(!hasSession){
+    boot.textContent='管理者ログインが必要です。管理画面へ戻ります。';
+    setTimeout(()=>location.replace('./admin.html'),350);
+    return;
+  }
   const localBase=localData();const localOverlay=localObjects();
   let cloud=null;if(hasSession)cloud=await fetchCloud();
   if(cloud){setLocalData(cloud.base_image_data||cloud.image_data);setLocalObjects(cloud.overlay_data||[])}

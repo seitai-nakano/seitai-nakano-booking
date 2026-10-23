@@ -936,11 +936,21 @@ async function syncAuth(){
       .getSession();
 
 
+  let isAdmin=false;
+  if(session){
+    const{data:adminAllowed,error:adminCheckError}=await supabase.rpc('nakano_current_user_is_admin');
+    isAdmin=!adminCheckError&&adminAllowed===true;
+    if(!isAdmin){
+      await supabase.auth.signOut();
+      if($('loginMsg'))$('loginMsg').textContent='このアカウントには管理権限がありません。';
+    }
+  }
+
   $('loginCard')
     .classList
     .toggle(
       'hidden',
-      !!session
+      isAdmin
     );
 
 
@@ -948,11 +958,11 @@ async function syncAuth(){
     .classList
     .toggle(
       'hidden',
-      !session
+      !isAdmin
     );
 
 
-  if(!session){
+  if(!isAdmin){
     return;
   }
 

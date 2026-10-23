@@ -1159,23 +1159,26 @@ function loadSavedCustomerProfile(){
     return true;
   }catch{return false}
 }
-async function fillCustomerProfileFromLine(userId){
-  if(!userId||customerInfoTouched)return false;
+async function fillCustomerProfileFromLine(accessToken){
+  if(!accessToken||customerInfoTouched)return false;
   try{
-    const{data,error}=await supabase.rpc('nakano_customer_prefill_by_line',{p_line_user_id:userId});
+    const{data,error}=await supabase.functions.invoke('nakano-line-identity',{
+      body:{action:'prefill',access_token:accessToken}
+    });
     if(error)throw error;
-    if(!data?.customer_name||!phoneIsValid(String(data.phone||'')))return false;
+    const prefill=data?.prefill;
+    if(!prefill?.customer_name||!phoneIsValid(String(prefill.phone||'')))return false;
     if(customerInfoTouched)return false;
-    $('name').value=String(data.customer_name);
-    $('tel').value=String(data.phone);
-    saveCustomerProfile(String(data.customer_name),String(data.phone));
+    $('name').value=String(prefill.customer_name);
+    $('tel').value=String(prefill.phone);
+    saveCustomerProfile(String(prefill.customer_name),String(prefill.phone));
     return true;
   }catch(e){console.warn('前回のお客様情報を読み込めませんでした',e);return false}
 }
 function setLatestManage(t){if(!t)return;localStorage.setItem('nakano_latest_manage_token',t);$('latestManageLink').href=`${BASE_URL}?manage=${encodeURIComponent(t)}`;$('latestManage').classList.remove('hidden')}
 function loadLatestManage(){if(manageToken)return;const t=localStorage.getItem('nakano_latest_manage_token');if(t)setLatestManage(t)}
 async function invokeNotification(body){try{const{error}=await supabase.functions.invoke('nakano-booking-notify',{body});if(error){console.error(error);return false}return true}catch(e){console.error(e);return false}}
-async function initLine(){if(manageToken){$('lineStatus').textContent='ご予約内容の確認・変更ができます。';return null}try{if(!window.liff)throw Error('LIFF SDK not loaded');await liff.init({liffId:LIFF_ID});if(!liff.isLoggedIn()){ $('lineStatus').textContent='LINE連携のためログイン画面へ移動します…';liff.login({redirectUri:BASE_URL});return null}const p=await liff.getProfile();lineUser={userId:p.userId,displayName:p.displayName||''};$('lineStatus').textContent='LINEで予約完了のお知らせを受け取れます。';const filled=await fillCustomerProfileFromLine(lineUser.userId);if(!filled)loadSavedCustomerProfile();return lineUser}catch(e){console.error(e);$('lineStatus').textContent='オンライン予約をご利用いただけます。';loadSavedCustomerProfile();return null}}
+async function initLine(){if(manageToken){$('lineStatus').textContent='ご予約内容の確認・変更ができます。';return null}try{if(!window.liff)throw Error('LIFF SDK not loaded');await liff.init({liffId:LIFF_ID});if(!liff.isLoggedIn()){ $('lineStatus').textContent='LINE連携のためログイン画面へ移動します…';liff.login({redirectUri:BASE_URL});return null}const p=await liff.getProfile();const accessToken=liff.getAccessToken()||'';lineUser={userId:p.userId,displayName:p.displayName||'',accessToken};$('lineStatus').textContent='LINEで予約完了のお知らせを受け取れます。';const filled=await fillCustomerProfileFromLine(accessToken);if(!filled)loadSavedCustomerProfile();return lineUser}catch(e){console.error(e);$('lineStatus').textContent='オンライン予約をご利用いただけます。';loadSavedCustomerProfile();return null}}
 const lineReadyPromise=initLine();
 async function loadMenus(){
   const{data,error}=await supabase.from('nakano_menus').select('*').eq('is_active',true).order('display_order');
@@ -1522,14 +1525,16 @@ async function finishBookingSetup({bookingId,bookingDate,bookingTime,bookingMenu
       try{currentLine=await lineReadyPromise;if(currentLine)lineUser=currentLine}catch{}
     }
     if(!currentLine&&window.liff?.isLoggedIn()){
-      try{const p=await liff.getProfile();currentLine={userId:p.userId,displayName:p.displayName||''};lineUser=currentLine}catch{}
+      try{const p=await liff.getProfile();const accessToken=liff.getAccessToken()||'';currentLine={userId:p.userId,displayName:p.displayName||'',accessToken};lineUser=currentLine}catch{}
     }
 
-    if(bookingId&&currentLine?.userId){
-      const{error}=await supabase.rpc('nakano_attach_line_to_booking',{
-        p_booking_id:bookingId,
-        p_line_user_id:currentLine.userId,
-        p_line_display_name:currentLine.displayName||null
+    if(bookingId&&currentLine?.accessToken){
+      const{error}=await supabase.functions.invoke('nakano-line-identity',{
+        body:{
+          action:'attach_booking',
+          access_token:currentLine.accessToken,
+          booking_id:bookingId
+        }
       });
       if(error)console.error('LINE紐付けエラー',error);
     }

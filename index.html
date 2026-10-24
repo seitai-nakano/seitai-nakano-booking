@@ -975,7 +975,7 @@ body.bookingSplashReveal main{
   <div class="campaignCardBody" id="campaignBody"></div>
 </section>
 
-<details class="securityNotice">
+<details class="securityNotice" id="securityNotice">
   <summary>
     <span class="securityNoticeIcon" aria-hidden="true">🔒</span>
     <span class="securityNoticeSummaryText">
@@ -1999,4 +1999,17 @@ document.addEventListener('click',function(e){
 </script>
 <script src="./pwa-register.js?v=20261007-4" defer></script>
 
+<script>
+(function(){
+  function openSecurityNotice(){
+    if(location.hash!=='#security')return;
+    const el=document.getElementById('securityNotice');
+    if(!el)return;
+    el.open=true;
+    requestAnimationFrame(()=>el.scrollIntoView({behavior:'smooth',block:'start'}));
+  }
+  window.addEventListener('DOMContentLoaded',openSecurityNotice,{once:true});
+  window.addEventListener('hashchange',openSecurityNotice);
+})();
+</script>
 </body></html>

@@ -102,6 +102,88 @@
   white-space:pre-wrap;
 }
 
+
+/* 予約ページ セキュリティ案内 */
+.securityNotice{
+  margin:0 0 .8rem;
+  border:1px solid #d6cec6;
+  border-radius:14px;
+  background:#f8f5f1;
+  overflow:hidden;
+}
+.securityNotice summary{
+  display:flex;
+  align-items:center;
+  gap:.55rem;
+  padding:.78rem .85rem;
+  cursor:pointer;
+  list-style:none;
+  color:#403a35;
+  font-size:.83rem;
+  line-height:1.45;
+  font-weight:800;
+}
+.securityNotice summary::-webkit-details-marker{display:none}
+.securityNoticeIcon{
+  display:grid;
+  place-items:center;
+  flex:0 0 auto;
+  width:1.65rem;
+  height:1.65rem;
+  border-radius:50%;
+  background:#ece5df;
+  font-size:.82rem;
+}
+.securityNoticeSummaryText{
+  min-width:0;
+  flex:1;
+}
+.securityNoticeSummarySub{
+  display:block;
+  margin-top:.1rem;
+  color:#746c65;
+  font-size:.68rem;
+  line-height:1.4;
+  font-weight:600;
+}
+.securityNoticeChevron{
+  flex:0 0 auto;
+  color:#8b8179;
+  font-size:.8rem;
+  transition:transform .18s ease;
+}
+.securityNotice[open] .securityNoticeChevron{
+  transform:rotate(180deg);
+}
+.securityNoticeBody{
+  padding:0 .9rem .9rem;
+  border-top:1px solid #e6dfd8;
+  color:#5d554f;
+  font-size:.8rem;
+  line-height:1.8;
+}
+.securityNoticeBody p{
+  margin:.75rem 0 0;
+}
+.securityNoticeBody strong{
+  color:#39332f;
+}
+.securityNoticePoints{
+  margin:.65rem 0 0;
+  padding-left:1.1rem;
+}
+.securityNoticePoints li{
+  margin:.35rem 0;
+}
+.securityNoticeFooter{
+  margin-top:.75rem;
+  padding-top:.7rem;
+  border-top:1px solid #e6dfd8;
+  color:#716861;
+  font-size:.73rem;
+  line-height:1.7;
+}
+
 </style>
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <link rel="stylesheet" href="./customer-brand.css?v=20260919-1">
@@ -892,6 +974,37 @@ body.bookingSplashReveal main{
   <div class="campaignCardTitle" id="campaignTitle"></div>
   <div class="campaignCardBody" id="campaignBody"></div>
 </section>
+
+<details class="securityNotice">
+  <summary>
+    <span class="securityNoticeIcon" aria-hidden="true">🔒</span>
+    <span class="securityNoticeSummaryText">
+      予約システムのセキュリティについて
+      <span class="securityNoticeSummarySub">昨今の報道を受け、安全性を改めて確認・対策しています</span>
+    </span>
+    <span class="securityNoticeChevron" aria-hidden="true">▼</span>
+  </summary>
+  <div class="securityNoticeBody">
+    <p>
+      昨今、Webサービスへの不正アクセスやシステムの脆弱性に関するニュースが増えており、
+      オンラインで個人情報を入力することに不安を感じる方もいらっしゃるかと思います。
+    </p>
+    <p>
+      当店でも今回の報道を受け、予約システムの安全性について改めて確認・見直しを行いました。
+      <strong>最近報道されているPHPの脆弱性については、当店の予約システムではPHPを使用しておらず、直接の影響を受ける構成ではありません。</strong>
+    </p>
+    <ul class="securityNoticePoints">
+      <li>予約情報・お名前・電話番号・カルテ等は、管理者以外からアクセスできないよう制限しています。</li>
+      <li>管理画面は、登録された管理者のみ利用できるようアクセス制御を行っています。</li>
+      <li>LINE連携では、ご本人のLINEアカウントであることを確認したうえで情報を連携しています。</li>
+      <li>新たなセキュリティ情報を確認し、必要に応じて継続的に見直し・対策を行います。</li>
+    </ul>
+    <div class="securityNoticeFooter">
+      お預かりした個人情報は、ご予約管理・ご連絡・施術およびカルテ管理など、サービス提供に必要な目的で適切に管理します。
+    </div>
+  </div>
+</details>
+
 <nav class="bookingWizardProgress" id="bookingWizardProgress" aria-label="予約の進み具合">
   <button type="button" class="wizardProgressItem active" data-wizard-step="1"><span>1</span><small>メニュー</small></button>
   <i></i>

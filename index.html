@@ -1291,7 +1291,7 @@ async function fillCustomerProfileFromLine(accessToken){
 function setLatestManage(t){if(!t)return;localStorage.setItem('nakano_latest_manage_token',t);$('latestManageLink').href=`${BASE_URL}?manage=${encodeURIComponent(t)}`;$('latestManage').classList.remove('hidden')}
 function loadLatestManage(){if(manageToken)return;const t=localStorage.getItem('nakano_latest_manage_token');if(t)setLatestManage(t)}
 async function invokeNotification(body){try{const{error}=await supabase.functions.invoke('nakano-booking-notify',{body});if(error){console.error(error);return false}return true}catch(e){console.error(e);return false}}
-async function initLine(){if(manageToken){$('lineStatus').textContent='ご予約内容の確認・変更ができます。';return null}try{if(!window.liff)throw Error('LIFF SDK not loaded');await liff.init({liffId:LIFF_ID});if(!liff.isLoggedIn()){ $('lineStatus').textContent='LINE連携のためログイン画面へ移動します…';liff.login({redirectUri:BASE_URL});return null}const p=await liff.getProfile();const accessToken=liff.getAccessToken()||'';lineUser={userId:p.userId,displayName:p.displayName||'',accessToken};$('lineStatus').textContent='LINEで予約完了のお知らせを受け取れます。';const filled=await fillCustomerProfileFromLine(accessToken);if(!filled)loadSavedCustomerProfile();return lineUser}catch(e){console.error(e);$('lineStatus').textContent='オンライン予約をご利用いただけます。';loadSavedCustomerProfile();return null}}
+async function initLine(){if(manageToken){$('lineStatus').textContent='ご予約内容の確認・変更ができます。';return null}try{if(!window.liff)throw Error('LIFF SDK not loaded');await liff.init({liffId:LIFF_ID});if(!liff.isLoggedIn()){ $('lineStatus').textContent='LINE連携のためログイン画面へ移動します…';liff.login({redirectUri:window.location.href});return null}const p=await liff.getProfile();const accessToken=liff.getAccessToken()||'';lineUser={userId:p.userId,displayName:p.displayName||'',accessToken};$('lineStatus').textContent='LINEで予約完了のお知らせを受け取れます。';const filled=await fillCustomerProfileFromLine(accessToken);if(!filled)loadSavedCustomerProfile();return lineUser}catch(e){console.error(e);$('lineStatus').textContent='オンライン予約をご利用いただけます。';loadSavedCustomerProfile();return null}}
 const lineReadyPromise=initLine();
 async function loadMenus(){
   const{data,error}=await supabase.from('nakano_menus').select('*').eq('is_active',true).order('display_order');
@@ -2001,15 +2001,34 @@ document.addEventListener('click',function(e){
 
 <script>
 (function(){
-  function openSecurityNotice(){
-    if(location.hash!=='#security')return;
-    const el=document.getElementById('securityNotice');
-    if(!el)return;
-    el.open=true;
-    requestAnimationFrame(()=>el.scrollIntoView({behavior:'smooth',block:'start'}));
+  function securityRequested(){
+    const params=new URLSearchParams(location.search);
+    return params.get('security')==='1'||location.hash==='#security';
   }
-  window.addEventListener('DOMContentLoaded',openSecurityNotice,{once:true});
-  window.addEventListener('hashchange',openSecurityNotice);
+
+  function openSecurityNotice(scrollBehavior='auto'){
+    if(!securityRequested())return false;
+    const el=document.getElementById('securityNotice');
+    if(!el)return false;
+    el.open=true;
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        el.scrollIntoView({behavior:scrollBehavior,block:'start'});
+      });
+    });
+    return true;
+  }
+
+  // 即時・通常読込・LIFF復帰・スプラッシュ終了後のすべてで再確認する。
+  openSecurityNotice('auto');
+  window.addEventListener('DOMContentLoaded',()=>openSecurityNotice('auto'),{once:true});
+  window.addEventListener('load',()=>openSecurityNotice('auto'),{once:true});
+  window.addEventListener('pageshow',()=>openSecurityNotice('auto'));
+  window.addEventListener('hashchange',()=>openSecurityNotice('smooth'));
+
+  [400,1200,2600,4200].forEach(ms=>{
+    setTimeout(()=>openSecurityNotice(ms>=2600?'smooth':'auto'),ms);
+  });
 })();
 </script>
 </body></html>

@@ -8,10 +8,10 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>整体なかの｜管理トップ</title>
-<meta name="nakano-admin-build" content="2026-10-27-line-password-reset-v8">
+<meta name="nakano-admin-build" content="2026-10-27-line-password-reset-v9">
 <script>
 (function(){
-  var BUILD='20261027-line-reset-v8';
+  var BUILD='20261027-line-reset-v9';
   window.addEventListener('pageshow',function(event){
     if(!event.persisted)return;
     try{
@@ -1804,8 +1804,42 @@ const $=
 id=>document.getElementById(id);
 
 
+const ADMIN_RESET_SESSION_KEY='nakano_admin_reset_session_v1';
 let adminResetEmail='';
 let adminResetChallengeId='';
+
+function saveAdminResetSession(){
+  try{
+    sessionStorage.setItem(
+      ADMIN_RESET_SESSION_KEY,
+      JSON.stringify({
+        email:adminResetEmail,
+        challengeId:adminResetChallengeId,
+        savedAt:Date.now()
+      })
+    );
+  }catch(_){}
+}
+
+function restoreAdminResetSession(){
+  try{
+    const saved=JSON.parse(sessionStorage.getItem(ADMIN_RESET_SESSION_KEY)||'null');
+    if(!saved?.email||!saved?.challengeId||!saved?.savedAt)return false;
+    if(Date.now()-Number(saved.savedAt)>10*60*1000){
+      sessionStorage.removeItem(ADMIN_RESET_SESSION_KEY);
+      return false;
+    }
+    adminResetEmail=String(saved.email);
+    adminResetChallengeId=String(saved.challengeId);
+    return true;
+  }catch(_){
+    return false;
+  }
+}
+
+function clearAdminResetSession(){
+  try{sessionStorage.removeItem(ADMIN_RESET_SESSION_KEY)}catch(_){}
+}
 
 function showPasswordRecovery(){
   $('loginCard')?.classList.remove('hidden');
@@ -1817,6 +1851,7 @@ function showPasswordRecovery(){
 function closePasswordRecovery(){
   adminResetEmail='';
   adminResetChallengeId='';
+  clearAdminResetSession();
   $('recoveryCode').value='';
   $('newPassword').value='';
   $('newPasswordConfirm').value='';
@@ -2387,9 +2422,10 @@ async()=>{
 
   adminResetEmail=email;
   adminResetChallengeId=String(data.challenge_id);
+  saveAdminResetSession();
   $('loginMsg').textContent='';
   showPasswordRecovery();
-  $('recoveryMsg').textContent='登録済みの管理者LINEへ6桁コードを送信しました。';
+  $('recoveryMsg').textContent='登録済みの管理者LINEへ6桁コードを送信しました。LINEを確認して戻ってきても、この画面から続けられます。';
   $('recoveryCode').focus();
 };
 
@@ -2418,33 +2454,55 @@ async()=>{
   }
 
   if(!adminResetEmail||!adminResetChallengeId){
-    $('recoveryMsg').textContent='確認コードをもう一度発行してください。';
+    restoreAdminResetSession();
+  }
+
+  if(!adminResetEmail||!adminResetChallengeId){
+    $('recoveryMsg').textContent='確認コードの情報が失われました。もう一度コードを発行してください。';
+    $('recoveryMsg').scrollIntoView({behavior:'smooth',block:'center'});
     return;
   }
 
   $('saveNewPassword').disabled=true;
   $('recoveryMsg').textContent='変更しています…';
 
-  const{data,error}=await supabase.functions.invoke(
-    'nakano-admin-password-reset',
-    {
-      body:{
-        action:'reset_password',
-        email:adminResetEmail,
-        challenge_id:adminResetChallengeId,
-        code,
-        password
+  let data=null;
+  let error=null;
+
+  try{
+    const result=await supabase.functions.invoke(
+      'nakano-admin-password-reset',
+      {
+        body:{
+          action:'reset_password',
+          email:adminResetEmail,
+          challenge_id:adminResetChallengeId,
+          code,
+          password
+        }
       }
-    }
-  );
+    );
+    data=result.data;
+    error=result.error;
+  }catch(invokeError){
+    error=invokeError;
+  }
 
   $('saveNewPassword').disabled=false;
 
   if(error||!data?.ok){
+    let message=data?.error||'';
+    if(!message&&error?.context){
+      try{
+        const detail=await error.context.json();
+        message=detail?.error||'';
+      }catch(_){}
+    }
     console.error(error||data);
     $('recoveryMsg').textContent=
-      data?.error||
+      message||
       'パスワードを変更できませんでした。確認コードを確認してください。';
+    $('recoveryMsg').scrollIntoView({behavior:'smooth',block:'center'});
     return;
   }
 
@@ -5701,6 +5759,11 @@ supabase.auth
     ()=>syncAuth()
   );
 
+
+if(restoreAdminResetSession()){
+  showPasswordRecovery();
+  $('recoveryMsg').textContent='LINEに届いた6桁コードと新しいパスワードを入力してください。';
+}
 
 syncAuth();
 

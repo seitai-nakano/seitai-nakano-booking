@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>整体なかの｜管理トップ</title>
-<meta name="nakano-admin-build" content="2026-10-24-security-hardening-v5">
+<meta name="nakano-admin-build" content="2026-10-27-admin-password-recovery-v6">
 <script>
 (function(){
   var BUILD='20261015-compact-readable-v2';
@@ -1251,6 +1251,26 @@ details.settingsDetails summary{
   white-space:pre-wrap;
 }
 
+.adminForgotButton{
+  margin-top:8px!important;
+  padding:9px 10px!important;
+  border:0!important;
+  background:transparent!important;
+  color:#6b625b!important;
+  font-size:12.5px!important;
+  font-weight:700!important;
+  text-decoration:underline;
+}
+.adminRecoveryPanel{
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid #e6ddd5;
+}
+.adminRecoveryPanel h3{
+  margin:0 0 8px;
+  font-size:16px;
+}
+
 </style>
 </head>
 
@@ -1270,6 +1290,7 @@ details.settingsDetails summary{
 
 <h2>管理者ログイン</h2>
 
+<div id="normalLoginFields">
 <input
   id="email"
   type="email"
@@ -1288,7 +1309,35 @@ details.settingsDetails summary{
 ログイン
 </button>
 
+<button class="adminForgotButton" id="forgotPassword" type="button">
+パスワードを忘れた場合
+</button>
+
 <div id="loginMsg" class="msg"></div>
+</div>
+
+<div id="recoveryPanel" class="adminRecoveryPanel hidden">
+  <h3>新しいパスワードを設定</h3>
+  <p class="muted" style="margin:0 0 8px">
+    12文字以上の新しいパスワードを入力してください。
+  </p>
+  <input
+    id="newPassword"
+    type="password"
+    placeholder="新しいパスワード"
+    autocomplete="new-password"
+  >
+  <input
+    id="newPasswordConfirm"
+    type="password"
+    placeholder="新しいパスワード（確認）"
+    autocomplete="new-password"
+  >
+  <button class="primary" id="saveNewPassword" type="button">
+    新しいパスワードを保存
+  </button>
+  <div id="recoveryMsg" class="msg"></div>
+</div>
 
 </section>
 
@@ -1743,6 +1792,21 @@ const $=
 id=>document.getElementById(id);
 
 
+const ADMIN_RECOVERY_URL=
+  location.origin+location.pathname+'?passwordRecovery=1';
+
+let passwordRecoveryMode=
+  new URLSearchParams(location.search).get('passwordRecovery')==='1';
+
+function showPasswordRecovery(){
+  passwordRecoveryMode=true;
+  $('loginCard')?.classList.remove('hidden');
+  $('adminArea')?.classList.add('hidden');
+  $('normalLoginFields')?.classList.add('hidden');
+  $('recoveryPanel')?.classList.remove('hidden');
+}
+
+
 const DAY_START=
   8*60;
 
@@ -2137,6 +2201,12 @@ async function syncAuth(){
       .getSession();
 
 
+  if(passwordRecoveryMode){
+    showPasswordRecovery();
+    return;
+  }
+
+
   let isAdmin=false;
   if(session){
     const{data:adminAllowed,error:adminCheckError}=await supabase.rpc('nakano_current_user_is_admin');
@@ -2256,13 +2326,89 @@ async()=>{
   if(error){
 
     $('loginMsg').textContent=
-      'ログインできませんでした。';
+      error?.code==='invalid_credentials'
+      ?'メールアドレスまたはパスワードが一致しません。'
+      :'ログインできませんでした。';
 
     return;
   }
 
 
   $('loginMsg').textContent='';
+
+  await syncAuth();
+};
+
+
+$('forgotPassword').onclick=
+async()=>{
+  const email=$('email').value.trim();
+
+  if(!email){
+    $('loginMsg').textContent='メールアドレスを入力してください。';
+    return;
+  }
+
+  $('forgotPassword').disabled=true;
+  $('loginMsg').textContent='再設定メールを送信しています…';
+
+  const{error}=await supabase.auth.resetPasswordForEmail(
+    email,
+    {redirectTo:ADMIN_RECOVERY_URL}
+  );
+
+  $('forgotPassword').disabled=false;
+
+  if(error){
+    console.error(error);
+    $('loginMsg').textContent='再設定メールを送信できませんでした。時間をおいてもう一度お試しください。';
+    return;
+  }
+
+  $('loginMsg').textContent='パスワード再設定メールを送信しました。メール内のリンクを開いてください。';
+};
+
+
+$('saveNewPassword').onclick=
+async()=>{
+  const password=$('newPassword').value;
+  const confirmPassword=$('newPasswordConfirm').value;
+
+  $('recoveryMsg').textContent='';
+
+  if(password.length<12){
+    $('recoveryMsg').textContent='パスワードは12文字以上にしてください。';
+    return;
+  }
+
+  if(password!==confirmPassword){
+    $('recoveryMsg').textContent='確認用パスワードが一致しません。';
+    return;
+  }
+
+  $('saveNewPassword').disabled=true;
+  $('recoveryMsg').textContent='変更しています…';
+
+  const{error}=await supabase.auth.updateUser({password});
+
+  $('saveNewPassword').disabled=false;
+
+  if(error){
+    console.error(error);
+    $('recoveryMsg').textContent='パスワードを変更できませんでした。もう一度お試しください。';
+    return;
+  }
+
+  await supabase.auth.signOut();
+
+  passwordRecoveryMode=false;
+  history.replaceState(null,'',location.pathname);
+
+  $('newPassword').value='';
+  $('newPasswordConfirm').value='';
+  $('recoveryPanel').classList.add('hidden');
+  $('normalLoginFields').classList.remove('hidden');
+  $('loginMsg').textContent='パスワードを変更しました。新しいパスワードでログインしてください。';
 
   await syncAuth();
 };
@@ -5506,7 +5652,13 @@ document.addEventListener('visibilitychange',()=>{
 
 supabase.auth
   .onAuthStateChange(
-    ()=>syncAuth()
+    (event)=>{
+      if(event==='PASSWORD_RECOVERY'){
+        showPasswordRecovery();
+        return;
+      }
+      syncAuth();
+    }
   );
 
 

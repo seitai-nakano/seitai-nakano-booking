@@ -8,7 +8,7 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>整体なかの｜管理トップ</title>
-<meta name="nakano-admin-build" content="2026-10-27-admin-password-recovery-v6">
+<meta name="nakano-admin-build" content="2026-10-27-line-password-reset-v7">
 <script>
 (function(){
   var BUILD='20261015-compact-readable-v2';
@@ -1317,14 +1317,23 @@ details.settingsDetails summary{
 </div>
 
 <div id="recoveryPanel" class="adminRecoveryPanel hidden">
-  <h3>新しいパスワードを設定</h3>
+  <h3>パスワードを再設定</h3>
   <p class="muted" style="margin:0 0 8px">
-    12文字以上の新しいパスワードを入力してください。
+    登録済みの管理者LINEに届いた6桁コードと、新しいパスワードを入力してください。コードの有効期限は10分です。
   </p>
+  <input
+    id="recoveryCode"
+    type="text"
+    inputmode="numeric"
+    maxlength="6"
+    pattern="[0-9]*"
+    placeholder="6桁の確認コード"
+    autocomplete="one-time-code"
+  >
   <input
     id="newPassword"
     type="password"
-    placeholder="新しいパスワード"
+    placeholder="新しいパスワード（12文字以上）"
     autocomplete="new-password"
   >
   <input
@@ -1335,6 +1344,9 @@ details.settingsDetails summary{
   >
   <button class="primary" id="saveNewPassword" type="button">
     新しいパスワードを保存
+  </button>
+  <button class="secondary" id="cancelPasswordReset" type="button">
+    ログイン画面に戻る
   </button>
   <div id="recoveryMsg" class="msg"></div>
 </div>
@@ -1792,18 +1804,25 @@ const $=
 id=>document.getElementById(id);
 
 
-const ADMIN_RECOVERY_URL=
-  location.origin+location.pathname+'?passwordRecovery=1';
-
-let passwordRecoveryMode=
-  new URLSearchParams(location.search).get('passwordRecovery')==='1';
+let adminResetEmail='';
+let adminResetChallengeId='';
 
 function showPasswordRecovery(){
-  passwordRecoveryMode=true;
   $('loginCard')?.classList.remove('hidden');
   $('adminArea')?.classList.add('hidden');
   $('normalLoginFields')?.classList.add('hidden');
   $('recoveryPanel')?.classList.remove('hidden');
+}
+
+function closePasswordRecovery(){
+  adminResetEmail='';
+  adminResetChallengeId='';
+  $('recoveryCode').value='';
+  $('newPassword').value='';
+  $('newPasswordConfirm').value='';
+  $('recoveryMsg').textContent='';
+  $('recoveryPanel').classList.add('hidden');
+  $('normalLoginFields').classList.remove('hidden');
 }
 
 
@@ -2201,12 +2220,6 @@ async function syncAuth(){
       .getSession();
 
 
-  if(passwordRecoveryMode){
-    showPasswordRecovery();
-    return;
-  }
-
-
   let isAdmin=false;
   if(session){
     const{data:adminAllowed,error:adminCheckError}=await supabase.rpc('nakano_current_user_is_admin');
@@ -2350,31 +2363,49 @@ async()=>{
   }
 
   $('forgotPassword').disabled=true;
-  $('loginMsg').textContent='再設定メールを送信しています…';
+  $('loginMsg').textContent='登録済みLINEへ確認コードを送信しています…';
 
-  const{error}=await supabase.auth.resetPasswordForEmail(
-    email,
-    {redirectTo:ADMIN_RECOVERY_URL}
+  const{data,error}=await supabase.functions.invoke(
+    'nakano-admin-password-reset',
+    {
+      body:{
+        action:'request_code',
+        email
+      }
+    }
   );
 
   $('forgotPassword').disabled=false;
 
-  if(error){
-    console.error(error);
-    $('loginMsg').textContent='再設定メールを送信できませんでした。時間をおいてもう一度お試しください。';
+  if(error||!data?.ok||!data?.challenge_id){
+    console.error(error||data);
+    $('loginMsg').textContent=
+      data?.error||
+      '確認コードを送信できませんでした。時間をおいてもう一度お試しください。';
     return;
   }
 
-  $('loginMsg').textContent='パスワード再設定メールを送信しました。メール内のリンクを開いてください。';
+  adminResetEmail=email;
+  adminResetChallengeId=String(data.challenge_id);
+  $('loginMsg').textContent='';
+  showPasswordRecovery();
+  $('recoveryMsg').textContent='登録済みの管理者LINEへ6桁コードを送信しました。';
+  $('recoveryCode').focus();
 };
 
 
 $('saveNewPassword').onclick=
 async()=>{
+  const code=$('recoveryCode').value.trim();
   const password=$('newPassword').value;
   const confirmPassword=$('newPasswordConfirm').value;
 
   $('recoveryMsg').textContent='';
+
+  if(!/^\d{6}$/.test(code)){
+    $('recoveryMsg').textContent='LINEに届いた6桁コードを入力してください。';
+    return;
+  }
 
   if(password.length<12){
     $('recoveryMsg').textContent='パスワードは12文字以上にしてください。';
@@ -2386,31 +2417,46 @@ async()=>{
     return;
   }
 
-  $('saveNewPassword').disabled=true;
-  $('recoveryMsg').textContent='変更しています…';
-
-  const{error}=await supabase.auth.updateUser({password});
-
-  $('saveNewPassword').disabled=false;
-
-  if(error){
-    console.error(error);
-    $('recoveryMsg').textContent='パスワードを変更できませんでした。もう一度お試しください。';
+  if(!adminResetEmail||!adminResetChallengeId){
+    $('recoveryMsg').textContent='確認コードをもう一度発行してください。';
     return;
   }
 
-  await supabase.auth.signOut();
+  $('saveNewPassword').disabled=true;
+  $('recoveryMsg').textContent='変更しています…';
 
-  passwordRecoveryMode=false;
-  history.replaceState(null,'',location.pathname);
+  const{data,error}=await supabase.functions.invoke(
+    'nakano-admin-password-reset',
+    {
+      body:{
+        action:'reset_password',
+        email:adminResetEmail,
+        challenge_id:adminResetChallengeId,
+        code,
+        password
+      }
+    }
+  );
 
-  $('newPassword').value='';
-  $('newPasswordConfirm').value='';
-  $('recoveryPanel').classList.add('hidden');
-  $('normalLoginFields').classList.remove('hidden');
+  $('saveNewPassword').disabled=false;
+
+  if(error||!data?.ok){
+    console.error(error||data);
+    $('recoveryMsg').textContent=
+      data?.error||
+      'パスワードを変更できませんでした。確認コードを確認してください。';
+    return;
+  }
+
+  closePasswordRecovery();
+  $('password').value='';
   $('loginMsg').textContent='パスワードを変更しました。新しいパスワードでログインしてください。';
+};
 
-  await syncAuth();
+
+$('cancelPasswordReset').onclick=()=>{
+  closePasswordRecovery();
+  $('loginMsg').textContent='';
 };
 
 
@@ -5652,13 +5698,7 @@ document.addEventListener('visibilitychange',()=>{
 
 supabase.auth
   .onAuthStateChange(
-    (event)=>{
-      if(event==='PASSWORD_RECOVERY'){
-        showPasswordRecovery();
-        return;
-      }
-      syncAuth();
-    }
+    ()=>syncAuth()
   );
 
 
